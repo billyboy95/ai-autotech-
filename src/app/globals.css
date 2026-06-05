@@ -1,0 +1,92 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f7f9fc;
+  --foreground: #111827;
+  --midnight: #0b1f3a;
+  --electric: #2563eb;
+  --cyan: #38bdf8;
+  --muted: #64748b;
+  --line: #d9e2ef;
+  --surface: #ffffff;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-poppins);
+  --font-display: var(--font-montserrat);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  min-height: 100vh;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-poppins), Arial, Helvetica, sans-serif;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.font-display {
+  font-family: var(--font-montserrat), Arial, Helvetica, sans-serif;
+}
+
+.grid-pattern {
+  background-image:
+    linear-gradient(rgba(11, 31, 58, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(11, 31, 58, 0.05) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+
+.glass-panel {
+  background: rgba(255, 255, 255, 0.86);
+  border: 1px solid rgba(217, 226, 239, 0.9);
+  box-shadow: 0 20px 60px rgba(11, 31, 58, 0.08);
+  backdrop-filter: blur(18px);
+}
+
+.status-dot {
+  position: relative;
+  padding-left: 0.9rem;
+}
+
+.status-dot::before {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 0.45rem;
+  height: 0.45rem;
+  content: "";
+  transform: translateY(-50%);
+  border-radius: 999px;
+  background: currentColor;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

@@ -1,6 +1,6 @@
-# AI AutoTech Command Centre
+# AI AutoTech
 
-Production-ready SaaS foundation for AI AutoTech, a Zentrix Online division. The app includes a public website, a private command-centre dashboard, Supabase Auth integration points, lead capture, RBAC scaffolding, and a Supabase/PostgreSQL schema.
+Production-ready SaaS foundation for AI AutoTech. The app includes a public website, a private command-centre dashboard, Supabase Auth integration points, lead capture, RBAC scaffolding, and a Supabase/PostgreSQL schema.
 
 ## Stack
 

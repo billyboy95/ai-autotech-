@@ -4,7 +4,7 @@ export default function AboutPage() {
   return (
     <PublicPageShell
       title="About AI AutoTech"
-      description="AI AutoTech is a Zentrix Online division building automation, AI, software, and digital transformation systems."
+      description="AI AutoTech builds automation, AI, software, and digital transformation systems for South African SMEs."
       sourcePage="about"
       items={[
         "South African SME focus",

@@ -1,13 +1,13 @@
 import Link from "next/link";
 import {
   ArrowRight,
-  Bot,
   CalendarDays,
   CheckCircle2,
   ExternalLink,
   MessageCircle,
   ShieldCheck,
 } from "lucide-react";
+import { BrandLogo } from "@/components/brand-logo";
 import { LeadForm } from "@/components/lead-form";
 import {
   databaseTables,
@@ -46,13 +46,7 @@ export default function Home() {
       <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/90 backdrop-blur">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 lg:px-6">
           <Link href="/" className="flex items-center gap-3">
-            <span className="flex h-10 w-10 items-center justify-center rounded-md bg-[#0B1F3A] text-[#38BDF8]">
-              <Bot size={22} />
-            </span>
-            <span>
-              <span className="block font-display text-base font-bold text-[#0B1F3A]">AI AutoTech</span>
-              <span className="block text-xs font-medium text-slate-500">Zentrix Online</span>
-            </span>
+            <BrandLogo compact />
           </Link>
           <nav className="hidden items-center gap-5 text-sm font-medium text-slate-600 xl:flex">
             {publicPages.slice(1, 7).map((page) => (
@@ -83,7 +77,7 @@ export default function Home() {
         <div className="mx-auto grid max-w-7xl gap-10 px-4 py-16 lg:grid-cols-[0.92fr_1.08fr] lg:px-6 lg:py-20">
           <div className="flex flex-col justify-center">
             <h1 className="font-display text-4xl font-extrabold leading-tight text-[#0B1F3A] md:text-6xl">
-              AI AutoTech Command Centre
+              AI AutoTech
             </h1>
             <p className="mt-5 max-w-2xl text-lg leading-8 text-slate-600">
               A scalable operating system for automation, AI, software delivery, CRM, proposals, invoices, client portals, and future SaaS products for South African SMEs.

@@ -18,13 +18,13 @@ const poppins = Poppins({
 export const metadata: Metadata = {
   metadataBase: new URL("https://ai-autotech.co.za"),
   title: {
-    default: "AI AutoTech Command Centre",
+    default: "AI AutoTech",
     template: "%s | AI AutoTech",
   },
   description:
-    "AI AutoTech Command Centre is a premium operating system for automation, CRM, AI agents, projects, proposals, invoices, and client portals.",
+    "AI AutoTech is a premium operating system for automation, CRM, AI agents, projects, proposals, invoices, and client portals.",
   openGraph: {
-    title: "AI AutoTech Command Centre",
+    title: "AI AutoTech",
     description:
       "Automation, AI, software, and digital transformation for South African SMEs.",
     url: "https://ai-autotech.co.za",
@@ -34,7 +34,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "AI AutoTech Command Centre",
+    title: "AI AutoTech",
     description:
       "A scalable internal operating system evolving into a client-facing SaaS platform.",
   },

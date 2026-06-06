@@ -13,6 +13,7 @@ import {
   YAxis,
 } from "recharts";
 import { motion } from "framer-motion";
+import { BrandLogo } from "@/components/brand-logo";
 import {
   agents,
   dashboardNav,
@@ -24,7 +25,7 @@ import {
   roleMatrix,
   tickets,
 } from "@/lib/platform-data";
-import { Bell, ChevronDown, CirclePlus, Search, Settings, ShieldCheck } from "lucide-react";
+import { Bell, ChevronDown, CirclePlus, Search, Settings } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 
 const fadeUp = {
@@ -65,13 +66,7 @@ export function CommandCentreDashboard() {
       <div className="grid min-h-screen lg:grid-cols-[280px_1fr]">
         <aside className="hidden border-r border-slate-200 bg-[#0B1F3A] p-5 text-white lg:block">
           <div className="mb-8 flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-md bg-[#38BDF8] text-[#0B1F3A]">
-              <ShieldCheck size={21} />
-            </div>
-            <div>
-              <p className="font-display text-base font-bold">AI AutoTech</p>
-              <p className="text-xs text-cyan-100">Zentrix Online</p>
-            </div>
+            <BrandLogo dark compact />
           </div>
           <nav className="space-y-1">
             {dashboardNav.map((item, index) => (
@@ -101,7 +96,7 @@ export function CommandCentreDashboard() {
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#2563EB]">
-                  Command Centre
+                  AI AutoTech
                 </p>
                 <h1 className="font-display text-2xl font-bold text-[#0B1F3A] md:text-3xl">
                   Executive Operating System

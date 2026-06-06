@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { ArrowRight, Bot } from "lucide-react";
+import { ArrowRight } from "lucide-react";
+import { BrandLogo } from "@/components/brand-logo";
 import { LeadForm } from "@/components/lead-form";
 import { publicPages } from "@/lib/platform-data";
 
@@ -19,10 +20,7 @@ export function PublicPageShell({
       <header className="border-b border-slate-200 bg-white">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 lg:px-6">
           <Link href="/" className="flex items-center gap-3">
-            <span className="flex h-10 w-10 items-center justify-center rounded-md bg-[#0B1F3A] text-[#38BDF8]">
-              <Bot size={22} />
-            </span>
-            <span className="font-display font-bold text-[#0B1F3A]">AI AutoTech</span>
+            <BrandLogo compact />
           </Link>
           <nav className="hidden gap-5 text-sm font-medium text-slate-600 lg:flex">
             {publicPages.slice(1, 6).map((page) => (

@@ -181,6 +181,8 @@ export const reports = [
 
 export const databaseTables = [
   "users",
+  "organizations",
+  "organization_members",
   "profiles",
   "companies",
   "contacts",
@@ -204,6 +206,7 @@ export const databaseTables = [
   "services",
   "service_packages",
   "settings",
+  "subscriptions",
 ];
 
 export const roleMatrix = [

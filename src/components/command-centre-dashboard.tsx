@@ -15,18 +15,13 @@ import {
 import { motion } from "framer-motion";
 import { BrandLogo } from "@/components/brand-logo";
 import {
-  agents,
   dashboardNav,
-  kpis,
-  pipeline,
-  projects,
-  reports,
-  revenueData,
-  roleMatrix,
-  tickets,
 } from "@/lib/platform-data";
+import type { DashboardData } from "@/lib/dashboard-data";
 import { Bell, ChevronDown, CirclePlus, Search, Settings } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
+import { PrivateModuleForms } from "@/components/private-module-forms";
+import { BillingPanel } from "@/components/billing-panel";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 16 },
@@ -54,7 +49,7 @@ function StatusChip({ value }: { value: string }) {
   );
 }
 
-export function CommandCentreDashboard() {
+export function CommandCentreDashboard({ data }: { data: DashboardData }) {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -101,6 +96,9 @@ export function CommandCentreDashboard() {
                 <h1 className="font-display text-2xl font-bold text-[#0B1F3A] md:text-3xl">
                   Executive Operating System
                 </h1>
+                <p className="mt-1 text-xs font-medium text-slate-500">
+                  Data source: {data.dataSource === "supabase" ? "Supabase live queries" : "mock fallback"}
+                </p>
               </div>
               <div className="flex items-center gap-2">
                 <div className="hidden h-10 items-center gap-2 rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-500 md:flex">
@@ -125,7 +123,7 @@ export function CommandCentreDashboard() {
               transition={{ staggerChildren: 0.05 }}
               className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4"
             >
-              {kpis.map((item) => (
+              {data.kpis.map((item) => (
                 <motion.article
                   variants={fadeUp}
                   key={item.label}
@@ -157,7 +155,7 @@ export function CommandCentreDashboard() {
                 <div className="h-72">
                   {mounted ? (
                     <ResponsiveContainer width="100%" height="100%">
-                      <AreaChart data={revenueData}>
+                      <AreaChart data={data.revenueData}>
                         <defs>
                           <linearGradient id="revenue" x1="0" y1="0" x2="0" y2="1">
                             <stop offset="5%" stopColor="#2563EB" stopOpacity={0.28} />
@@ -185,7 +183,7 @@ export function CommandCentreDashboard() {
                 <div className="h-72">
                   {mounted ? (
                     <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={pipeline} layout="vertical" margin={{ left: 18 }}>
+                      <BarChart data={data.pipeline} layout="vertical" margin={{ left: 18 }}>
                         <CartesianGrid stroke="#E2E8F0" horizontal={false} />
                         <XAxis type="number" hide />
                         <YAxis dataKey="stage" type="category" width={104} axisLine={false} tickLine={false} tick={{ fontSize: 11 }} />
@@ -227,7 +225,7 @@ export function CommandCentreDashboard() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
-                      {projects.map((project) => (
+                      {data.projects.map((project) => (
                         <tr key={project.project} className="hover:bg-slate-50">
                           <td className="px-5 py-4 font-semibold text-slate-900">{project.client}</td>
                           <td className="px-5 py-4 text-slate-700">{project.project}</td>
@@ -253,7 +251,7 @@ export function CommandCentreDashboard() {
                 <h2 className="font-display text-lg font-bold text-[#0B1F3A]">AI Agent Dashboard</h2>
                 <p className="mb-4 text-sm text-slate-500">Sales, support, operations, marketing, finance, and executive agents.</p>
                 <div className="space-y-3">
-                  {agents.map((agent) => (
+                  {data.agents.map((agent) => (
                     <article key={agent.name} className="rounded-md border border-slate-200 p-3">
                       <div className="flex items-start justify-between gap-3">
                         <div>
@@ -282,7 +280,7 @@ export function CommandCentreDashboard() {
               <section className="rounded-md border border-slate-200 bg-white p-5 shadow-sm">
                 <h2 className="font-display text-lg font-bold text-[#0B1F3A]">Support Tickets</h2>
                 <div className="mt-4 space-y-3">
-                  {tickets.map((ticket) => (
+                  {data.tickets.map((ticket) => (
                     <div key={ticket.title} className="rounded-md border border-slate-200 p-3">
                       <div className="flex items-start justify-between gap-3">
                         <div>
@@ -299,7 +297,7 @@ export function CommandCentreDashboard() {
               <section className="rounded-md border border-slate-200 bg-white p-5 shadow-sm">
                 <h2 className="font-display text-lg font-bold text-[#0B1F3A]">Reporting Centre</h2>
                 <div className="mt-4 grid gap-2">
-                  {reports.map((report) => (
+                  {data.reports.map((report) => (
                     <button key={report} className="flex h-10 items-center justify-between rounded-md border border-slate-200 px-3 text-left text-sm font-semibold text-slate-700 hover:border-[#2563EB] hover:text-[#2563EB]">
                       {report}
                       <span className="text-slate-400">Open</span>
@@ -311,7 +309,7 @@ export function CommandCentreDashboard() {
               <section className="rounded-md border border-slate-200 bg-white p-5 shadow-sm">
                 <h2 className="font-display text-lg font-bold text-[#0B1F3A]">RBAC Foundation</h2>
                 <div className="mt-4 space-y-2">
-                  {roleMatrix.map(([role, access]) => (
+                  {data.roleMatrix.map(([role, access]) => (
                     <div key={role} className="rounded-md bg-slate-50 p-3">
                       <p className="font-semibold text-slate-900">{role}</p>
                       <p className="mt-1 text-xs leading-5 text-slate-500">{access}</p>
@@ -319,6 +317,11 @@ export function CommandCentreDashboard() {
                   ))}
                 </div>
               </section>
+            </div>
+
+            <div className="grid gap-6 xl:grid-cols-[1fr_0.9fr]">
+              <PrivateModuleForms />
+              <BillingPanel />
             </div>
           </section>
         </main>

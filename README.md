@@ -12,6 +12,9 @@ Production-ready SaaS foundation for AI AutoTech. The app includes a public webs
 - Recharts
 - Supabase Auth and PostgreSQL
 - Server Actions
+- Stripe subscriptions
+- Supabase Storage document uploads
+- PDF rendering for proposals and invoices
 - Vercel-ready deployment
 
 ## Routes
@@ -46,7 +49,8 @@ Open `http://localhost:3000`.
 3. Copy `.env.example` to `.env.local`.
 4. Set `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
 5. Create users in Supabase Auth.
-6. Insert matching rows into `profiles` with one of these roles: `Super Admin`, `Admin`, `Staff`, `Contractor`, `Client`.
+6. Create an `organizations` row and matching `organization_members` rows for each user.
+7. Insert matching rows into `profiles` with one of these roles: `Super Admin`, `Admin`, `Staff`, `Contractor`, `Client`.
 
 When Supabase variables are set, `/command-centre` is protected by middleware. Without Supabase variables, the dashboard remains viewable for local design review.
 
@@ -73,11 +77,35 @@ Required lead fields:
 - Login action
 - Protected-route middleware
 - Role-based access model
+- Organization membership boundaries for tenant-scoped records
 - RLS-enabled SQL schema
 - Public insert policy for leads
 - Internal read/write policies for platform modules
 - Audit log table
 - Environment variable examples
+
+## Private Modules
+
+The Command Centre includes create/edit forms for:
+
+- CRM leads
+- Clients
+- Projects
+- Proposals
+- Invoices
+- AI agents
+- Support tickets
+- Documents
+
+Forms use Server Actions and write to Supabase when the environment variables and SQL schema are configured. The dashboard loads live Supabase data and falls back to sample data when Supabase is not connected.
+
+## Billing, Uploads, and PDFs
+
+- Stripe checkout action: `src/app/actions/billing.ts`
+- Stripe webhook route: `/api/billing/webhook`
+- Document upload action: `src/app/actions/documents.ts`
+- Proposal PDF route: `/api/proposals/[id]/pdf`
+- Invoice PDF route: `/api/invoices/[id]/pdf`
 
 ## Deployment
 

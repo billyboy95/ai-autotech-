@@ -1,14 +1,13 @@
 import type { Metadata } from "next";
-import { CommandCentreDashboard } from "@/components/command-centre-dashboard";
-import { getDashboardData } from "@/lib/dashboard-data";
+import { CompanyCrm } from "@/components/company-crm";
+import { readCrm } from "@/lib/crm-store";
 
 export const metadata: Metadata = {
-  title: "Command Centre",
-  description: "Private AI AutoTech operating dashboard for CRM, projects, proposals, invoices, agents, tickets, and reports.",
+  title: "AI AutoTech Pty Ltd CRM",
+  description: "Company CRM for AI AutoTech Pty Ltd.",
 };
 
 export default async function CommandCentrePage() {
-  const data = await getDashboardData();
-
-  return <CommandCentreDashboard data={data} />;
+  const data = await readCrm();
+  return <CompanyCrm data={data} />;
 }

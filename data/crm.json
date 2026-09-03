@@ -1,0 +1,23 @@
+{
+  "leads": [],
+  "clients": [
+    {
+      "id": "eastc",
+      "name": "EASTC Holdings",
+      "person": "CEO",
+      "phone": "",
+      "whatsapp": "",
+      "notes": "Existing work: eastech.co.za, foundation, institute"
+    }
+  ],
+  "jobs": [
+    {
+      "id": "job-sites",
+      "client": "EASTC Holdings",
+      "title": "Campus websites",
+      "kind": "Website",
+      "status": "Done"
+    }
+  ],
+  "invoices": []
+}

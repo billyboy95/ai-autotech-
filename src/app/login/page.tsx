@@ -17,7 +17,7 @@ export default function LoginPage() {
         </Link>
         <h1 className="font-display text-2xl font-bold text-[#0B1F3A]">Sign in</h1>
         <p className="mb-6 mt-2 text-sm leading-6 text-slate-600">
-          Sign in to your AI helper. We'll ask a few easy questions and set it up for you.
+          Sign in to your AI helper. We will ask a few easy questions and set it up for you.
         </p>
         <LoginForm />
       </section>

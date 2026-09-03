@@ -1,49 +1,29 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { createServerClient } from "@supabase/ssr";
-
-const protectedRoutes = ["/command-centre"];
+import { CRM_COOKIE, CRM_UNLOCK_PATH, isValidCrmCookie } from "@/lib/crm-auth";
 
 export async function middleware(request: NextRequest) {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  const isProtected = protectedRoutes.some((route) =>
-    request.nextUrl.pathname.startsWith(route),
-  );
+  const { pathname } = request.nextUrl;
 
-  if (!isProtected || !supabaseUrl || !supabaseAnonKey) {
+  if (!pathname.startsWith("/command-centre")) {
     return NextResponse.next();
   }
 
-  let response = NextResponse.next({ request });
-  const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
-    cookies: {
-      getAll() {
-        return request.cookies.getAll();
-      },
-      setAll(cookiesToSet) {
-        cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
-        response = NextResponse.next({ request });
-        cookiesToSet.forEach(({ name, value, options }) =>
-          response.cookies.set(name, value, options),
-        );
-      },
-    },
-  });
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/login";
-    url.searchParams.set("redirectedFrom", request.nextUrl.pathname);
-    return NextResponse.redirect(url);
+  if (pathname === CRM_UNLOCK_PATH || pathname.startsWith(`${CRM_UNLOCK_PATH}/`)) {
+    return NextResponse.next();
   }
 
-  return response;
+  const token = request.cookies.get(CRM_COOKIE)?.value;
+  if (await isValidCrmCookie(token)) {
+    return NextResponse.next();
+  }
+
+  const url = request.nextUrl.clone();
+  url.pathname = CRM_UNLOCK_PATH;
+  url.search = "";
+  url.searchParams.set("from", pathname);
+  return NextResponse.redirect(url);
 }
 
 export const config = {
-  matcher: ["/command-centre/:path*"],
+  matcher: ["/command-centre", "/command-centre/:path*"],
 };

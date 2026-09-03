@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { CompanyCrm } from "@/components/company-crm";
 import { readCrm } from "@/lib/crm-store";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "AI AutoTech Pty Ltd CRM",
   description: "Company CRM for AI AutoTech Pty Ltd.",

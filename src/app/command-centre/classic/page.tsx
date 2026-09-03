@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { CommandCentreDashboard } from "@/components/command-centre-dashboard";
 import { getDashboardData } from "@/lib/dashboard-data";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Classic Command Centre",
   description: "The original AI AutoTech operating dashboard.",

@@ -538,3 +538,8 @@ create policy "tenant agent tasks" on agent_tasks for all
   using (can_access_organization(organization_id)) with check (can_access_organization(organization_id));
 create policy "tenant appointments" on appointments for all
   using (can_access_organization(organization_id)) with check (can_access_organization(organization_id));
+
+-- Company CRM tables matching src/lib/crm-store.ts live in
+-- supabase/migrations/20260903000000_company_crm.sql
+-- (crm_leads, crm_clients, crm_jobs, crm_invoices).
+-- Existing leads/clients/invoices above belong to the classic Command Centre OS.

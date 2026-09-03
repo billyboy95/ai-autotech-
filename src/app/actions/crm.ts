@@ -2,8 +2,10 @@
 
 import { revalidatePath } from "next/cache";
 import { nid, readCrm, writeCrm, type CrmData } from "@/lib/crm-store";
+import { requireCrmSession } from "@/app/actions/crm-auth";
 
 async function save(mutator: (data: CrmData) => void) {
+  await requireCrmSession();
   const data = await readCrm();
   mutator(data);
   await writeCrm(data);

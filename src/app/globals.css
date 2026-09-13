@@ -13,6 +13,11 @@
   --font-display-stack: "Segoe UI", Arial, Helvetica, sans-serif;
 }
 
+.font-vars {
+  --font-sans-stack: "Inter", "Segoe UI", Arial, Helvetica, sans-serif;
+  --font-display-stack: "Segoe UI", Arial, Helvetica, sans-serif;
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);

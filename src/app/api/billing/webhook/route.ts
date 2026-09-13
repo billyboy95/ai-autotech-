@@ -93,7 +93,7 @@ async function updateEventStatus(
     .update({
       status,
       organization_id: organizationId,
-      processed_at: status === "processed" ? new Date().toISOString() : null,
+      processed_at: new Date().toISOString(),
     })
     .eq("stripe_event_id", eventId);
 }
@@ -173,7 +173,7 @@ export async function POST(request: Request) {
           organization_id: organizationId,
           stripe_customer_id: stripeCustomerId,
           stripe_subscription_id: stripeSubscriptionId,
-          stripe_price_id: object.lines?.data?.[0]?.price?.id ?? null,
+          stripe_price_id: null,
           plan_code: object.metadata?.plan_code ?? null,
           status: object.payment_status === "paid" ? "active" : "incomplete",
           updated_at: new Date().toISOString(),

@@ -37,7 +37,7 @@ export default function RootLayout({
   const clarityId = process.env.NEXT_PUBLIC_CLARITY_PROJECT_ID;
 
   return (
-    <html lang="en">
+    <html lang="en" className="font-vars">
       <body>
         {children}
         {gaId ? (

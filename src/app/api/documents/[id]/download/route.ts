@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { DOCUMENT_BUCKET } from "@/lib/documents";
+import { getCurrentOrganizationId } from "@/lib/organization";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export async function GET(
@@ -8,10 +9,17 @@ export async function GET(
 ) {
   const { id } = await params;
   const supabase = await createSupabaseServerClient();
+  const organizationId = await getCurrentOrganizationId();
+
+  if (!organizationId) {
+    return NextResponse.json({ error: "Organization access is required." }, { status: 403 });
+  }
+
   const { data, error } = await supabase
     .from("documents")
     .select("storage_path")
     .eq("id", id)
+    .eq("organization_id", organizationId)
     .maybeSingle();
 
   if (error) {

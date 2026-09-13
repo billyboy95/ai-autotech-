@@ -4,7 +4,7 @@ import { CRM_COOKIE, CRM_UNLOCK_PATH, isValidCrmCookie } from "@/lib/crm-auth";
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  if (!pathname.startsWith("/command-centre")) {
+  if (!pathname.startsWith("/command-centre/classic") && !pathname.startsWith("/command-centre/unlock")) {
     return NextResponse.next();
   }
 
@@ -25,5 +25,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/command-centre", "/command-centre/:path*"],
+  matcher: ["/command-centre/classic", "/command-centre/classic/:path*", "/command-centre/unlock", "/command-centre/unlock/:path*"],
 };

@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 import { CreditCard, FileDown } from "lucide-react";
 import { createCheckoutSession, type BillingActionState } from "@/app/actions/billing";
+import type { OrganizationSubscription } from "@/lib/billing";
 
 const initialState: BillingActionState = { ok: false, message: "" };
 
@@ -22,7 +23,7 @@ function CheckoutButton() {
   );
 }
 
-export function BillingPanel() {
+export function BillingPanel({ subscription }: { subscription: OrganizationSubscription | null }) {
   const [state, action] = useActionState(createCheckoutSession, initialState);
 
   return (
@@ -31,6 +32,10 @@ export function BillingPanel() {
       <p className="mt-1 text-sm leading-6 text-slate-500">
         Stripe Checkout is wired for subscription billing. Proposal and invoice PDF endpoints are available for rendering client-ready documents.
       </p>
+      <div className="mt-4 rounded-md bg-slate-50 px-4 py-3 text-sm text-slate-700">
+        Subscription status: <span className="font-semibold">{subscription?.status ?? "Not started"}</span>
+        {subscription?.plan_code ? <span> · Plan: <span className="font-semibold">{subscription.plan_code}</span></span> : null}
+      </div>
 
       <form action={action} className="mt-5 grid gap-4">
         <label className="grid gap-2 text-sm font-medium text-slate-700">

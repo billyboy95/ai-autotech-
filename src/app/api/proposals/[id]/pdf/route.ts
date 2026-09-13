@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { getFeatureGate } from "@/lib/billing";
+import { persistGeneratedPdf } from "@/lib/documents";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { renderBusinessPdf } from "@/lib/pdf";
 import { formatCurrency } from "@/lib/utils";
@@ -9,17 +11,25 @@ export async function GET(
 ) {
   const { id } = await params;
   let proposal = {
+    organization_id: null as string | null,
     title: "AI AutoTech Growth Automation Proposal",
     status: "Draft",
     total: 24500,
     created_at: new Date().toISOString(),
   };
 
+  if (id !== "demo") {
+    const gate = await getFeatureGate("pdfs");
+    if (!gate.allowed) {
+      return NextResponse.json({ error: gate.reason ?? "PDF generation is unavailable." }, { status: 403 });
+    }
+  }
+
   if (id !== "demo" && process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
     const supabase = await createSupabaseServerClient();
     const { data } = await supabase
       .from("proposals")
-      .select("title, status, total, created_at")
+      .select("organization_id, title, status, total, created_at")
       .eq("id", id)
       .maybeSingle();
 
@@ -39,6 +49,15 @@ export async function GET(
     ],
     total: formatCurrency(Number(proposal.total ?? 0)),
   });
+
+  if (id !== "demo" && proposal.organization_id) {
+    await persistGeneratedPdf({
+      recordType: "proposal",
+      recordId: id,
+      title: `${proposal.title} PDF`,
+      bytes,
+    });
+  }
 
   return new NextResponse(Buffer.from(bytes), {
     headers: {

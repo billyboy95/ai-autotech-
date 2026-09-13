@@ -2,9 +2,11 @@
 
 import { useMemo, useState, useActionState } from "react";
 import { useFormStatus } from "react-dom";
-import { UploadCloud } from "lucide-react";
+import Link from "next/link";
+import { FileDown, Trash2, UploadCloud } from "lucide-react";
 import { upsertPrivateModule, type ModuleActionState } from "@/app/actions/private-modules";
-import { uploadDocument, type UploadActionState } from "@/app/actions/documents";
+import { deleteDocument, uploadDocument, type UploadActionState } from "@/app/actions/documents";
+import type { StoredDocument } from "@/lib/documents";
 
 const modules = [
   {
@@ -115,14 +117,20 @@ function UploadButton() {
   );
 }
 
-export function PrivateModuleForms() {
+export function PrivateModuleForms({ documents }: { documents: StoredDocument[] }) {
   const [activeModule, setActiveModule] = useState(modules[0].id);
+  const [recordId, setRecordId] = useState("");
   const [moduleState, moduleAction] = useActionState(upsertPrivateModule, initialModuleState);
   const [uploadState, uploadAction] = useActionState(uploadDocument, initialUploadState);
+  const [deleteState, deleteAction] = useActionState(deleteDocument, initialUploadState);
   const current = useMemo(
     () => modules.find((module) => module.id === activeModule) ?? modules[0],
     [activeModule],
   );
+  const pdfHref =
+    recordId && (activeModule === "proposals" || activeModule === "invoices")
+      ? `/api/${activeModule}/${recordId}/pdf`
+      : null;
 
   return (
     <section className="rounded-md border border-slate-200 bg-white p-5 shadow-sm">
@@ -152,6 +160,8 @@ export function PrivateModuleForms() {
           Record ID for edit
           <input
             name="id"
+            value={recordId}
+            onChange={(event) => setRecordId(event.target.value)}
             className="h-10 rounded-md border border-slate-200 px-3 outline-none transition focus:border-[#2563EB] focus:ring-4 focus:ring-blue-100"
             placeholder="Leave blank to create a new record"
           />
@@ -170,12 +180,19 @@ export function PrivateModuleForms() {
           ))}
         </div>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <SubmitButton label={`Save ${current.label}`} />
-          {moduleState.message ? (
-            <p className={`text-sm font-semibold ${moduleState.ok ? "text-emerald-700" : "text-rose-700"}`}>
-              {moduleState.message}
-            </p>
-          ) : null}
+          <div className="flex flex-wrap items-center gap-3">
+            <SubmitButton label={`Save ${current.label}`} />
+            {pdfHref ? (
+              <Link
+                href={pdfHref}
+                className="inline-flex h-10 items-center gap-2 rounded-md border border-slate-200 px-4 text-sm font-semibold text-slate-700 transition hover:border-[#2563EB] hover:text-[#2563EB]"
+              >
+                <FileDown size={16} />
+                View PDF
+              </Link>
+            ) : null}
+          </div>
+          {moduleState.message ? <p className={`text-sm font-semibold ${moduleState.ok ? "text-emerald-700" : "text-rose-700"}`}>{moduleState.message}</p> : null}
         </div>
       </form>
 
@@ -196,6 +213,7 @@ export function PrivateModuleForms() {
               <input
                 name="file"
                 type="file"
+                accept=".pdf,.docx,.txt,.png,.jpg,.jpeg,.webp"
                 className="h-10 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm"
               />
             </label>
@@ -213,6 +231,48 @@ export function PrivateModuleForms() {
             ) : null}
           </div>
         </form>
+
+        <div className="mt-6 grid gap-3">
+          <h4 className="text-sm font-semibold text-[#0B1F3A]">Recent documents</h4>
+          {documents.length === 0 ? (
+            <p className="rounded-md bg-slate-50 px-3 py-4 text-sm text-slate-500">
+              No documents uploaded or generated yet for the active organization.
+            </p>
+          ) : (
+            documents.map((document) => (
+              <article key={document.id} className="flex flex-col gap-3 rounded-md border border-slate-200 p-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="font-semibold text-slate-900">{document.title}</p>
+                  <p className="text-xs text-slate-500">
+                    {document.file_name ?? "Unnamed file"}
+                    {document.version_number ? ` · v${document.version_number}` : ""}
+                    {document.record_type ? ` · ${document.record_type}` : ""}
+                  </p>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Link
+                    href={`/api/documents/${document.id}/download`}
+                    className="inline-flex h-9 items-center gap-2 rounded-md border border-slate-200 px-3 text-sm font-semibold text-slate-700 transition hover:border-[#2563EB] hover:text-[#2563EB]"
+                  >
+                    <FileDown size={15} />
+                    Download
+                  </Link>
+                  <form action={deleteAction}>
+                    <input type="hidden" name="id" value={document.id} />
+                    <button
+                      type="submit"
+                      className="inline-flex h-9 items-center gap-2 rounded-md border border-rose-200 px-3 text-sm font-semibold text-rose-700 transition hover:bg-rose-50"
+                    >
+                      <Trash2 size={15} />
+                      Remove
+                    </button>
+                  </form>
+                </div>
+              </article>
+            ))
+          )}
+          {deleteState.message ? <p className={`text-sm font-semibold ${deleteState.ok ? "text-emerald-700" : "text-rose-700"}`}>{deleteState.message}</p> : null}
+        </div>
       </div>
     </section>
   );

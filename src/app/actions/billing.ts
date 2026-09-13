@@ -15,6 +15,7 @@ export async function createCheckoutSession(
 ): Promise<BillingActionState> {
   const stripe = getStripe();
   const priceId = String(formData.get("price_id") ?? process.env.STRIPE_PRICE_ID ?? "");
+  const planCode = String(formData.get("plan_code") ?? "starter").trim() || "starter";
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
   if (!stripe || !priceId) {
@@ -22,13 +23,18 @@ export async function createCheckoutSession(
   }
 
   const organizationId = await getCurrentOrganizationId();
+  if (!organizationId) {
+    return { ok: false, message: "Join or create an organization before starting checkout." };
+  }
+
   const session = await stripe.checkout.sessions.create({
     mode: "subscription",
     line_items: [{ price: priceId, quantity: 1 }],
     success_url: `${siteUrl}/command-centre?billing=success`,
     cancel_url: `${siteUrl}/command-centre?billing=cancelled`,
     metadata: {
-      organization_id: organizationId ?? "",
+      organization_id: organizationId,
+      plan_code: planCode,
     },
   });
 

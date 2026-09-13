@@ -1,19 +1,6 @@
 import type { Metadata } from "next";
-import { Montserrat, Poppins } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
-
-const montserrat = Montserrat({
-  variable: "--font-montserrat",
-  subsets: ["latin"],
-  weight: ["600", "700", "800"],
-});
-
-const poppins = Poppins({
-  variable: "--font-poppins",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-});
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://ai-autotech.co.za"),
@@ -50,7 +37,7 @@ export default function RootLayout({
   const clarityId = process.env.NEXT_PUBLIC_CLARITY_PROJECT_ID;
 
   return (
-    <html lang="en" className={`${montserrat.variable} ${poppins.variable}`}>
+    <html lang="en">
       <body>
         {children}
         {gaId ? (

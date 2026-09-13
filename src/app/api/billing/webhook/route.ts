@@ -1,6 +1,82 @@
 import { NextResponse } from "next/server";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getStripe } from "@/lib/stripe";
+
+type StripeMetadata = Record<string, string | undefined> | undefined;
+
+type SubscriptionPayload = {
+  organization_id: string;
+  stripe_customer_id: string | null;
+  stripe_subscription_id: string | null;
+  stripe_price_id?: string | null;
+  plan_code?: string | null;
+  status: string;
+  current_period_end?: string | null;
+  cancel_at_period_end?: boolean;
+  last_invoice_status?: string | null;
+  updated_at: string;
+};
+
+function asString(value: unknown) {
+  return typeof value === "string" ? value : null;
+}
+
+function asObject<T extends object>(value: unknown) {
+  return typeof value === "object" && value !== null ? (value as T) : null;
+}
+
+async function resolveOrganizationId(
+  supabase: SupabaseClient,
+  metadata: StripeMetadata,
+  stripeCustomerId: string | null,
+  stripeSubscriptionId: string | null,
+) {
+  const fromMetadata = metadata?.organization_id;
+  if (fromMetadata) {
+    return fromMetadata;
+  }
+
+  const lookupColumn = stripeSubscriptionId ? "stripe_subscription_id" : stripeCustomerId ? "stripe_customer_id" : null;
+  const lookupValue = stripeSubscriptionId ?? stripeCustomerId;
+
+  if (!lookupColumn || !lookupValue) {
+    return null;
+  }
+
+  const { data } = await supabase
+    .from("subscriptions")
+    .select("organization_id")
+    .eq(lookupColumn, lookupValue)
+    .maybeSingle();
+
+  return data?.organization_id ?? null;
+}
+
+async function markEventProcessed(
+  supabase: SupabaseClient,
+  eventId: string,
+  status: "processing" | "processed" | "ignored",
+  organizationId: string | null,
+  eventType: string,
+  payload: unknown,
+) {
+  await supabase.from("billing_webhook_events").upsert(
+    {
+      stripe_event_id: eventId,
+      event_type: eventType,
+      organization_id: organizationId,
+      status,
+      payload,
+      processed_at: status === "processed" ? new Date().toISOString() : null,
+    },
+    { onConflict: "stripe_event_id" },
+  );
+}
+
+async function upsertSubscription(supabase: SupabaseClient, payload: SubscriptionPayload) {
+  await supabase.from("subscriptions").upsert(payload, { onConflict: "organization_id" });
+}
 
 export async function POST(request: Request) {
   const stripe = getStripe();
@@ -34,38 +110,127 @@ export async function POST(request: Request) {
     return NextResponse.json({ received: true, warning: "Supabase admin client not configured." });
   }
 
-  if (
-    event.type === "checkout.session.completed" ||
-    event.type === "customer.subscription.updated" ||
-    event.type === "customer.subscription.deleted"
-  ) {
-    const object = event.data.object as {
-      id: string;
-      customer?: string;
-      subscription?: string;
-      status?: string;
-      metadata?: { organization_id?: string };
-      current_period_end?: number;
-    };
+  const { data: existingEvent } = await supabase
+    .from("billing_webhook_events")
+    .select("stripe_event_id")
+    .eq("stripe_event_id", event.id)
+    .maybeSingle();
 
-    const organizationId = object.metadata?.organization_id;
+  if (existingEvent) {
+    return NextResponse.json({ received: true, duplicate: true });
+  }
 
-    if (organizationId) {
-      await supabase.from("subscriptions").upsert(
-        {
+  const payload = JSON.parse(body) as unknown;
+
+  const object = event.data.object as {
+    id: string;
+    customer?: string | { id?: string };
+    subscription?: string | { id?: string; items?: { data?: Array<{ price?: { id?: string } }> } };
+    status?: string;
+    metadata?: StripeMetadata;
+    current_period_end?: number;
+    cancel_at_period_end?: boolean;
+    payment_status?: string;
+    lines?: { data?: Array<{ price?: { id?: string }; metadata?: StripeMetadata }> };
+  };
+
+  const customerObject = asObject<{ id?: string }>(object.customer);
+  const subscriptionObject = asObject<{ id?: string; items?: { data?: Array<{ price?: { id?: string } }> } }>(
+    object.subscription,
+  );
+  const stripeCustomerId = asString(object.customer) ?? customerObject?.id ?? null;
+  const stripeSubscriptionId = asString(object.subscription) ?? subscriptionObject?.id ?? null;
+  const organizationId = await resolveOrganizationId(
+    supabase,
+    object.metadata,
+    stripeCustomerId,
+    stripeSubscriptionId,
+  );
+
+  await markEventProcessed(supabase, event.id, "processing", organizationId, event.type, payload);
+
+  switch (event.type) {
+    case "checkout.session.completed": {
+      if (organizationId) {
+        await upsertSubscription(supabase, {
           organization_id: organizationId,
-          stripe_customer_id: typeof object.customer === "string" ? object.customer : null,
-          stripe_subscription_id:
-            typeof object.subscription === "string" ? object.subscription : object.id,
-          status: object.status ?? "active",
-          current_period_end: object.current_period_end
-            ? new Date(object.current_period_end * 1000).toISOString()
+          stripe_customer_id: stripeCustomerId,
+          stripe_subscription_id: stripeSubscriptionId,
+          stripe_price_id: object.lines?.data?.[0]?.price?.id ?? null,
+          plan_code: object.metadata?.plan_code ?? null,
+          status: object.payment_status === "paid" ? "active" : "incomplete",
+          updated_at: new Date().toISOString(),
+        });
+      }
+      break;
+    }
+    case "invoice.paid":
+    case "invoice.payment_failed": {
+      if (organizationId) {
+        const { data: current } = await supabase
+          .from("subscriptions")
+          .select("plan_code, stripe_price_id")
+          .eq("organization_id", organizationId)
+          .maybeSingle();
+
+        await upsertSubscription(supabase, {
+          organization_id: organizationId,
+          stripe_customer_id: stripeCustomerId,
+          stripe_subscription_id: stripeSubscriptionId,
+          stripe_price_id: current?.stripe_price_id ?? object.lines?.data?.[0]?.price?.id ?? null,
+          plan_code: current?.plan_code ?? object.metadata?.plan_code ?? null,
+          status: event.type === "invoice.paid" ? "active" : "past_due",
+          last_invoice_status: event.type === "invoice.paid" ? "paid" : "payment_failed",
+          updated_at: new Date().toISOString(),
+        });
+      }
+      break;
+    }
+    case "customer.subscription.updated":
+    case "customer.subscription.deleted": {
+      const subscriptionObject = event.data.object as {
+        id: string;
+        customer?: string | { id?: string };
+        status?: string;
+        metadata?: StripeMetadata;
+        current_period_end?: number;
+        cancel_at_period_end?: boolean;
+        items?: { data?: Array<{ price?: { id?: string } }> };
+      };
+
+      if (organizationId) {
+        const { data: current } = await supabase
+          .from("subscriptions")
+          .select("plan_code, last_invoice_status")
+          .eq("organization_id", organizationId)
+          .maybeSingle();
+
+        await upsertSubscription(supabase, {
+          organization_id: organizationId,
+          stripe_customer_id:
+            asString(subscriptionObject.customer) ??
+            asObject<{ id?: string }>(subscriptionObject.customer)?.id ??
+            null,
+          stripe_subscription_id: subscriptionObject.id,
+          stripe_price_id: subscriptionObject.items?.data?.[0]?.price?.id ?? null,
+          plan_code: subscriptionObject.metadata?.plan_code ?? current?.plan_code ?? null,
+          status: event.type === "customer.subscription.deleted" ? "canceled" : subscriptionObject.status ?? "active",
+          current_period_end: subscriptionObject.current_period_end
+            ? new Date(subscriptionObject.current_period_end * 1000).toISOString()
             : null,
-        },
-        { onConflict: "organization_id" },
-      );
+          cancel_at_period_end: Boolean(subscriptionObject.cancel_at_period_end),
+          last_invoice_status: current?.last_invoice_status ?? null,
+          updated_at: new Date().toISOString(),
+        });
+      }
+      break;
+    }
+    default: {
+      await markEventProcessed(supabase, event.id, "ignored", organizationId, event.type, payload);
+      return NextResponse.json({ received: true, ignored: true });
     }
   }
 
+  await markEventProcessed(supabase, event.id, "processed", organizationId, event.type, payload);
   return NextResponse.json({ received: true });
 }

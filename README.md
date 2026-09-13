@@ -31,6 +31,7 @@ Production-ready SaaS foundation for AI AutoTech. The app includes a public webs
 - `/contact`
 - `/login`
 - `/command-centre`
+- `/command-centre/classic`
 
 ## Local Setup
 
@@ -45,14 +46,15 @@ Open `http://localhost:3000`.
 ## Supabase Setup
 
 1. Create a Supabase project.
-2. Run `supabase/schema.sql` in the Supabase SQL editor.
+2. Run `supabase/schema.sql` in the Supabase SQL editor, then apply every SQL file in `supabase/migrations/` in timestamp order.
 3. Copy `.env.example` to `.env.local`.
 4. Set `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
 5. Create users in Supabase Auth.
 6. Create an `organizations` row and matching `organization_members` rows for each user.
 7. Insert matching rows into `profiles` with one of these roles: `Super Admin`, `Admin`, `Staff`, `Contractor`, `Client`.
+8. Confirm the private `documents` storage bucket exists. The schema creates it and the storage policies expect tenant paths under `org/{organization_id}/...`.
 
-When Supabase variables are set, `/command-centre` is protected by middleware. Without Supabase variables, the dashboard remains viewable for local design review.
+When Supabase variables are set, `/command-centre` requires a Supabase-authenticated user and scopes every private query to the active organization membership. `/command-centre/classic` remains the password-locked company CRM.
 
 ## Lead Capture
 
@@ -97,15 +99,42 @@ The Command Centre includes create/edit forms for:
 - Support tickets
 - Documents
 
-Forms use Server Actions and write to Supabase when the environment variables and SQL schema are configured. The dashboard loads live Supabase data and falls back to sample data when Supabase is not connected.
+Forms use Server Actions and write to Supabase when the environment variables and SQL schema are configured. Audit fields are set on writes, document uploads are tenant-scoped, and the dashboard shows live Supabase states for configured, empty, and error cases.
 
 ## Billing, Uploads, and PDFs
 
 - Stripe checkout action: `src/app/actions/billing.ts`
 - Stripe webhook route: `/api/billing/webhook`
 - Document upload action: `src/app/actions/documents.ts`
+- Signed document download route: `/api/documents/[id]/download`
 - Proposal PDF route: `/api/proposals/[id]/pdf`
 - Invoice PDF route: `/api/invoices/[id]/pdf`
+
+### Stripe webhook events
+
+Configure Stripe to send these events to `/api/billing/webhook`:
+
+- `checkout.session.completed`
+- `invoice.paid`
+- `invoice.payment_failed`
+- `customer.subscription.updated`
+- `customer.subscription.deleted`
+
+Webhook deliveries are logged in `billing_webhook_events` for replay-safe processing, and subscriptions are synced into the `subscriptions` table per organization.
+
+### Document and PDF storage
+
+- Uploads are restricted to PDF, DOCX, TXT, JPG, PNG, and WEBP files up to 10 MB.
+- All private files are stored in Supabase Storage under `org/{organization_id}/...`.
+- Proposal and invoice PDF generation persists a new versioned document record instead of overwriting historical files.
+
+## Validation
+
+```bash
+npm run lint
+npm run typecheck
+npm run build
+```
 
 ## Deployment
 

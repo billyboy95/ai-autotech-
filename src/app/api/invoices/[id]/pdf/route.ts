@@ -11,6 +11,21 @@ export async function GET(
 ) {
   const { id } = await params;
   let foundInvoice = id === "demo";
+  const supabase =
+    id !== "demo" && process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+      ? await createSupabaseServerClient()
+      : null;
+
+  if (supabase) {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json({ error: "Authentication required." }, { status: 401 });
+    }
+  }
+
   let invoice = {
     organization_id: null as string | null,
     invoice_number: "INV-DEMO-001",
@@ -27,8 +42,7 @@ export async function GET(
     }
   }
 
-  if (id !== "demo" && process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-    const supabase = await createSupabaseServerClient();
+  if (supabase) {
     const { data } = await supabase
       .from("invoices")
       .select("organization_id, invoice_number, status, total, due_date, updated_at")

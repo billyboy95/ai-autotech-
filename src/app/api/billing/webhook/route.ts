@@ -213,7 +213,7 @@ export async function POST(request: Request) {
       if (organizationId) {
         const { data: current } = await supabase
           .from("subscriptions")
-          .select("plan_code, stripe_price_id")
+          .select("plan_code, stripe_price_id, current_period_end, cancel_at_period_end")
           .eq("organization_id", organizationId)
           .maybeSingle();
 
@@ -224,6 +224,8 @@ export async function POST(request: Request) {
           stripe_price_id: current?.stripe_price_id ?? object.lines?.data?.[0]?.price?.id ?? null,
           plan_code: current?.plan_code ?? object.metadata?.plan_code ?? null,
           status: event.type === "invoice.paid" ? "active" : "past_due",
+          current_period_end: current?.current_period_end ?? null,
+          cancel_at_period_end: Boolean(current?.cancel_at_period_end),
           last_invoice_status: event.type === "invoice.paid" ? "paid" : "payment_failed",
           updated_at: new Date().toISOString(),
         });

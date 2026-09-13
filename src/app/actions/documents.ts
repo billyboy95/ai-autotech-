@@ -113,7 +113,7 @@ export async function deleteDocument(
 
   const { data, error: readError } = await supabase
     .from("documents")
-    .select("id, storage_path")
+    .select("id, storage_path, status")
     .eq("id", id)
     .eq("organization_id", organizationId)
     .maybeSingle();
@@ -126,8 +126,32 @@ export async function deleteDocument(
     return { ok: false, message: "Document not found." };
   }
 
+  const originalStatus = data.status;
+
+  const { error: pendingError } = await supabase
+    .from("documents")
+    .update({
+      status: "Pending deletion",
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", id)
+    .eq("organization_id", organizationId);
+
+  if (pendingError) {
+    return { ok: false, message: pendingError.message };
+  }
+
   const { error: storageError } = await supabase.storage.from(DOCUMENT_BUCKET).remove([data.storage_path]);
   if (storageError) {
+    await supabase
+      .from("documents")
+      .update({
+        status: originalStatus,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", id)
+      .eq("organization_id", organizationId);
+
     return { ok: false, message: storageError.message };
   }
 

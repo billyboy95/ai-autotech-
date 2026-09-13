@@ -11,6 +11,21 @@ export async function GET(
 ) {
   const { id } = await params;
   let foundProposal = id === "demo";
+  const supabase =
+    id !== "demo" && process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+      ? await createSupabaseServerClient()
+      : null;
+
+  if (supabase) {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json({ error: "Authentication required." }, { status: 401 });
+    }
+  }
+
   let proposal = {
     organization_id: null as string | null,
     title: "AI AutoTech Growth Automation Proposal",
@@ -27,8 +42,7 @@ export async function GET(
     }
   }
 
-  if (id !== "demo" && process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-    const supabase = await createSupabaseServerClient();
+  if (supabase) {
     const { data } = await supabase
       .from("proposals")
       .select("organization_id, title, status, total, created_at, updated_at")

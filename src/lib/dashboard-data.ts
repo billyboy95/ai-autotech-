@@ -1,25 +1,68 @@
-import {
-  agents as mockAgents,
-  kpis as mockKpis,
-  pipeline as mockPipeline,
-  projects as mockProjects,
-  reports,
-  revenueData as mockRevenueData,
-  roleMatrix,
-  tickets as mockTickets,
-} from "@/lib/platform-data";
+import { getOrganizationSubscription, type OrganizationSubscription } from "@/lib/billing";
+import { listRecentDocuments, type StoredDocument } from "@/lib/documents";
+import { applyOrganizationFilter, getCurrentOrganizationId } from "@/lib/organization";
+import { reports, roleMatrix } from "@/lib/platform-data";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { getCurrentOrganizationId } from "@/lib/organization";
 import { formatCurrency } from "@/lib/utils";
 
+export type DashboardStatus = "live" | "empty" | "error" | "unconfigured";
+
+export type DashboardKpi = {
+  label: string;
+  value: string;
+  delta: string;
+  tone: string;
+};
+
+export type DashboardPipelineStage = {
+  stage: string;
+  count: number;
+  value: number;
+};
+
+export type DashboardRevenuePoint = {
+  month: string;
+  revenue: number;
+  leads: number;
+};
+
+export type DashboardProject = {
+  client: string;
+  project: string;
+  stage: string;
+  progress: number;
+  owner: string;
+  due: string;
+};
+
+export type DashboardAgent = {
+  name: string;
+  type: string;
+  status: string;
+  tasks: number;
+  score: number;
+  tools: string;
+};
+
+export type DashboardTicket = {
+  title: string;
+  client: string;
+  priority: string;
+  status: string;
+};
+
 export type DashboardData = {
-  dataSource: "supabase" | "mock";
-  kpis: typeof mockKpis;
-  pipeline: typeof mockPipeline;
-  revenueData: typeof mockRevenueData;
-  projects: typeof mockProjects;
-  agents: typeof mockAgents;
-  tickets: typeof mockTickets;
+  dataSource: "supabase";
+  status: DashboardStatus;
+  message: string;
+  kpis: DashboardKpi[];
+  pipeline: DashboardPipelineStage[];
+  revenueData: DashboardRevenuePoint[];
+  projects: DashboardProject[];
+  agents: DashboardAgent[];
+  tickets: DashboardTicket[];
+  documents: StoredDocument[];
+  subscription: OrganizationSubscription | null;
   reports: typeof reports;
   roleMatrix: typeof roleMatrix;
 };
@@ -68,15 +111,35 @@ type SupabaseListQuery<T> = PromiseLike<SupabaseQueryResult<T>> & {
   eq: (column: string, value: string) => SupabaseListQuery<T>;
 };
 
-function mockDashboardData(): DashboardData {
+const defaultKpis: DashboardKpi[] = [
+  { label: "Monthly Revenue", value: formatCurrency(0), delta: "No payments yet", tone: "text-slate-500" },
+  { label: "Leads Generated", value: "0", delta: "No tenant leads yet", tone: "text-slate-500" },
+  { label: "Active Clients", value: "0", delta: "No active clients yet", tone: "text-slate-500" },
+  { label: "Active Projects", value: "0", delta: "No active projects yet", tone: "text-slate-500" },
+  { label: "Open Invoices", value: formatCurrency(0), delta: "No invoices yet", tone: "text-slate-500" },
+  { label: "AI Agents Running", value: "0", delta: "No agents configured", tone: "text-slate-500" },
+  { label: "Conversion Rate", value: "0%", delta: "No won leads yet", tone: "text-slate-500" },
+  { label: "MRR / ARR", value: formatCurrency(0), delta: formatCurrency(0), tone: "text-slate-500" },
+];
+
+function emptyDashboardData(
+  status: DashboardStatus,
+  message: string,
+  subscription: OrganizationSubscription | null = null,
+  documents: StoredDocument[] = [],
+): DashboardData {
   return {
-    dataSource: "mock",
-    kpis: mockKpis,
-    pipeline: mockPipeline,
-    revenueData: mockRevenueData,
-    projects: mockProjects,
-    agents: mockAgents,
-    tickets: mockTickets,
+    dataSource: "supabase",
+    status,
+    message,
+    kpis: defaultKpis,
+    pipeline: leadStages.map((stage) => ({ stage, count: 0, value: 0 })),
+    revenueData: [],
+    projects: [],
+    agents: [],
+    tickets: [],
+    documents,
+    subscription,
     reports,
     roleMatrix,
   };
@@ -88,14 +151,19 @@ function monthLabel(value: string) {
 
 export async function getDashboardData(): Promise<DashboardData> {
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-    return mockDashboardData();
+    return emptyDashboardData("unconfigured", "Add Supabase environment variables to load tenant dashboard data.");
   }
 
   try {
     const supabase = await createSupabaseServerClient();
     const organizationId = await getCurrentOrganizationId();
-    const orgFilter = <T,>(query: SupabaseListQuery<T>) =>
-      organizationId ? query.eq("organization_id", organizationId) : query;
+    const [subscription, documents] = await Promise.all([getOrganizationSubscription(), listRecentDocuments()]);
+
+    if (!organizationId) {
+      return emptyDashboardData("empty", "Join an organization to load private dashboard data.", subscription, documents);
+    }
+
+    const orgFilter = <T,>(query: SupabaseListQuery<T>) => applyOrganizationFilter(query, organizationId);
 
     const [
       leadsResult,
@@ -133,8 +201,18 @@ export async function getDashboardData(): Promise<DashboardData> {
       orgFilter(supabase.from("payments").select("amount, paid_at").not("paid_at", "is", null) as unknown as SupabaseListQuery<PaymentRow>),
     ]);
 
-    if (leadsResult.error || clientsResult.error || projectsResult.error) {
-      return mockDashboardData();
+    const firstError = [
+      leadsResult.error,
+      clientsResult.error,
+      projectsResult.error,
+      invoicesResult.error,
+      agentsResult.error,
+      ticketsResult.error,
+      revenueResult.error,
+    ].find(Boolean);
+
+    if (firstError) {
+      return emptyDashboardData("error", firstError.message, subscription, documents);
     }
 
     const leads = (leadsResult.data ?? []) as LeadRow[];
@@ -158,10 +236,6 @@ export async function getDashboardData(): Promise<DashboardData> {
       const key = monthLabel(String(payment.paid_at));
       revenueByMonth.set(key, (revenueByMonth.get(key) ?? 0) + Number(payment.amount ?? 0));
     });
-
-    const revenueData = revenueByMonth.size
-      ? Array.from(revenueByMonth.entries()).map(([month, revenue]) => ({ month, revenue, leads: leads.length }))
-      : mockRevenueData;
 
     const projects = ((projectsResult.data ?? []) as ProjectRow[]).map((project) => {
       const client = Array.isArray(project.clients) ? project.clients[0] : project.clients;
@@ -198,11 +272,23 @@ export async function getDashboardData(): Promise<DashboardData> {
       };
     });
 
+    const revenueData = Array.from(revenueByMonth.entries()).map(([month, revenue]) => ({ month, revenue, leads: leads.length }));
+    const hasData =
+      Number(leadsResult.count ?? 0) > 0 ||
+      Number(clientsResult.count ?? 0) > 0 ||
+      Number(projectsResult.count ?? 0) > 0 ||
+      invoiceRows.length > 0 ||
+      liveAgents.length > 0 ||
+      tickets.length > 0 ||
+      documents.length > 0;
+
     return {
       dataSource: "supabase",
+      status: hasData ? "live" : "empty",
+      message: hasData ? "Tenant-scoped Supabase queries are active." : "Your organization is connected, but no private records exist yet.",
       kpis: [
         { label: "Monthly Revenue", value: formatCurrency(monthlyRevenue), delta: "Live payments", tone: "text-emerald-700" },
-        { label: "Leads Generated", value: String(leadsResult.count ?? leads.length), delta: "Supabase", tone: "text-blue-700" },
+        { label: "Leads Generated", value: String(leadsResult.count ?? leads.length), delta: "Tenant scoped", tone: "text-blue-700" },
         { label: "Active Clients", value: String(clientsResult.count ?? 0), delta: "Tenant scoped", tone: "text-cyan-700" },
         { label: "Active Projects", value: String(projectsResult.count ?? 0), delta: "Live", tone: "text-amber-700" },
         { label: "Open Invoices", value: formatCurrency(openInvoiceTotal), delta: `${invoiceRows.length} invoices`, tone: "text-rose-700" },
@@ -212,13 +298,15 @@ export async function getDashboardData(): Promise<DashboardData> {
       ],
       pipeline,
       revenueData,
-      projects: projects.length ? projects : mockProjects,
-      agents: liveAgents.length ? liveAgents : mockAgents,
-      tickets: tickets.length ? tickets : mockTickets,
+      projects,
+      agents: liveAgents,
+      tickets,
+      documents,
+      subscription,
       reports,
       roleMatrix,
     };
-  } catch {
-    return mockDashboardData();
+  } catch (error) {
+    return emptyDashboardData("error", error instanceof Error ? error.message : "Dashboard queries failed.");
   }
 }

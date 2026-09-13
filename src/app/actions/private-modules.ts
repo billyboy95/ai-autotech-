@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { getCurrentOrganizationId } from "@/lib/organization";
+import { getCurrentOrganizationId, getCurrentUserId } from "@/lib/organization";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export type ModuleActionState = {
@@ -93,10 +93,19 @@ export async function upsertPrivateModule(
 
   const supabase = await createSupabaseServerClient();
   const organizationId = await getCurrentOrganizationId();
+  const userId = await getCurrentUserId();
   const payload = cleanPayload(parsed.data as Record<string, unknown>);
 
-  if (organizationId) {
-    payload.organization_id = organizationId;
+  if (!organizationId) {
+    return { ok: false, message: "Join or create an organization before managing private modules." };
+  }
+
+  payload.organization_id = organizationId;
+  payload.updated_at = new Date().toISOString();
+
+  if (!base.data.id) {
+    payload.created_by = userId;
+    payload.owner_id = userId;
   }
 
   if (base.data.module === "agents" && typeof payload.connected_tools === "string") {
@@ -110,7 +119,17 @@ export async function upsertPrivateModule(
     const { company_name, industry, status } = payload;
     const { data: company, error: companyError } = await supabase
       .from("companies")
-      .insert(cleanPayload({ name: company_name, industry, status, organization_id: organizationId }))
+      .insert(
+        cleanPayload({
+          name: company_name,
+          industry,
+          status,
+          organization_id: organizationId,
+          created_by: userId,
+          owner_id: userId,
+          updated_at: payload.updated_at,
+        }),
+      )
       .select("id")
       .single();
 
@@ -123,6 +142,9 @@ export async function upsertPrivateModule(
         company_id: company?.id,
         status,
         organization_id: organizationId,
+        created_by: userId,
+        owner_id: userId,
+        updated_at: payload.updated_at,
       }),
     );
 

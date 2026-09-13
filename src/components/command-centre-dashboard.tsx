@@ -14,9 +14,7 @@ import {
 } from "recharts";
 import { motion } from "framer-motion";
 import { BrandLogo } from "@/components/brand-logo";
-import {
-  dashboardNav,
-} from "@/lib/platform-data";
+import { dashboardNav } from "@/lib/platform-data";
 import type { DashboardData } from "@/lib/dashboard-data";
 import { Bell, ChevronDown, CirclePlus, Search, Settings } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
@@ -46,6 +44,29 @@ function StatusChip({ value }: { value: string }) {
     >
       {value}
     </span>
+  );
+}
+
+function DashboardStateBanner({ data }: { data: DashboardData }) {
+  const tones = {
+    live: "border-emerald-200 bg-emerald-50 text-emerald-800",
+    empty: "border-amber-200 bg-amber-50 text-amber-800",
+    error: "border-rose-200 bg-rose-50 text-rose-800",
+    unconfigured: "border-slate-200 bg-slate-50 text-slate-700",
+  } as const;
+
+  return (
+    <div className={`rounded-md border px-4 py-3 text-sm font-medium ${tones[data.status]}`}>
+      {data.message}
+    </div>
+  );
+}
+
+function EmptyState({ message }: { message: string }) {
+  return (
+    <div className="grid h-full min-h-32 place-items-center rounded-md bg-slate-50 px-4 text-center text-sm font-medium text-slate-500">
+      {message}
+    </div>
   );
 }
 
@@ -97,7 +118,7 @@ export function CommandCentreDashboard({ data }: { data: DashboardData }) {
                   Executive Operating System
                 </h1>
                 <p className="mt-1 text-xs font-medium text-slate-500">
-                  Data source: {data.dataSource === "supabase" ? "Supabase live queries" : "mock fallback"}
+                  Data source: Supabase tenant queries
                 </p>
               </div>
               <div className="flex items-center gap-2">
@@ -117,6 +138,8 @@ export function CommandCentreDashboard({ data }: { data: DashboardData }) {
           </header>
 
           <section className="space-y-6 p-4 md:p-6">
+            <DashboardStateBanner data={data} />
+
             <motion.div
               initial="hidden"
               animate="visible"
@@ -153,7 +176,7 @@ export function CommandCentreDashboard({ data }: { data: DashboardData }) {
                   </button>
                 </div>
                 <div className="h-72">
-                  {mounted ? (
+                  {mounted && data.revenueData.length ? (
                     <ResponsiveContainer width="100%" height="100%">
                       <AreaChart data={data.revenueData}>
                         <defs>
@@ -169,10 +192,10 @@ export function CommandCentreDashboard({ data }: { data: DashboardData }) {
                         <Area type="monotone" dataKey="revenue" stroke="#2563EB" fill="url(#revenue)" strokeWidth={3} />
                       </AreaChart>
                     </ResponsiveContainer>
+                  ) : mounted ? (
+                    <EmptyState message="No payment data yet for this organization." />
                   ) : (
-                    <div className="grid h-full place-items-center rounded-md bg-slate-50 text-sm font-medium text-slate-500">
-                      Loading revenue chart...
-                    </div>
+                    <EmptyState message="Loading revenue chart..." />
                   )}
                 </div>
               </section>
@@ -181,7 +204,7 @@ export function CommandCentreDashboard({ data }: { data: DashboardData }) {
                 <h2 className="font-display text-lg font-bold text-[#0B1F3A]">Lead Pipeline</h2>
                 <p className="mb-5 text-sm text-slate-500">Stages from New Lead to Onboarding.</p>
                 <div className="h-72">
-                  {mounted ? (
+                  {mounted && data.pipeline.some((stage) => stage.count > 0) ? (
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={data.pipeline} layout="vertical" margin={{ left: 18 }}>
                         <CartesianGrid stroke="#E2E8F0" horizontal={false} />
@@ -191,10 +214,10 @@ export function CommandCentreDashboard({ data }: { data: DashboardData }) {
                         <Bar dataKey="count" fill="#38BDF8" radius={[0, 4, 4, 0]} />
                       </BarChart>
                     </ResponsiveContainer>
+                  ) : mounted ? (
+                    <EmptyState message="No lead pipeline records yet for this organization." />
                   ) : (
-                    <div className="grid h-full place-items-center rounded-md bg-slate-50 text-sm font-medium text-slate-500">
-                      Loading pipeline chart...
-                    </div>
+                    <EmptyState message="Loading pipeline chart..." />
                   )}
                 </div>
               </section>
@@ -242,6 +265,13 @@ export function CommandCentreDashboard({ data }: { data: DashboardData }) {
                           <td className="px-5 py-4 text-slate-600">{project.due}</td>
                         </tr>
                       ))}
+                      {data.projects.length === 0 ? (
+                        <tr>
+                          <td colSpan={6} className="px-5 py-10 text-center text-sm font-medium text-slate-500">
+                            No projects yet for the active organization.
+                          </td>
+                        </tr>
+                      ) : null}
                     </tbody>
                   </table>
                 </div>
@@ -272,6 +302,7 @@ export function CommandCentreDashboard({ data }: { data: DashboardData }) {
                       </div>
                     </article>
                   ))}
+                  {data.agents.length === 0 ? <EmptyState message="No AI agents have been configured yet." /> : null}
                 </div>
               </section>
             </div>
@@ -291,6 +322,7 @@ export function CommandCentreDashboard({ data }: { data: DashboardData }) {
                       </div>
                     </div>
                   ))}
+                  {data.tickets.length === 0 ? <EmptyState message="No support tickets are open for this organization." /> : null}
                 </div>
               </section>
 
@@ -320,8 +352,8 @@ export function CommandCentreDashboard({ data }: { data: DashboardData }) {
             </div>
 
             <div className="grid gap-6 xl:grid-cols-[1fr_0.9fr]">
-              <PrivateModuleForms />
-              <BillingPanel />
+              <PrivateModuleForms documents={data.documents} />
+              <BillingPanel subscription={data.subscription} />
             </div>
           </section>
         </main>

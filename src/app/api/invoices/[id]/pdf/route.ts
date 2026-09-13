@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { getFeatureGate } from "@/lib/billing";
+import { persistGeneratedPdf } from "@/lib/documents";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { renderBusinessPdf } from "@/lib/pdf";
 import { formatCurrency } from "@/lib/utils";
@@ -8,24 +10,53 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
+  let foundInvoice = id === "demo";
+  const supabase =
+    id !== "demo" && process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+      ? await createSupabaseServerClient()
+      : null;
+
+  if (supabase) {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json({ error: "Authentication required." }, { status: 401 });
+    }
+  }
+
   let invoice = {
+    organization_id: null as string | null,
     invoice_number: "INV-DEMO-001",
     status: "Draft",
     total: 18600,
     due_date: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
   };
 
-  if (id !== "demo" && process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-    const supabase = await createSupabaseServerClient();
+  if (id !== "demo") {
+    const gate = await getFeatureGate("pdfs");
+    if (!gate.allowed) {
+      return NextResponse.json({ error: gate.reason ?? "PDF generation is unavailable." }, { status: 403 });
+    }
+  }
+
+  if (supabase) {
     const { data } = await supabase
       .from("invoices")
-      .select("invoice_number, status, total, due_date")
+      .select("organization_id, invoice_number, status, total, due_date, updated_at")
       .eq("id", id)
       .maybeSingle();
 
     if (data) {
+      foundInvoice = true;
       invoice = data;
     }
+  }
+
+  if (!foundInvoice) {
+    return NextResponse.json({ error: "Invoice not found." }, { status: 404 });
   }
 
   const bytes = await renderBusinessPdf({
@@ -39,6 +70,20 @@ export async function GET(
     ],
     total: formatCurrency(Number(invoice.total ?? 0)),
   });
+
+  if (id !== "demo" && invoice.organization_id) {
+    try {
+      await persistGeneratedPdf({
+        recordType: "invoice",
+        recordId: id,
+        title: `${invoice.invoice_number} PDF`,
+        bytes,
+        sourceUpdatedAt: invoice.updated_at,
+      });
+    } catch {
+      // Best-effort persistence should not block PDF delivery.
+    }
+  }
 
   return new NextResponse(Buffer.from(bytes), {
     headers: {

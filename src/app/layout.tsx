@@ -1,18 +1,24 @@
 import type { Metadata } from "next";
-import { Montserrat, Poppins } from "next/font/google";
+import localFont from "next/font/local";
 import Script from "next/script";
 import "./globals.css";
 
-const montserrat = Montserrat({
+const montserrat = localFont({
+  src: [
+    { path: "./fonts/montserrat-regular.ttf", weight: "600", style: "normal" },
+    { path: "./fonts/montserrat-bold.ttf", weight: "800", style: "normal" },
+  ],
   variable: "--font-montserrat",
-  subsets: ["latin"],
-  weight: ["600", "700", "800"],
+  display: "swap",
 });
 
-const poppins = Poppins({
+const poppins = localFont({
+  src: [
+    { path: "./fonts/poppins-regular.ttf", weight: "400", style: "normal" },
+    { path: "./fonts/poppins-bold.ttf", weight: "700", style: "normal" },
+  ],
   variable: "--font-poppins",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {

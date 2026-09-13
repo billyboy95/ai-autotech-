@@ -172,7 +172,14 @@ create table documents (
   client_id uuid references clients(id) on delete cascade,
   project_id uuid references projects(id) on delete set null,
   title text not null,
+   file_name text,
+   mime_type text,
+   file_size_bytes bigint,
+   bucket_name text not null default 'documents',
   storage_path text not null,
+   record_type text,
+   record_id text,
+   version_number integer not null default 1,
   client_visible boolean not null default false,
   status text not null default 'Active'
 );
@@ -386,11 +393,26 @@ create table if not exists subscriptions (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   organization_id uuid not null references organizations(id) on delete cascade,
+  plan_code text,
   stripe_customer_id text,
   stripe_subscription_id text,
+  stripe_price_id text,
   status text not null default 'incomplete',
+  cancel_at_period_end boolean not null default false,
+  last_invoice_status text,
   current_period_end timestamptz,
   unique (organization_id)
+);
+
+create table if not exists billing_webhook_events (
+  id uuid primary key default gen_random_uuid(),
+  created_at timestamptz not null default now(),
+  organization_id uuid references organizations(id) on delete cascade,
+  stripe_event_id text not null unique,
+  event_type text not null,
+  status text not null default 'processing',
+  payload jsonb not null default '{}'::jsonb,
+  processed_at timestamptz
 );
 
 alter table profiles add column if not exists organization_id uuid references organizations(id) on delete set null;
@@ -430,6 +452,7 @@ $$;
 alter table organizations enable row level security;
 alter table organization_members enable row level security;
 alter table subscriptions enable row level security;
+alter table billing_webhook_events enable row level security;
 
 create policy "members read organizations" on organizations
   for select using (id in (select current_organization_ids()));
@@ -446,6 +469,11 @@ create policy "members read subscriptions" on subscriptions
 create policy "admins manage subscriptions" on subscriptions
   for all using (is_admin()) with check (is_admin());
 
+create policy "members read billing webhook events" on billing_webhook_events
+  for select using (organization_id in (select current_organization_ids()));
+create policy "admins manage billing webhook events" on billing_webhook_events
+  for all using (is_admin()) with check (is_admin());
+
 create index if not exists companies_organization_id_idx on companies(organization_id);
 create index if not exists leads_organization_id_idx on leads(organization_id);
 create index if not exists clients_organization_id_idx on clients(organization_id);
@@ -454,21 +482,35 @@ create index if not exists proposals_organization_id_idx on proposals(organizati
 create index if not exists invoices_organization_id_idx on invoices(organization_id);
 create index if not exists support_tickets_organization_id_idx on support_tickets(organization_id);
 create index if not exists documents_organization_id_idx on documents(organization_id);
+create unique index if not exists documents_record_lookup_idx on documents(organization_id, record_type, record_id, version_number);
+create index if not exists billing_webhook_events_org_idx on billing_webhook_events(organization_id, event_type);
 
 insert into storage.buckets (id, name, public)
 values ('documents', 'documents', false)
 on conflict (id) do nothing;
 
+drop policy if exists "members upload documents" on storage.objects;
+drop policy if exists "members read documents" on storage.objects;
+
 create policy "members upload documents" on storage.objects
   for insert with check (
     bucket_id = 'documents'
-    and split_part(name, '/', 1)::uuid in (select current_organization_ids())
+    and split_part(name, '/', 1) = 'org'
+    and split_part(name, '/', 2)::uuid in (select current_organization_ids())
   );
 
 create policy "members read documents" on storage.objects
   for select using (
     bucket_id = 'documents'
-    and split_part(name, '/', 1)::uuid in (select current_organization_ids())
+    and split_part(name, '/', 1) = 'org'
+    and split_part(name, '/', 2)::uuid in (select current_organization_ids())
+  );
+
+create policy "members delete documents" on storage.objects
+  for delete using (
+    bucket_id = 'documents'
+    and split_part(name, '/', 1) = 'org'
+    and split_part(name, '/', 2)::uuid in (select current_organization_ids())
   );
 
 create or replace function can_access_organization(row_organization_id uuid)

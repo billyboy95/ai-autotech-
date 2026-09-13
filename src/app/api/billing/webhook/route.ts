@@ -76,7 +76,27 @@ async function claimEvent(
   }
 
   if (error.message.toLowerCase().includes("duplicate")) {
-    return { claimed: false as const };
+    const { data: existing } = await supabase
+      .from("billing_webhook_events")
+      .select("status")
+      .eq("stripe_event_id", eventId)
+      .maybeSingle();
+
+    if (existing?.status === "processed" || existing?.status === "ignored") {
+      return { claimed: false as const };
+    }
+
+    await supabase
+      .from("billing_webhook_events")
+      .update({
+        status: "processing",
+        organization_id: organizationId,
+        payload,
+        processed_at: null,
+      })
+      .eq("stripe_event_id", eventId);
+
+    return { claimed: true as const };
   }
 
   throw new Error(error.message);

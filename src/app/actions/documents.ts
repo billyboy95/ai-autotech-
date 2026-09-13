@@ -136,7 +136,7 @@ export async function deleteDocument(
     await supabase
       .from("documents")
       .update({
-        status: "Missing file",
+        status: "Delete cleanup required",
         updated_at: new Date().toISOString(),
       })
       .eq("id", id);

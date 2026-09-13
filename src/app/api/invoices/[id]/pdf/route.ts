@@ -72,13 +72,17 @@ export async function GET(
   });
 
   if (id !== "demo" && invoice.organization_id) {
-    await persistGeneratedPdf({
-      recordType: "invoice",
-      recordId: id,
-      title: `${invoice.invoice_number} PDF`,
-      bytes,
-      sourceUpdatedAt: invoice.updated_at,
-    });
+    try {
+      await persistGeneratedPdf({
+        recordType: "invoice",
+        recordId: id,
+        title: `${invoice.invoice_number} PDF`,
+        bytes,
+        sourceUpdatedAt: invoice.updated_at,
+      });
+    } catch {
+      // Best-effort persistence should not block PDF delivery.
+    }
   }
 
   return new NextResponse(Buffer.from(bytes), {

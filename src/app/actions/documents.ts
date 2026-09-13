@@ -100,11 +100,6 @@ export async function deleteDocument(
     return { ok: false, message: "Choose a document to remove." };
   }
 
-  const gate = await getFeatureGate("documents");
-  if (!gate.allowed) {
-    return { ok: false, message: gate.reason ?? "Document removal is unavailable." };
-  }
-
   const supabase = await createSupabaseServerClient();
   const organizationId = await getCurrentOrganizationId();
   if (!organizationId) {

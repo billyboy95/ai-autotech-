@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { DOCUMENT_BUCKET } from "@/lib/documents";
+import { DOCUMENT_BUCKET, sanitizeFileName } from "@/lib/documents";
 import { getCurrentOrganizationId } from "@/lib/organization";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -17,7 +17,7 @@ export async function GET(
 
   const { data, error } = await supabase
     .from("documents")
-    .select("storage_path, bucket_name")
+    .select("storage_path, bucket_name, file_name")
     .eq("id", id)
     .eq("organization_id", organizationId)
     .maybeSingle();
@@ -38,10 +38,12 @@ export async function GET(
     return NextResponse.json({ error: downloadError?.message ?? "Could not download document." }, { status: 400 });
   }
 
+  const fileName = sanitizeFileName(data.file_name || data.storage_path.split("/").pop() || "document");
+
   return new NextResponse(file, {
     headers: {
       "content-type": file.type || "application/octet-stream",
-      "content-disposition": `attachment; filename="${data.storage_path.split("/").pop() ?? "document"}"`,
+      "content-disposition": `attachment; filename="${fileName}"`,
     },
   });
 }

@@ -72,13 +72,17 @@ export async function GET(
   });
 
   if (id !== "demo" && proposal.organization_id) {
-    await persistGeneratedPdf({
-      recordType: "proposal",
-      recordId: id,
-      title: `${proposal.title} PDF`,
-      bytes,
-      sourceUpdatedAt: proposal.updated_at,
-    });
+    try {
+      await persistGeneratedPdf({
+        recordType: "proposal",
+        recordId: id,
+        title: `${proposal.title} PDF`,
+        bytes,
+        sourceUpdatedAt: proposal.updated_at,
+      });
+    } catch {
+      // Best-effort persistence should not block PDF delivery.
+    }
   }
 
   return new NextResponse(Buffer.from(bytes), {

@@ -75,7 +75,7 @@ async function claimEvent(
     return { claimed: true as const };
   }
 
-  if (error.message.toLowerCase().includes("duplicate")) {
+  if (error.code === "23505") {
     const { data: existing } = await supabase
       .from("billing_webhook_events")
       .select("status, created_at")
@@ -94,7 +94,7 @@ async function claimEvent(
     const { data: reclaimed } = await supabase
       .from("billing_webhook_events")
       .update({
-        status: "processing",
+        status: "retrying",
         organization_id: organizationId,
         payload,
         processed_at: null,
@@ -233,7 +233,7 @@ export async function POST(request: Request) {
       if (organizationId) {
         const { data: current } = await supabase
           .from("subscriptions")
-          .select("plan_code, stripe_price_id, current_period_end, cancel_at_period_end")
+          .select("status, plan_code, stripe_price_id, current_period_end, cancel_at_period_end")
           .eq("organization_id", organizationId)
           .maybeSingle();
 
@@ -243,7 +243,7 @@ export async function POST(request: Request) {
           stripe_subscription_id: stripeSubscriptionId,
           stripe_price_id: current?.stripe_price_id ?? object.lines?.data?.[0]?.price?.id ?? null,
           plan_code: current?.plan_code ?? object.metadata?.plan_code ?? null,
-          status: event.type === "invoice.paid" ? "active" : "past_due",
+          status: current?.status ?? (event.type === "invoice.paid" ? "active" : "past_due"),
           current_period_end: current?.current_period_end ?? null,
           cancel_at_period_end: Boolean(current?.cancel_at_period_end),
           last_invoice_status: event.type === "invoice.paid" ? "paid" : "payment_failed",

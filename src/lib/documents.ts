@@ -178,6 +178,7 @@ export async function persistGeneratedPdf({
 
     if (error) {
       if (error.message.toLowerCase().includes("duplicate") || error.message.toLowerCase().includes("unique")) {
+        await supabase.storage.from(DOCUMENT_BUCKET).remove([storagePath]);
         const { data: refreshed } = await supabase
           .from("documents")
           .select("version_number")

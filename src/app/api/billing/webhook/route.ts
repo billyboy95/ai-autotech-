@@ -78,7 +78,7 @@ async function claimEvent(
   if (error.message.toLowerCase().includes("duplicate")) {
     const { data: existing } = await supabase
       .from("billing_webhook_events")
-      .select("status")
+      .select("status, created_at")
       .eq("stripe_event_id", eventId)
       .maybeSingle();
 
@@ -86,7 +86,12 @@ async function claimEvent(
       return { claimed: false as const };
     }
 
-    await supabase
+    const createdAt = existing?.created_at ? new Date(existing.created_at).getTime() : NaN;
+    if (!Number.isNaN(createdAt) && Date.now() - createdAt < 60_000) {
+      return { claimed: false as const };
+    }
+
+    const { data: reclaimed } = await supabase
       .from("billing_webhook_events")
       .update({
         status: "processing",
@@ -94,7 +99,13 @@ async function claimEvent(
         payload,
         processed_at: null,
       })
-      .eq("stripe_event_id", eventId);
+      .eq("stripe_event_id", eventId)
+      .eq("status", "processing")
+      .select("stripe_event_id");
+
+    if (!reclaimed?.length) {
+      return { claimed: false as const };
+    }
 
     return { claimed: true as const };
   }

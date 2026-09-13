@@ -113,7 +113,7 @@ export async function deleteDocument(
 
   const { data, error: readError } = await supabase
     .from("documents")
-    .select("id, storage_path, status")
+    .select("id, storage_path, status, bucket_name")
     .eq("id", id)
     .eq("organization_id", organizationId)
     .maybeSingle();
@@ -141,7 +141,7 @@ export async function deleteDocument(
     return { ok: false, message: pendingError.message };
   }
 
-  const { error: storageError } = await supabase.storage.from(DOCUMENT_BUCKET).remove([data.storage_path]);
+  const { error: storageError } = await supabase.storage.from(data.bucket_name || DOCUMENT_BUCKET).remove([data.storage_path]);
   if (storageError) {
     await supabase
       .from("documents")

@@ -30,13 +30,18 @@ export async function GET(
     return NextResponse.json({ error: "Document not found." }, { status: 404 });
   }
 
-  const { data: signedUrl, error: signedUrlError } = await supabase.storage
+  const { data: file, error: downloadError } = await supabase.storage
     .from(data.bucket_name || DOCUMENT_BUCKET)
-    .createSignedUrl(data.storage_path, 60);
+    .download(data.storage_path);
 
-  if (signedUrlError || !signedUrl?.signedUrl) {
-    return NextResponse.json({ error: signedUrlError?.message ?? "Could not sign document download." }, { status: 400 });
+  if (downloadError || !file) {
+    return NextResponse.json({ error: downloadError?.message ?? "Could not download document." }, { status: 400 });
   }
 
-  return NextResponse.redirect(signedUrl.signedUrl);
+  return new NextResponse(file, {
+    headers: {
+      "content-type": file.type || "application/octet-stream",
+      "content-disposition": `attachment; filename="${data.storage_path.split("/").pop() ?? "document"}"`,
+    },
+  });
 }

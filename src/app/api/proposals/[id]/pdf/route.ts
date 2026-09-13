@@ -10,6 +10,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
+  let foundProposal = id === "demo";
   let proposal = {
     organization_id: null as string | null,
     title: "AI AutoTech Growth Automation Proposal",
@@ -35,8 +36,13 @@ export async function GET(
       .maybeSingle();
 
     if (data) {
+      foundProposal = true;
       proposal = data;
     }
+  }
+
+  if (!foundProposal) {
+    return NextResponse.json({ error: "Proposal not found." }, { status: 404 });
   }
 
   const bytes = await renderBusinessPdf({

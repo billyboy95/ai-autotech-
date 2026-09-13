@@ -169,6 +169,12 @@ export async function POST(request: Request) {
   switch (event.type) {
     case "checkout.session.completed": {
       if (organizationId) {
+        const { data: current } = await supabase
+          .from("subscriptions")
+          .select("current_period_end")
+          .eq("organization_id", organizationId)
+          .maybeSingle();
+
         await upsertSubscription(supabase, {
           organization_id: organizationId,
           stripe_customer_id: stripeCustomerId,
@@ -176,6 +182,7 @@ export async function POST(request: Request) {
           stripe_price_id: null,
           plan_code: object.metadata?.plan_code ?? null,
           status: object.payment_status === "paid" ? "active" : "incomplete",
+          current_period_end: current?.current_period_end ?? null,
           updated_at: new Date().toISOString(),
         });
       }

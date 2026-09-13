@@ -261,6 +261,11 @@ export function PrivateModuleForms({ documents }: { documents: StoredDocument[] 
                     <input type="hidden" name="id" value={document.id} />
                     <button
                       type="submit"
+                      onClick={(event) => {
+                        if (!window.confirm("Remove this document and its stored file?")) {
+                          event.preventDefault();
+                        }
+                      }}
                       className="inline-flex h-9 items-center gap-2 rounded-md border border-rose-200 px-3 text-sm font-semibold text-rose-700 transition hover:bg-rose-50"
                     >
                       <Trash2 size={15} />

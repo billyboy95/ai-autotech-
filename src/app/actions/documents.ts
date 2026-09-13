@@ -131,7 +131,7 @@ export async function deleteDocument(
     return { ok: false, message: storageError.message };
   }
 
-  const { error } = await supabase.from("documents").delete().eq("id", id);
+  const { error } = await supabase.from("documents").delete().eq("id", id).eq("organization_id", organizationId);
   if (error) {
     await supabase
       .from("documents")

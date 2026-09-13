@@ -123,10 +123,10 @@ export async function persistGeneratedPdf({
     }
   }
 
-  const baseVersionNumber = Number(latestDocument?.version_number ?? 0);
+  let nextVersionNumber = Number(latestDocument?.version_number ?? 0) + 1;
 
-  for (let attempt = 1; attempt <= 3; attempt += 1) {
-    const versionNumber = baseVersionNumber + attempt;
+  for (let attempt = 0; attempt < 20; attempt += 1) {
+    const versionNumber = nextVersionNumber;
     const fileName = `${recordType}-${recordId}-v${versionNumber}.pdf`;
     const storagePath = buildDocumentStoragePath({
       organizationId,
@@ -141,6 +141,17 @@ export async function persistGeneratedPdf({
 
     if (uploadError) {
       if (uploadError.message.toLowerCase().includes("already exists")) {
+        const { data: refreshed } = await supabase
+          .from("documents")
+          .select("version_number")
+          .eq("organization_id", organizationId)
+          .eq("record_type", recordType)
+          .eq("record_id", recordId)
+          .order("version_number", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        nextVersionNumber = Number(refreshed?.version_number ?? versionNumber) + 1;
         continue;
       }
 
@@ -167,6 +178,17 @@ export async function persistGeneratedPdf({
 
     if (error) {
       if (error.message.toLowerCase().includes("duplicate") || error.message.toLowerCase().includes("unique")) {
+        const { data: refreshed } = await supabase
+          .from("documents")
+          .select("version_number")
+          .eq("organization_id", organizationId)
+          .eq("record_type", recordType)
+          .eq("record_id", recordId)
+          .order("version_number", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        nextVersionNumber = Number(refreshed?.version_number ?? versionNumber) + 1;
         continue;
       }
 

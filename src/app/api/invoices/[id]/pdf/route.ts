@@ -10,6 +10,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
+  let foundInvoice = id === "demo";
   let invoice = {
     organization_id: null as string | null,
     invoice_number: "INV-DEMO-001",
@@ -35,8 +36,13 @@ export async function GET(
       .maybeSingle();
 
     if (data) {
+      foundInvoice = true;
       invoice = data;
     }
+  }
+
+  if (!foundInvoice) {
+    return NextResponse.json({ error: "Invoice not found." }, { status: 404 });
   }
 
   const bytes = await renderBusinessPdf({

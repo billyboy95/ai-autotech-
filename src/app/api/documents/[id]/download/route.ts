@@ -17,7 +17,7 @@ export async function GET(
 
   const { data, error } = await supabase
     .from("documents")
-    .select("storage_path")
+    .select("storage_path, bucket_name")
     .eq("id", id)
     .eq("organization_id", organizationId)
     .maybeSingle();
@@ -31,7 +31,7 @@ export async function GET(
   }
 
   const { data: signedUrl, error: signedUrlError } = await supabase.storage
-    .from(DOCUMENT_BUCKET)
+    .from(data.bucket_name || DOCUMENT_BUCKET)
     .createSignedUrl(data.storage_path, 60);
 
   if (signedUrlError || !signedUrl?.signedUrl) {

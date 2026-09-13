@@ -1,6 +1,25 @@
 import type { Metadata } from "next";
+import localFont from "next/font/local";
 import Script from "next/script";
 import "./globals.css";
+
+const montserrat = localFont({
+  src: [
+    { path: "./fonts/montserrat-regular.ttf", weight: "600", style: "normal" },
+    { path: "./fonts/montserrat-bold.ttf", weight: "800", style: "normal" },
+  ],
+  variable: "--font-montserrat",
+  display: "swap",
+});
+
+const poppins = localFont({
+  src: [
+    { path: "./fonts/poppins-regular.ttf", weight: "400", style: "normal" },
+    { path: "./fonts/poppins-bold.ttf", weight: "700", style: "normal" },
+  ],
+  variable: "--font-poppins",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://ai-autotech.co.za"),
@@ -37,7 +56,7 @@ export default function RootLayout({
   const clarityId = process.env.NEXT_PUBLIC_CLARITY_PROJECT_ID;
 
   return (
-    <html lang="en" className="font-vars">
+    <html lang="en" className={`${montserrat.variable} ${poppins.variable}`}>
       <body>
         {children}
         {gaId ? (

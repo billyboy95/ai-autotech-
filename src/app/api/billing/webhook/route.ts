@@ -202,18 +202,27 @@ export async function POST(request: Request) {
       if (organizationId) {
         const { data: current } = await supabase
           .from("subscriptions")
-          .select("current_period_end")
+          .select("status, current_period_end")
           .eq("organization_id", organizationId)
           .maybeSingle();
+        const subscriptionDetails = stripeSubscriptionId
+          ? ((await stripe.subscriptions.retrieve(stripeSubscriptionId)) as {
+              status?: string;
+              current_period_end?: number;
+              items?: { data: Array<{ price?: { id?: string } }> };
+            })
+          : null;
 
         await upsertSubscription(supabase, {
           organization_id: organizationId,
           stripe_customer_id: stripeCustomerId,
           stripe_subscription_id: stripeSubscriptionId,
-          stripe_price_id: null,
+          stripe_price_id: subscriptionDetails?.items?.data[0]?.price?.id ?? null,
           plan_code: object.metadata?.plan_code ?? null,
-          status: object.payment_status === "paid" ? "active" : "incomplete",
-          current_period_end: current?.current_period_end ?? null,
+          status: subscriptionDetails?.status ?? current?.status ?? "incomplete",
+          current_period_end: subscriptionDetails?.current_period_end
+            ? new Date(subscriptionDetails.current_period_end * 1000).toISOString()
+            : current?.current_period_end ?? null,
           updated_at: new Date().toISOString(),
         });
       }

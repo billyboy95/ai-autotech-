@@ -1,5 +1,3 @@
-@import url("https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Poppins:wght@400;500;600;700&display=swap");
-
 @import "tailwindcss";
 
 :root {
@@ -11,13 +9,8 @@
   --muted: #64748b;
   --line: #d9e2ef;
   --surface: #ffffff;
-  --font-sans-stack: "Poppins", "Inter", "Segoe UI", Arial, Helvetica, sans-serif;
-  --font-display-stack: "Montserrat", "Segoe UI", Arial, Helvetica, sans-serif;
-}
-
-.font-vars {
-  --font-sans-stack: "Poppins", "Inter", "Segoe UI", Arial, Helvetica, sans-serif;
-  --font-display-stack: "Montserrat", "Segoe UI", Arial, Helvetica, sans-serif;
+  --font-sans-stack: var(--font-poppins), "Inter", "Segoe UI", Arial, Helvetica, sans-serif;
+  --font-display-stack: var(--font-montserrat), "Segoe UI", Arial, Helvetica, sans-serif;
 }
 
 @theme inline {

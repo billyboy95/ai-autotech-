@@ -134,7 +134,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ received: true, warning: "Supabase admin client not configured." });
   }
 
-  const payload = JSON.parse(body) as unknown;
+  const payload = event;
 
   const object = event.data.object as {
     id: string;

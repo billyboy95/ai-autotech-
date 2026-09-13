@@ -106,10 +106,16 @@ export async function deleteDocument(
   }
 
   const supabase = await createSupabaseServerClient();
+  const organizationId = await getCurrentOrganizationId();
+  if (!organizationId) {
+    return { ok: false, message: "Join or create an organization before managing documents." };
+  }
+
   const { data, error: readError } = await supabase
     .from("documents")
     .select("id, storage_path")
     .eq("id", id)
+    .eq("organization_id", organizationId)
     .maybeSingle();
 
   if (readError) {

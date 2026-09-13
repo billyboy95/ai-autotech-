@@ -27,7 +27,8 @@ export type StoredDocument = {
 };
 
 export function sanitizeFileName(fileName: string) {
-  return fileName.replace(/[^a-zA-Z0-9._-]/g, "-");
+  const sanitized = fileName.replace(/[^a-zA-Z0-9._-]/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "");
+  return sanitized || "document";
 }
 
 export function buildDocumentStoragePath({
@@ -169,6 +170,7 @@ export async function persistGeneratedPdf({
         continue;
       }
 
+      await supabase.storage.from(DOCUMENT_BUCKET).remove([storagePath]);
       throw new Error(error.message);
     }
 

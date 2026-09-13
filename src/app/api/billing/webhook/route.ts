@@ -53,25 +53,49 @@ async function resolveOrganizationId(
   return data?.organization_id ?? null;
 }
 
-async function markEventProcessed(
+async function claimEvent(
   supabase: SupabaseClient,
   eventId: string,
-  status: "processing" | "processed" | "ignored",
   organizationId: string | null,
   eventType: string,
   payload: unknown,
 ) {
-  await supabase.from("billing_webhook_events").upsert(
+  const { error } = await supabase.from("billing_webhook_events").insert(
     {
       stripe_event_id: eventId,
       event_type: eventType,
       organization_id: organizationId,
-      status,
+      status: "processing",
       payload,
-      processed_at: status === "processed" ? new Date().toISOString() : null,
+      processed_at: null,
     },
-    { onConflict: "stripe_event_id" },
   );
+
+  if (!error) {
+    return { claimed: true as const };
+  }
+
+  if (error.message.toLowerCase().includes("duplicate")) {
+    return { claimed: false as const };
+  }
+
+  throw new Error(error.message);
+}
+
+async function updateEventStatus(
+  supabase: SupabaseClient,
+  eventId: string,
+  status: "processed" | "ignored",
+  organizationId: string | null,
+) {
+  await supabase
+    .from("billing_webhook_events")
+    .update({
+      status,
+      organization_id: organizationId,
+      processed_at: status === "processed" ? new Date().toISOString() : null,
+    })
+    .eq("stripe_event_id", eventId);
 }
 
 async function upsertSubscription(supabase: SupabaseClient, payload: SubscriptionPayload) {
@@ -110,16 +134,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ received: true, warning: "Supabase admin client not configured." });
   }
 
-  const { data: existingEvent } = await supabase
-    .from("billing_webhook_events")
-    .select("stripe_event_id")
-    .eq("stripe_event_id", event.id)
-    .maybeSingle();
-
-  if (existingEvent) {
-    return NextResponse.json({ received: true, duplicate: true });
-  }
-
   const payload = JSON.parse(body) as unknown;
 
   const object = event.data.object as {
@@ -147,7 +161,10 @@ export async function POST(request: Request) {
     stripeSubscriptionId,
   );
 
-  await markEventProcessed(supabase, event.id, "processing", organizationId, event.type, payload);
+  const claim = await claimEvent(supabase, event.id, organizationId, event.type, payload);
+  if (!claim.claimed) {
+    return NextResponse.json({ received: true, duplicate: true });
+  }
 
   switch (event.type) {
     case "checkout.session.completed": {
@@ -226,11 +243,11 @@ export async function POST(request: Request) {
       break;
     }
     default: {
-      await markEventProcessed(supabase, event.id, "ignored", organizationId, event.type, payload);
+      await updateEventStatus(supabase, event.id, "ignored", organizationId);
       return NextResponse.json({ received: true, ignored: true });
     }
   }
 
-  await markEventProcessed(supabase, event.id, "processed", organizationId, event.type, payload);
+  await updateEventStatus(supabase, event.id, "processed", organizationId);
   return NextResponse.json({ received: true });
 }

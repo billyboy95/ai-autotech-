@@ -482,7 +482,7 @@ create index if not exists proposals_organization_id_idx on proposals(organizati
 create index if not exists invoices_organization_id_idx on invoices(organization_id);
 create index if not exists support_tickets_organization_id_idx on support_tickets(organization_id);
 create index if not exists documents_organization_id_idx on documents(organization_id);
-create index if not exists documents_record_lookup_idx on documents(organization_id, record_type, record_id, version_number);
+create unique index if not exists documents_record_lookup_idx on documents(organization_id, record_type, record_id, version_number);
 create index if not exists billing_webhook_events_org_idx on billing_webhook_events(organization_id, event_type);
 
 insert into storage.buckets (id, name, public)

@@ -82,11 +82,13 @@ export async function persistGeneratedPdf({
   recordId,
   title,
   bytes,
+  sourceUpdatedAt,
 }: {
   recordType: "proposal" | "invoice";
   recordId: string;
   title: string;
   bytes: Uint8Array<ArrayBufferLike>;
+  sourceUpdatedAt: string | null;
 }) {
   const supabase = await createSupabaseServerClient();
   const organizationId = await getCurrentOrganizationId();
@@ -97,7 +99,7 @@ export async function persistGeneratedPdf({
 
   const { data: latestDocument } = await supabase
     .from("documents")
-    .select("version_number")
+    .select("id, created_at, version_number")
     .eq("organization_id", organizationId)
     .eq("record_type", recordType)
     .eq("record_id", recordId)
@@ -105,43 +107,73 @@ export async function persistGeneratedPdf({
     .limit(1)
     .maybeSingle();
 
-  const versionNumber = Number(latestDocument?.version_number ?? 0) + 1;
-  const fileName = `${recordType}-${recordId}-v${versionNumber}.pdf`;
-  const storagePath = buildDocumentStoragePath({
-    organizationId,
-    folder: `generated/${recordType}s/${recordId}`,
-    fileName,
-  });
+  if (latestDocument?.created_at && sourceUpdatedAt) {
+    const latestCreatedAt = new Date(latestDocument.created_at).getTime();
+    const sourceTimestamp = new Date(sourceUpdatedAt).getTime();
 
-  const { error: uploadError } = await supabase.storage.from(DOCUMENT_BUCKET).upload(storagePath, bytes, {
-    contentType: "application/pdf",
-    upsert: false,
-  });
+    if (!Number.isNaN(latestCreatedAt) && !Number.isNaN(sourceTimestamp) && latestCreatedAt >= sourceTimestamp) {
+      const { data } = await supabase
+        .from("documents")
+        .select("id, title, storage_path, client_visible, created_at, mime_type, file_name, file_size_bytes, record_type, record_id, version_number")
+        .eq("id", latestDocument.id)
+        .maybeSingle();
 
-  if (uploadError) {
-    throw new Error(uploadError.message);
+      return (data as StoredDocument | null) ?? null;
+    }
   }
 
-  const { data, error } = await supabase
-    .from("documents")
-    .insert({
-      title,
-      storage_path: storagePath,
-      organization_id: organizationId,
-      file_name: fileName,
-      mime_type: "application/pdf",
-      file_size_bytes: bytes.byteLength,
-      record_type: recordType,
-      record_id: recordId,
-      version_number: versionNumber,
-      status: "Generated",
-    })
-    .select("id, title, storage_path, client_visible, created_at, mime_type, file_name, file_size_bytes, record_type, record_id, version_number")
-    .maybeSingle();
+  const baseVersionNumber = Number(latestDocument?.version_number ?? 0);
 
-  if (error) {
-    throw new Error(error.message);
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    const versionNumber = baseVersionNumber + attempt;
+    const fileName = `${recordType}-${recordId}-v${versionNumber}.pdf`;
+    const storagePath = buildDocumentStoragePath({
+      organizationId,
+      folder: `generated/${recordType}s/${recordId}`,
+      fileName,
+    });
+
+    const { error: uploadError } = await supabase.storage.from(DOCUMENT_BUCKET).upload(storagePath, bytes, {
+      contentType: "application/pdf",
+      upsert: false,
+    });
+
+    if (uploadError) {
+      if (uploadError.message.toLowerCase().includes("already exists")) {
+        continue;
+      }
+
+      throw new Error(uploadError.message);
+    }
+
+    const { data, error } = await supabase
+      .from("documents")
+      .insert({
+        title,
+        storage_path: storagePath,
+        organization_id: organizationId,
+        file_name: fileName,
+        mime_type: "application/pdf",
+        file_size_bytes: bytes.byteLength,
+        bucket_name: DOCUMENT_BUCKET,
+        record_type: recordType,
+        record_id: recordId,
+        version_number: versionNumber,
+        status: "Generated",
+      })
+      .select("id, title, storage_path, client_visible, created_at, mime_type, file_name, file_size_bytes, record_type, record_id, version_number")
+      .maybeSingle();
+
+    if (error) {
+      if (error.message.toLowerCase().includes("duplicate") || error.message.toLowerCase().includes("unique")) {
+        continue;
+      }
+
+      throw new Error(error.message);
+    }
+
+    return (data as StoredDocument | null) ?? null;
   }
 
-  return (data as StoredDocument | null) ?? null;
+  throw new Error("Could not persist the generated PDF version.");
 }

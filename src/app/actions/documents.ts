@@ -120,14 +120,14 @@ export async function deleteDocument(
     return { ok: false, message: "Document not found." };
   }
 
-  const { error: storageError } = await supabase.storage.from(DOCUMENT_BUCKET).remove([data.storage_path]);
-  if (storageError) {
-    return { ok: false, message: storageError.message };
-  }
-
   const { error } = await supabase.from("documents").delete().eq("id", id);
   if (error) {
     return { ok: false, message: error.message };
+  }
+
+  const { error: storageError } = await supabase.storage.from(DOCUMENT_BUCKET).remove([data.storage_path]);
+  if (storageError) {
+    return { ok: false, message: `${storageError.message}. The document record was removed, but the file may need manual cleanup.` };
   }
 
   revalidatePath("/command-centre");

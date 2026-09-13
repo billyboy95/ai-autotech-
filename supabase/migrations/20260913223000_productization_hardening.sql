@@ -29,7 +29,7 @@ create policy "members read billing webhook events" on billing_webhook_events
 create policy "admins manage billing webhook events" on billing_webhook_events
   for all using (is_admin()) with check (is_admin());
 
-create index if not exists documents_record_lookup_idx on documents(organization_id, record_type, record_id, version_number);
+create unique index if not exists documents_record_lookup_idx on documents(organization_id, record_type, record_id, version_number);
 create index if not exists billing_webhook_events_org_idx on billing_webhook_events(organization_id, event_type);
 
 drop policy if exists "members upload documents" on storage.objects;

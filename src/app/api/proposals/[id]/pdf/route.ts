@@ -16,6 +16,7 @@ export async function GET(
     status: "Draft",
     total: 24500,
     created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
   };
 
   if (id !== "demo") {
@@ -29,7 +30,7 @@ export async function GET(
     const supabase = await createSupabaseServerClient();
     const { data } = await supabase
       .from("proposals")
-      .select("organization_id, title, status, total, created_at")
+      .select("organization_id, title, status, total, created_at, updated_at")
       .eq("id", id)
       .maybeSingle();
 
@@ -56,6 +57,7 @@ export async function GET(
       recordId: id,
       title: `${proposal.title} PDF`,
       bytes,
+      sourceUpdatedAt: proposal.updated_at,
     });
   }
 

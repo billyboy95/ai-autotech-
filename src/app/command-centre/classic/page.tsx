@@ -7,6 +7,7 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "Classic Command Centre",
   description: "The original AI AutoTech operating dashboard.",
+  robots: { index: false, follow: false, nocache: true },
 };
 
 export default async function ClassicCommandCentrePage() {

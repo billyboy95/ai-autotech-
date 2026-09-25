@@ -7,6 +7,7 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "AI AutoTech Pty Ltd CRM",
   description: "Company CRM for AI AutoTech Pty Ltd.",
+  robots: { index: false, follow: false, nocache: true },
 };
 
 export default async function CommandCentrePage() {

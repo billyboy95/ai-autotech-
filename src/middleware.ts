@@ -1,27 +1,24 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { CRM_COOKIE, CRM_UNLOCK_PATH, isValidCrmCookie } from "@/lib/crm-auth";
 
-export async function middleware(request: NextRequest) {
+// The company CRM at /command-centre is intentionally open (no password gate, by owner's choice).
+// Middleware only redirects the old unlock URL and keeps search engines out.
+const UNLOCK_PATH = "/command-centre/unlock";
+
+export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  if (!pathname.startsWith("/command-centre")) {
-    return NextResponse.next();
+  if (pathname === UNLOCK_PATH || pathname.startsWith(`${UNLOCK_PATH}/`)) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/command-centre";
+    url.search = "";
+    const redirect = NextResponse.redirect(url);
+    redirect.headers.set("X-Robots-Tag", "noindex, nofollow");
+    return redirect;
   }
 
-  if (pathname === CRM_UNLOCK_PATH || pathname.startsWith(`${CRM_UNLOCK_PATH}/`)) {
-    return NextResponse.next();
-  }
-
-  const token = request.cookies.get(CRM_COOKIE)?.value;
-  if (await isValidCrmCookie(token)) {
-    return NextResponse.next();
-  }
-
-  const url = request.nextUrl.clone();
-  url.pathname = CRM_UNLOCK_PATH;
-  url.search = "";
-  url.searchParams.set("from", pathname);
-  return NextResponse.redirect(url);
+  const response = NextResponse.next();
+  response.headers.set("X-Robots-Tag", "noindex, nofollow");
+  return response;
 }
 
 export const config = {

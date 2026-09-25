@@ -54,7 +54,7 @@ function mediaIdOf(m: WaInboundMessage) {
 export async function POST(request: Request) {
   const raw = await request.text();
   if (raw.length > 512 * 1024) return new NextResponse("Too large", { status: 413 });
-  if (!verifySignature(raw, request.headers.get("x-hub-signature-256"))) {
+  if (!verifySignature(raw, request.headers.get("x-hub-signature-256"), request.headers.get("x-webhook-signature"))) {
     return new NextResponse("Invalid signature", { status: 401 });
   }
 

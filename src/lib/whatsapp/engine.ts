@@ -2,6 +2,7 @@ import { generateText } from "ai";
 import { runBrain, type BrainOutput } from "./brain";
 import { typingDelayMs } from "./humanize";
 import { isOptOut } from "./rules";
+import { resolveModel } from "./llm";
 import { sendHandoverAlert } from "./alerts";
 import {
   getOrCreateConversation,
@@ -92,7 +93,7 @@ function describeInbound(row: MessageRow): { text: string; note?: string } {
 export async function transcribeWithGateway(data: Uint8Array, mimeType: string): Promise<string | null> {
   try {
     const res = await generateText({
-      model: process.env.WHATSAPP_TRANSCRIBE_MODEL || "google/gemini-2.5-flash-lite",
+      model: resolveModel("transcribe").model,
       messages: [
         {
           role: "user",
@@ -179,13 +180,29 @@ export async function handleInbound(input: InboundInput, transport: Transport): 
 
   const fresh = await refreshConversation(conv.id);
   // A previously opted-out lead who messages again has re-engaged: reply, but keep the record.
-  const brain = await runBrain({
-    history,
-    inbound: described.map((d) => d.text),
-    lead: fresh.lead ?? {},
-    profileName: fresh.profile_name,
-    mediaNote: notes.join(" "),
-  });
+  let brain: BrainOutput;
+  try {
+    brain = await runBrain({
+      history,
+      inbound: described.map((d) => d.text),
+      lead: fresh.lead ?? {},
+      profileName: fresh.profile_name,
+      mediaNote: notes.join(" "),
+    });
+  } catch (e) {
+    // LLM down / out of credit: never leave the lead hanging. Safe holding reply + hand to Billy.
+    console.error("brain failed", (e as Error).message);
+    brain = {
+      bubbles: ["Thanks for the message! Billy will get back to you shortly"],
+      intent: "handover_complex",
+      handover: true,
+      handoverReason: `Bot error, please reply manually (${(e as Error).message.slice(0, 120)})`,
+      optOut: false,
+      lead: fresh.lead ?? {},
+      flags: ["brain_error"],
+      model: "fallback",
+    };
+  }
 
   // ---- Persist outcome ----
   const patch: Record<string, unknown> = { lead: brain.lead };

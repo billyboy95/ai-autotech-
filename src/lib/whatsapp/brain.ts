@@ -4,13 +4,13 @@ import { buildSystemPrompt, type LeadFacts } from "./persona";
 import { claimsHuman, isBotQuestion, isOptOut, looksAngry, looksLegal, mentionsAi, wantsHuman } from "./rules";
 import { findUnpublishedAmounts, humanize } from "./humanize";
 import { SITE } from "./knowledge";
+import { fallbackModel, resolveModel, type ResolvedModel } from "./llm";
 
 /**
  * The reply brain. Shared by the Meta webhook and the CRM simulator so both behave identically.
  * LLM: Vercel AI Gateway via the AI SDK (OIDC on Vercel, or AI_GATEWAY_API_KEY elsewhere).
  */
 
-export const DEFAULT_MODEL = "openai/gpt-5-mini";
 export const FALLBACK_MODELS = ["google/gemini-3.1-flash-lite", "openai/gpt-6-luna"];
 
 export type Intent =
@@ -92,6 +92,27 @@ function looksAfrikaans(text: string) {
   ) && /\b(ek|jy|nie|dankie|asseblief|besigheid|hoeveel|goeie)\b/i.test(text);
 }
 
+const EMPTY_LEAD = { name: "", business: "", industry: "", pain: "", budget: "", timeline: "", email: "" };
+const INTENTS = ["chat", "handover_human", "handover_angry", "handover_complex", "handover_hot", "opt_out", "spam"] as const;
+
+function parseLenient(text: string): z.infer<typeof schema> | null {
+  const start = text.indexOf("{");
+  const end = text.lastIndexOf("}");
+  if (start === -1 || end <= start) return null;
+  try {
+    const obj = JSON.parse(text.slice(start, end + 1)) as Record<string, unknown>;
+    const reply = typeof obj.reply === "string" ? obj.reply : "";
+    if (!reply.trim()) return null;
+    const intent = INTENTS.includes(obj.intent as (typeof INTENTS)[number]) ? (obj.intent as (typeof INTENTS)[number]) : "chat";
+    const leadIn = (obj.lead && typeof obj.lead === "object" ? obj.lead : {}) as Record<string, unknown>;
+    const lead = { ...EMPTY_LEAD };
+    for (const k of Object.keys(EMPTY_LEAD) as Array<keyof typeof EMPTY_LEAD>) lead[k] = typeof leadIn[k] === "string" ? (leadIn[k] as string) : "";
+    return { reply, intent, handover_reason: typeof obj.handover_reason === "string" ? obj.handover_reason : "", lead };
+  } catch {
+    return null;
+  }
+}
+
 function mergeLead(prev: LeadFacts, next: Partial<Record<keyof LeadFacts, string>>): LeadFacts {
   const out: LeadFacts = { ...prev };
   for (const [k, v] of Object.entries(next)) {
@@ -147,7 +168,8 @@ export async function runBrain(input: BrainInput): Promise<BrainOutput> {
   }
   messages.push({ role: "user", content: latest || "(empty message)" });
 
-  const model = process.env.WHATSAPP_BOT_MODEL || DEFAULT_MODEL;
+  let resolved: ResolvedModel = resolveModel("chat");
+  let model = resolved.id;
   const usedEmoji = /\p{Extended_Pictographic}/u.test(allLeadText);
 
   let parsed: z.infer<typeof schema> | null = null;
@@ -155,44 +177,78 @@ export async function runBrain(input: BrainInput): Promise<BrainOutput> {
   let flags: string[] = [];
   let correction = "";
 
-  for (let attempt = 0; attempt < 2; attempt++) {
-    const result = await generateText({
-      model,
-      instructions: correction ? `${instructions}\n\nCORRECTION FROM YOUR LAST DRAFT: ${correction}` : instructions,
-      messages,
-      output: Output.object({ schema }),
-      temperature: model.startsWith("openai/gpt-5") ? undefined : 0.7,
-      reasoning: "minimal",
-      maxOutputTokens: 1200,
-      maxRetries: 2,
-      providerOptions: { gateway: { models: FALLBACK_MODELS.filter((m) => m !== model) } },
-    });
-    parsed = result.output;
-    usage = { inputTokens: result.usage.inputTokens, outputTokens: result.usage.outputTokens };
+  const runAttempts = async () => {
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const common = {
+        model: resolved.model,
+        instructions: correction ? `${instructions}\n\nCORRECTION FROM YOUR LAST DRAFT: ${correction}` : instructions,
+        messages,
+        temperature: /gpt-5|gpt-oss|pollinations/.test(model) ? undefined : 0.7,
+        maxOutputTokens: 1500,
+        maxRetries: resolved.provider === "pollinations" ? 4 : 2,
+      };
+      if (resolved.structured) {
+        const result = await generateText({
+          ...common,
+          output: Output.object({ schema }),
+          reasoning: "minimal",
+          providerOptions: resolved.provider === "gateway" ? { gateway: { models: FALLBACK_MODELS.filter((m) => m !== model) } } : undefined,
+        });
+        parsed = result.output;
+        usage = { inputTokens: result.usage.inputTokens, outputTokens: result.usage.outputTokens };
+      } else {
+        // Providers without JSON-schema support: ask for JSON and parse leniently.
+        const result = await generateText(common);
+        parsed = parseLenient(result.text);
+        usage = { inputTokens: result.usage.inputTokens, outputTokens: result.usage.outputTokens };
+        if (!parsed) {
+          flags.push("unparsed_json");
+          if (attempt === 0) {
+            correction = "Your last answer was not valid JSON. Return ONLY the JSON object.";
+            continue;
+          }
+          break;
+        }
+      }
 
-    const bad = findUnpublishedAmounts(parsed.reply);
-    const lies = claimsHuman(parsed.reply);
-    const dodge = botQuestion && !mentionsAi(parsed.reply);
-    if (!bad.length && !lies && !dodge) break;
-    flags.push(bad.length ? `guard:amount(${bad.join(",")})` : lies ? "guard:claims_human" : "guard:bot_dodge");
-    correction = bad.length
-      ? `You mentioned ${bad.join(", ")}, which is not a published price or fact. Only "from R8,999/month excl. VAT" (AI employees/teams) and "from R14,999/month excl. VAT" (voice agents) exist. Rewrite without it.`
-      : "You implied you are Billy or a human, or dodged the bot question. Rewrite: say honestly you're Billy's AI assistant.";
-    if (attempt === 1) parsed = null; // still bad after a retry → fall back below
+      const bad = findUnpublishedAmounts(parsed.reply);
+      const lies = claimsHuman(parsed.reply);
+      const dodge = botQuestion && !mentionsAi(parsed.reply);
+      if (!bad.length && !lies && !dodge) break;
+      flags.push(bad.length ? `guard:amount(${bad.join(",")})` : lies ? "guard:claims_human" : "guard:bot_dodge");
+      correction = bad.length
+        ? `You mentioned ${bad.join(", ")}, which is not a published price or fact. Only "from R8,999/month excl. VAT" (AI employees/teams) and "from R14,999/month excl. VAT" (voice agents) exist. Rewrite without it.`
+        : "You implied you are Billy or a human, or dodged the bot question. Rewrite: say honestly you're Billy's AI assistant.";
+      if (attempt === 1) parsed = null; // still bad after a retry → fall back below
+    }
+  };
+  try {
+    await runAttempts();
+  } catch (e) {
+    const fb = fallbackModel("chat");
+    if (!fb || fb.id === resolved.id) throw e;
+    console.warn(`primary LLM failed (${(e as Error).message.slice(0, 120)}), using fallback ${fb.id}`);
+    flags.push(`fallback_llm(${fb.id})`);
+    resolved = fb;
+    model = fb.id;
+    parsed = null;
+    correction = "";
+    await runAttempts();
   }
 
-  let intent: Intent = forced?.intent ?? parsed?.intent ?? "chat";
-  if (parsed?.intent?.startsWith("handover") && !forced) intent = parsed.intent;
-  if (parsed?.intent === "opt_out") intent = "opt_out";
+  const out = parsed as z.infer<typeof schema> | null;
+  let intent: Intent = forced?.intent ?? out?.intent ?? "chat";
+  if (out?.intent?.startsWith("handover") && !forced) intent = out.intent;
+  if (out?.intent === "opt_out") intent = "opt_out";
 
   let bubbles: string[];
-  if (!parsed) {
+  if (!out) {
     bubbles = botQuestion
       ? honestBotReply(afrikaans)
-      : ["Good question, Billy will give you the exact details", `Easiest is the free audit, about 5 min: ${SITE.audit}`];
+      : ["Let me get Billy to confirm that one for you", `In the meantime the free audit takes about 5 min: ${SITE.audit}`];
     flags.push("fallback_reply");
   } else {
-    const h = humanize(parsed.reply, { allowEmoji: usedEmoji });
+    const h = humanize(out.reply, { allowEmoji: usedEmoji });
     bubbles = h.bubbles;
     flags = [...flags, ...h.flags];
     if (!bubbles.length) {
@@ -206,9 +262,9 @@ export async function runBrain(input: BrainInput): Promise<BrainOutput> {
     bubbles,
     intent,
     handover,
-    handoverReason: handover ? parsed?.handover_reason || forced?.reason || intent.replace("handover_", "") : "",
+    handoverReason: handover ? out?.handover_reason || forced?.reason || intent.replace("handover_", "") : "",
     optOut: intent === "opt_out",
-    lead: parsed ? mergeLead(input.lead, parsed.lead) : input.lead,
+    lead: out ? mergeLead(input.lead, out.lead) : input.lead,
     flags,
     model,
     usage,

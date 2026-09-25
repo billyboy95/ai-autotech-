@@ -1,19 +1,26 @@
 import crypto from "node:crypto";
 
-/** WhatsApp Cloud API helpers (Meta Graph API). No SDK, just fetch. */
+/**
+ * WhatsApp Cloud API helpers. No SDK, just fetch.
+ * Direct Meta (default): Graph API + WHATSAPP_TOKEN, webhooks signed with X-Hub-Signature-256 (WHATSAPP_APP_SECRET).
+ * Via Kapso (free coexistence BSP, Meta-compatible proxy): set KAPSO_API_KEY (+ KAPSO_WEBHOOK_SECRET); same payloads.
+ */
 
-const GRAPH = () => `https://graph.facebook.com/${process.env.WHATSAPP_GRAPH_VERSION || "v25.0"}`;
+const GRAPH = () =>
+  process.env.WHATSAPP_API_BASE ||
+  (process.env.KAPSO_API_KEY ? "https://api.kapso.ai/meta/whatsapp/v24.0" : `https://graph.facebook.com/${process.env.WHATSAPP_GRAPH_VERSION || "v25.0"}`);
 
-export function whatsappConfigured() {
-  return Boolean(process.env.WHATSAPP_TOKEN && process.env.WHATSAPP_PHONE_NUMBER_ID);
+function authHeaders(): Record<string, string> {
+  if (process.env.KAPSO_API_KEY) return { "X-API-Key": process.env.KAPSO_API_KEY };
+  return { Authorization: `Bearer ${process.env.WHATSAPP_TOKEN}` };
 }
 
-/** Verify X-Hub-Signature-256 = "sha256=" + HMAC_SHA256(app secret, raw body). Fails closed. */
-export function verifySignature(rawBody: string, header: string | null, secret = process.env.WHATSAPP_APP_SECRET) {
-  if (!secret || !header || !header.startsWith("sha256=")) return false;
-  const expected = crypto.createHmac("sha256", secret).update(rawBody, "utf8").digest("hex");
-  const given = header.slice("sha256=".length);
-  if (given.length !== expected.length) return false;
+export function whatsappConfigured() {
+  return Boolean(process.env.WHATSAPP_PHONE_NUMBER_ID && (process.env.WHATSAPP_TOKEN || process.env.KAPSO_API_KEY));
+}
+
+function safeEqualHex(given: string, expected: string) {
+  if (!/^[0-9a-f]+$/i.test(given) || given.length !== expected.length) return false;
   try {
     return crypto.timingSafeEqual(Buffer.from(given, "hex"), Buffer.from(expected, "hex"));
   } catch {
@@ -21,13 +28,32 @@ export function verifySignature(rawBody: string, header: string | null, secret =
   }
 }
 
+/**
+ * Verify the webhook came from Meta (X-Hub-Signature-256 = "sha256=" + HMAC_SHA256(app secret, raw body))
+ * or from Kapso's Meta forwarding (X-Webhook-Signature = hex HMAC_SHA256(webhook secret, raw body)). Fails closed.
+ */
+export function verifySignature(
+  rawBody: string,
+  metaHeader: string | null,
+  kapsoHeader: string | null = null,
+  appSecret = process.env.WHATSAPP_APP_SECRET,
+  kapsoSecret = process.env.KAPSO_WEBHOOK_SECRET,
+) {
+  if (metaHeader && appSecret && metaHeader.startsWith("sha256=")) {
+    const expected = crypto.createHmac("sha256", appSecret).update(rawBody, "utf8").digest("hex");
+    return safeEqualHex(metaHeader.slice("sha256=".length), expected);
+  }
+  if (kapsoHeader && kapsoSecret) {
+    const expected = crypto.createHmac("sha256", kapsoSecret).update(rawBody, "utf8").digest("hex");
+    return safeEqualHex(kapsoHeader.replace(/^sha256=/, ""), expected);
+  }
+  return false;
+}
+
 async function graph(path: string, body: unknown) {
   const res = await fetch(`${GRAPH()}/${path}`, {
     method: "POST",
-    headers: {
-      Authorization: `Bearer ${process.env.WHATSAPP_TOKEN}`,
-      "Content-Type": "application/json",
-    },
+    headers: { ...authHeaders(), "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
   const json = (await res.json().catch(() => ({}))) as Record<string, unknown>;
@@ -68,13 +94,13 @@ export async function markReadAndType(messageId: string) {
 
 /** Download inbound media (voice note, image) as bytes. */
 export async function downloadMedia(mediaId: string): Promise<{ data: Uint8Array; mimeType: string } | null> {
-  const token = process.env.WHATSAPP_TOKEN;
-  if (!token) return null;
-  const meta = await fetch(`${GRAPH()}/${mediaId}`, { headers: { Authorization: `Bearer ${token}` } });
+  if (!whatsappConfigured()) return null;
+  const pid = process.env.WHATSAPP_PHONE_NUMBER_ID;
+  const meta = await fetch(`${GRAPH()}/${mediaId}${process.env.KAPSO_API_KEY ? `?phone_number_id=${pid}` : ""}`, { headers: authHeaders() });
   if (!meta.ok) return null;
   const info = (await meta.json()) as { url?: string; mime_type?: string; file_size?: number };
   if (!info.url || (info.file_size ?? 0) > 16 * 1024 * 1024) return null;
-  const file = await fetch(info.url, { headers: { Authorization: `Bearer ${token}` } });
+  const file = await fetch(info.url, { headers: authHeaders() });
   if (!file.ok) return null;
   return { data: new Uint8Array(await file.arrayBuffer()), mimeType: (info.mime_type || "audio/ogg").split(";")[0] };
 }

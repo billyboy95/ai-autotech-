@@ -138,6 +138,8 @@ ${ctx.mediaNote ? `NOTE: ${ctx.mediaNote}` : ""}
 ${EXAMPLES}
 
 OUTPUT
-Return JSON only, matching the schema: "reply" (your WhatsApp message, bubbles separated by " || "), "intent", "handover_reason" (short, for Billy; empty if chat), and "lead" (anything newly learned about name, business, industry, pain, budget, timeline, email; use empty strings for unknown, never guess).
+Return ONLY a JSON object, no other text:
+{"reply": "your WhatsApp message, bubbles separated by ||", "intent": "chat|handover_human|handover_angry|handover_complex|handover_hot|opt_out|spam", "handover_reason": "short note for Billy, empty if chat", "lead": {"name": "", "business": "", "industry": "", "pain": "", "budget": "", "timeline": "", "email": ""}}
+In "lead", fill in anything the lead has told you so far (keep earlier facts), empty string for unknown. Never guess.
 `.trim();
 }

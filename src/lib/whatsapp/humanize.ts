@@ -23,6 +23,7 @@ const BANNED: Array<[RegExp, string]> = [
   [/\bas an ai( language model)?,?\s*/gi, ""],
   [/\bi hope this (message )?finds you well[.!]?\s*/gi, ""],
   [/\bthank you for reaching out[.!]?\s*/gi, "Thanks for the message. "],
+  [/^(noted|segue)[,:.!]\s+/gim, ""],
 ];
 
 const EMOJI = /\p{Extended_Pictographic}(\uFE0F|\u200D\p{Extended_Pictographic})*/gu;
@@ -48,6 +49,14 @@ export function humanize(raw: string, opts: { allowEmoji?: boolean; maxWords?: n
     .replace(/[\u201C\u201D]/g, '"')
     .replace(/[\u00A0\u202F]/g, " ")
     .replace(/\u2026/g, "...")
+    .trim();
+
+  // Provider-injected junk (e.g. free endpoints appending ads) and "---" footers.
+  if (/pollinations|\bsupport our mission\b|powered by/i.test(text)) flags.push("provider_ad");
+  text = text
+    .replace(/\s*-{3,}[\s\S]*?(pollinations|powered by|support our mission)[\s\S]*$/i, "")
+    .replace(/^.*(pollinations\.ai|powered by pollinations).*$/gim, "")
+    .replace(/\s*-{3,}\s*$/g, "")
     .trim();
 
   // Strip wrapping quotes / JSON-ish artefacts.

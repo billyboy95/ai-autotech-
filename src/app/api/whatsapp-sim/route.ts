@@ -83,8 +83,17 @@ export async function POST(request: Request) {
 export async function GET(request: Request) {
   const session = new URL(request.url).searchParams.get("session") ?? "";
   if (!/^[a-zA-Z0-9-]{8,64}$/.test(session)) return NextResponse.json({ ok: false }, { status: 400 });
-  const conv = await db().from("crm_whatsapp_conversations").select("id").eq("wa_id", `sim:${session}`).maybeSingle();
+  const conv = await db()
+    .from("crm_whatsapp_conversations")
+    .select("id, status, bot_paused_until, handover_reason, needs_attention, opted_out, lead, crm_lead_id")
+    .eq("wa_id", `sim:${session}`)
+    .maybeSingle();
   if (!conv.data) return NextResponse.json({ ok: true, messages: [] });
-  const rows = await loadMessages((conv.data as { id: string }).id, 100);
-  return NextResponse.json({ ok: true, messages: rows.map((r) => ({ author: r.author, body: r.body, type: r.type, at: r.created_at })) });
+  const { id, ...state } = conv.data as { id: string } & Record<string, unknown>;
+  const rows = await loadMessages(id, 100);
+  return NextResponse.json({
+    ok: true,
+    state,
+    messages: rows.map((r) => ({ author: r.author, body: r.body, type: r.type, at: r.created_at })),
+  });
 }

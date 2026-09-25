@@ -49,6 +49,7 @@ export function WhatsappSimulator() {
     fetch(`/api/whatsapp-sim?session=${s}`)
       .then((r) => r.json())
       .then((d) => {
+        if (d.state) setState(d.state);
         if (d.messages?.length) {
           setMsgs(
             d.messages

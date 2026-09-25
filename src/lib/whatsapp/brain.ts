@@ -97,22 +97,50 @@ function looksAfrikaans(text: string) {
 const EMPTY_LEAD = { name: "", business: "", industry: "", pain: "", budget: "", timeline: "", email: "" };
 const INTENTS = ["chat", "handover_human", "handover_angry", "handover_complex", "handover_hot", "opt_out", "spam"] as const;
 
-function parseLenient(text: string): z.infer<typeof schema> | null {
-  const start = text.indexOf("{");
-  const end = text.lastIndexOf("}");
-  if (start === -1 || end <= start) return null;
+function unescapeJson(v: string) {
   try {
-    const obj = JSON.parse(text.slice(start, end + 1)) as Record<string, unknown>;
-    const reply = typeof obj.reply === "string" ? obj.reply : "";
-    if (!reply.trim()) return null;
-    const intent = INTENTS.includes(obj.intent as (typeof INTENTS)[number]) ? (obj.intent as (typeof INTENTS)[number]) : "chat";
-    const leadIn = (obj.lead && typeof obj.lead === "object" ? obj.lead : {}) as Record<string, unknown>;
-    const lead = { ...EMPTY_LEAD };
-    for (const k of Object.keys(EMPTY_LEAD) as Array<keyof typeof EMPTY_LEAD>) lead[k] = typeof leadIn[k] === "string" ? (leadIn[k] as string) : "";
-    return { reply, intent, handover_reason: typeof obj.handover_reason === "string" ? obj.handover_reason : "", lead };
+    return JSON.parse(`"${v}"`) as string;
   } catch {
-    return null;
+    return v.replace(/\\n/g, "\n").replace(/\\"/g, '"');
   }
+}
+
+/** Parse a JSON-ish answer from models without schema support. Salvages the reply even from broken JSON. */
+export function parseLenient(text: string): z.infer<typeof schema> | null {
+  const cleaned = text.replace(/```(?:json)?/gi, "").trim();
+  const start = cleaned.indexOf("{");
+  const end = cleaned.lastIndexOf("}");
+  let obj: Record<string, unknown> | null = null;
+  if (start !== -1 && end > start) {
+    try {
+      obj = JSON.parse(cleaned.slice(start, end + 1)) as Record<string, unknown>;
+    } catch {
+      obj = null;
+    }
+  }
+  if (!obj) {
+    // Broken JSON: pull fields out with regexes.
+    const reply = cleaned.match(/"reply"\s*:\s*"((?:[^"\\]|\\.)*)"/)?.[1];
+    if (reply) {
+      obj = { reply: unescapeJson(reply), intent: cleaned.match(/"intent"\s*:\s*"([a-z_]+)"/)?.[1] ?? "chat" };
+      const lead: Record<string, string> = {};
+      for (const k of Object.keys(EMPTY_LEAD)) {
+        const m = cleaned.match(new RegExp(`"${k}"\\s*:\\s*"((?:[^"\\\\]|\\\\.)*)"`));
+        if (m) lead[k] = unescapeJson(m[1]);
+      }
+      obj.lead = lead;
+    } else if (start === -1 && cleaned.length > 0 && cleaned.length < 700) {
+      // Plain text answer with no JSON at all: use it as the reply.
+      obj = { reply: cleaned, intent: "chat" };
+    } else return null;
+  }
+  const reply = typeof obj.reply === "string" ? obj.reply : "";
+  if (!reply.trim()) return null;
+  const intent = INTENTS.includes(obj.intent as (typeof INTENTS)[number]) ? (obj.intent as (typeof INTENTS)[number]) : "chat";
+  const leadIn = (obj.lead && typeof obj.lead === "object" ? obj.lead : {}) as Record<string, unknown>;
+  const lead = { ...EMPTY_LEAD };
+  for (const k of Object.keys(EMPTY_LEAD) as Array<keyof typeof EMPTY_LEAD>) lead[k] = typeof leadIn[k] === "string" ? (leadIn[k] as string) : "";
+  return { reply, intent, handover_reason: typeof obj.handover_reason === "string" ? obj.handover_reason : "", lead };
 }
 
 function mergeLead(prev: LeadFacts, next: Partial<Record<keyof LeadFacts, string>>): LeadFacts {
@@ -247,7 +275,12 @@ export async function runBrain(input: BrainInput): Promise<BrainOutput> {
   if (!out) {
     bubbles = botQuestion
       ? honestBotReply(afrikaans)
-      : ["Let me get Billy to confirm that one for you", `In the meantime the free audit takes about 5 min: ${SITE.audit}`];
+      : /\b(price|prices|cost|costs|how much|pricing|rate|fee|budget|hoeveel|prys|koste)\b/i.test(latest)
+        ? [
+            "AI employees start from R8,999 a month excl. VAT, voice agents from R14,999. Websites, CRM and the rest get a fixed quote after the free audit",
+            `The audit takes about 5 min: ${SITE.audit}`,
+          ]
+        : ["Let me get Billy to confirm that one for you", `In the meantime the free audit takes about 5 min: ${SITE.audit}`];
     flags.push("fallback_reply");
   } else {
     const h = humanize(out.reply, { allowEmoji: usedEmoji });

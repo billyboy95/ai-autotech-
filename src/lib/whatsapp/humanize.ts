@@ -146,6 +146,10 @@ export function humanize(raw: string, opts: { allowEmoji?: boolean; maxWords?: n
 
   // Trailing full stop on a single short casual bubble is fine; strip trailing spaces.
   bubbles = bubbles.map((b) => b.trim()).filter(Boolean);
+  // Each bubble is a billable WhatsApp message past Meta's free tier; WHATSAPP_MAX_BUBBLES=1 joins them.
+  if (process.env.WHATSAPP_MAX_BUBBLES === "1" && bubbles.length > 1) {
+    bubbles = [bubbles.map((b) => (/[.?!]$/.test(b) ? b : b + ".")).join(" ").replace(/\.$/, "")];
+  }
   return { bubbles, flags };
 }
 

@@ -40,8 +40,10 @@ export function WhatsappSimulator() {
   const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const saved = typeof window !== "undefined" ? window.sessionStorage.getItem("wa-sim-session") : null;
-    const s = saved || uid();
+    // ?session=<id> reopens a saved test chat (e.g. one from the scripted test runs).
+    const fromUrl = new URLSearchParams(window.location.search).get("session");
+    const saved = window.sessionStorage.getItem("wa-sim-session");
+    const s = (fromUrl && /^[a-zA-Z0-9-]{8,64}$/.test(fromUrl) ? fromUrl : null) || saved || uid();
     window.sessionStorage.setItem("wa-sim-session", s);
     setSession(s);
     fetch(`/api/whatsapp-sim?session=${s}`)

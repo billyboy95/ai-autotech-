@@ -64,12 +64,15 @@ async function graph(path: string, body: unknown) {
   return json;
 }
 
-/** Plain text message inside the 24h customer service window. */
+/** BSUIDs look like "ZA.1234..." (country code + period); phone numbers are digits only. */
+export const isBsuid = (id: string) => /^[A-Z]{2}\./.test(id);
+
+/** Plain text message inside the 24h customer service window. `to` may be a phone number or a BSUID. */
 export async function sendText(to: string, text: string, replyToId?: string) {
   const json = await graph(`${process.env.WHATSAPP_PHONE_NUMBER_ID}/messages`, {
     messaging_product: "whatsapp",
     recipient_type: "individual",
-    to,
+    ...(isBsuid(to) ? { recipient: to } : { to }),
     type: "text",
     text: { body: text, preview_url: /https?:\/\//.test(text) },
     ...(replyToId ? { context: { message_id: replyToId } } : {}),
@@ -108,7 +111,9 @@ export async function downloadMedia(mediaId: string): Promise<{ data: Uint8Array
 // ---- Webhook payload types (subset) ----
 
 export type WaInboundMessage = {
-  from: string;
+  from?: string; // phone number; can be omitted for users with usernames (BSUID rollout 2026)
+  from_user_id?: string; // business-scoped user id, always present
+  group_id?: string;
   id: string;
   timestamp: string;
   type: string;
@@ -125,12 +130,12 @@ export type WaInboundMessage = {
   reaction?: { emoji?: string; message_id?: string };
 };
 
-export type WaEcho = { from: string; to: string; id: string; timestamp: string; type: string; text?: { body: string } };
+export type WaEcho = { from: string; to?: string; to_user_id?: string; id: string; timestamp: string; type: string; text?: { body: string } };
 
 export type WaChangeValue = {
   messaging_product?: string;
   metadata?: { display_phone_number?: string; phone_number_id?: string };
-  contacts?: Array<{ wa_id: string; profile?: { name?: string } }>;
+  contacts?: Array<{ wa_id?: string; user_id?: string; profile?: { name?: string; username?: string } }>;
   messages?: WaInboundMessage[];
   message_echoes?: WaEcho[];
   statuses?: unknown[];

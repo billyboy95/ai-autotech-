@@ -74,17 +74,25 @@ export async function POST(request: Request) {
       if (ownNumberId && value.metadata?.phone_number_id && value.metadata.phone_number_id !== ownNumberId) continue;
 
       if (change.field === "messages") {
-        const names = new Map((value.contacts ?? []).map((c) => [c.wa_id, c.profile?.name ?? ""]));
+        const names = new Map<string, string>();
+        for (const c of value.contacts ?? []) {
+          const name = c.profile?.name || c.profile?.username || "";
+          if (c.wa_id) names.set(c.wa_id, name);
+          if (c.user_id) names.set(c.user_id, name);
+        }
         for (const m of value.messages ?? []) {
+          // Phone number when Meta shares it, otherwise the business-scoped user id (username users).
+          const waId = m.from || m.from_user_id;
+          if (!waId || m.group_id || m.type === "system") continue;
           // Ignore stale deliveries (older than 15 min), e.g. after an outage, so we don't answer yesterday's "hi".
           if (Number(m.timestamp) * 1000 < Date.now() - 15 * 60_000) continue;
           jobs.push(() =>
             handleInbound(
               {
-                waId: m.from,
+                waId,
                 channel: "whatsapp",
-                isTest: isTestNumber(m.from),
-                profileName: names.get(m.from),
+                isTest: isTestNumber(waId),
+                profileName: names.get(waId),
                 waMessageId: m.id,
                 type: m.type,
                 text: textOf(m),
@@ -96,7 +104,7 @@ export async function POST(request: Request) {
                 typing: async (id) => {
                   if (id && whatsappConfigured()) await markReadAndType(id);
                 },
-                send: async (text) => (whatsappConfigured() ? sendText(m.from, text) : null),
+                send: async (text) => (whatsappConfigured() ? sendText(waId, text) : null),
                 transcribe: async (mediaId) => {
                   const media = await downloadMedia(mediaId);
                   return media ? transcribeWithGateway(media.data, media.mimeType) : null;
@@ -110,7 +118,9 @@ export async function POST(request: Request) {
       // Coexistence: messages Billy sends from the WhatsApp Business app arrive as echoes.
       if (change.field === "smb_message_echoes" || value.message_echoes) {
         for (const e of value.message_echoes ?? []) {
-          jobs.push(() => handleBusinessEcho({ waId: e.to, waMessageId: e.id, text: e.text?.body ?? "" }));
+          const to = e.to || e.to_user_id;
+          if (!to) continue;
+          jobs.push(() => handleBusinessEcho({ waId: to, waMessageId: e.id, text: e.text?.body ?? "" }));
         }
       }
     }

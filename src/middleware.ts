@@ -22,5 +22,5 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/command-centre", "/command-centre/:path*"],
+  matcher: ["/command-centre", "/command-centre/:path*", "/whatsapp", "/whatsapp/:path*", "/whatsapp-sim"],
 };

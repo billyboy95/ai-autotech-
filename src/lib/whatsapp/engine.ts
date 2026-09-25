@@ -188,6 +188,7 @@ export async function handleInbound(input: InboundInput, transport: Transport): 
       lead: fresh.lead ?? {},
       profileName: fresh.profile_name,
       mediaNote: notes.join(" "),
+      testFallback: input.channel === "simulator",
     });
   } catch (e) {
     // LLM down / out of credit: never leave the lead hanging. Safe holding reply + hand to Billy.

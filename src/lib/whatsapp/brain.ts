@@ -31,6 +31,8 @@ export type BrainInput = {
   profileName?: string;
   mediaNote?: string;
   now?: Date;
+  /** Simulator only: allow the anonymous free test model if the real provider is unavailable. */
+  testFallback?: boolean;
 };
 
 export type BrainOutput = {
@@ -185,7 +187,7 @@ export async function runBrain(input: BrainInput): Promise<BrainOutput> {
         messages,
         temperature: /gpt-5|gpt-oss|pollinations/.test(model) ? undefined : 0.7,
         maxOutputTokens: 1500,
-        maxRetries: resolved.provider === "pollinations" ? 4 : 2,
+        maxRetries: resolved.provider === "pollinations" ? 4 : 1,
       };
       if (resolved.structured) {
         const result = await generateText({
@@ -225,7 +227,7 @@ export async function runBrain(input: BrainInput): Promise<BrainOutput> {
   try {
     await runAttempts();
   } catch (e) {
-    const fb = fallbackModel("chat");
+    const fb = fallbackModel("chat") ?? (input.testFallback && process.env.WHATSAPP_SIM_FALLBACK !== "off" ? resolveModel("chat", "pollinations") : null);
     if (!fb || fb.id === resolved.id) throw e;
     console.warn(`primary LLM failed (${(e as Error).message.slice(0, 120)}), using fallback ${fb.id}`);
     flags.push(`fallback_llm(${fb.id})`);

@@ -5,7 +5,7 @@ import { db, loadMessages, patchConversation } from "@/lib/whatsapp/store";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-export const maxDuration = 60;
+export const maxDuration = 300;
 
 /**
  * Simulator API: runs the exact same engine + brain as the Meta webhook, but with channel 'simulator',

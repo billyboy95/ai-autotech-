@@ -41,7 +41,14 @@ export function findUnpublishedAmounts(text: string) {
 
 export function humanize(raw: string, opts: { allowEmoji?: boolean; maxWords?: number } = {}): Humanized {
   const flags: string[] = [];
-  let text = raw.replace(/\r/g, "").trim();
+  let text = raw
+    .replace(/\r/g, "")
+    .replace(/[\u2010\u2011\u2012]/g, "-")
+    .replace(/[\u2018\u2019]/g, "'")
+    .replace(/[\u201C\u201D]/g, '"')
+    .replace(/[\u00A0\u202F]/g, " ")
+    .replace(/\u2026/g, "...")
+    .trim();
 
   // Strip wrapping quotes / JSON-ish artefacts.
   text = text.replace(/^["'“”]+|["'“”]+$/g, "").trim();

@@ -57,6 +57,7 @@ export function humanize(raw: string, opts: { allowEmoji?: boolean; maxWords?: n
     .replace(/\s*-{3,}[\s\S]*?(pollinations|powered by|support our mission)[\s\S]*$/i, "")
     .replace(/^.*(pollinations\.ai|powered by pollinations).*$/gim, "")
     .replace(/\s*-{3,}\s*$/g, "")
+    .replace(/(^|\|\|)\s*(intent|handover_reason|lead)\s*:.*?(?=\|\||$)/gim, "$1")
     .trim();
 
   // Strip wrapping quotes / JSON-ish artefacts.

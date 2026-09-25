@@ -213,7 +213,7 @@ export async function runBrain(input: BrainInput): Promise<BrainOutput> {
         model: resolved.model,
         instructions: correction ? `${instructions}\n\nCORRECTION FROM YOUR LAST DRAFT: ${correction}` : instructions,
         messages,
-        temperature: /gpt-5|gpt-oss|pollinations/.test(model) ? undefined : 0.7,
+        temperature: resolved.provider === "pollinations" ? 0.4 : /gpt-5|gpt-oss/.test(model) ? undefined : 0.7,
         maxOutputTokens: 1500,
         maxRetries: resolved.provider === "pollinations" ? 4 : 1,
       };

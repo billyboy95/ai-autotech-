@@ -133,29 +133,18 @@ function asInvoice(row: Invoice): Invoice {
   };
 }
 
-async function replaceTable<T extends { id: string }>(
+async function upsertTable<T extends { id: string }>(
   supabase: SupabaseClient,
   table: string,
   rows: T[],
 ) {
-  const existing = await supabase.from(table).select("id");
-  throwQuery(existing.error, table);
+  if (!rows.length) return;
+  const upserted = await supabase.from(table).upsert(rows);
+  throwQuery(upserted.error, table);
+}
 
-  const keep = new Set(rows.map((row) => row.id));
-  const stale = (existing.data ?? [])
-    .map((row) => (row as { id: string }).id)
-    .filter((id) => !keep.has(id));
-
-  if (stale.length) {
-    const deleted = await supabase.from(table).delete().in("id", stale);
-    throwQuery(deleted.error, table);
-  }
-
-  if (rows.length) {
-    const payload = rows.map((row, ord) => ({ ...row, ord }));
-    const upserted = await supabase.from(table).upsert(payload);
-    throwQuery(upserted.error, table);
-  }
+function freshOrd() {
+  return -Math.floor(Date.now() / 1000);
 }
 
 async function ensureSeed(supabase: SupabaseClient, data: CrmData): Promise<CrmData> {
@@ -198,50 +187,82 @@ export async function readCrm(): Promise<CrmData> {
   });
 }
 
-export async function writeCrm(data: CrmData) {
-  const supabase = requireAdmin();
-  await replaceTable<Ordered<Lead>>(
+export async function writeCrm(data: CrmData, client?: SupabaseClient) {
+  const supabase = client ?? requireAdmin();
+  await upsertTable<Ordered<Lead>>(
     supabase,
     "crm_leads",
     data.leads.map((row, ord) => ({ ...asLead(row), ord })),
   );
-  await replaceTable<Ordered<Client>>(
+  await upsertTable<Ordered<Client>>(
     supabase,
     "crm_clients",
     data.clients.map((row, ord) => ({ ...asClient(row), ord })),
   );
-  await replaceTable<Ordered<Job>>(
+  await upsertTable<Ordered<Job>>(
     supabase,
     "crm_jobs",
     data.jobs.map((row, ord) => ({ ...asJob(row), ord })),
   );
-  await replaceTable<Ordered<Invoice>>(
+  await upsertTable<Ordered<Invoice>>(
     supabase,
     "crm_invoices",
     data.invoices.map((row, ord) => ({ ...asInvoice(row), ord })),
   );
 }
 
-export async function createPublicLead(input: {
-  name: string;
-  email: string;
-  phone: string;
-  company: string;
-  message: string;
-}) {
-  const data = await readCrm();
+export async function insertClient(row: Client, client?: SupabaseClient) {
+  const supabase = client ?? requireAdmin();
+  const inserted = await supabase.from("crm_clients").insert({ ...asClient(row), ord: freshOrd() });
+  throwQuery(inserted.error, "crm_clients");
+}
+
+export async function insertJob(row: Job, client?: SupabaseClient) {
+  const supabase = client ?? requireAdmin();
+  const inserted = await supabase.from("crm_jobs").insert({ ...asJob(row), ord: freshOrd() });
+  throwQuery(inserted.error, "crm_jobs");
+}
+
+export async function updateJobStatus(id: string, status: Job["status"], client?: SupabaseClient) {
+  const supabase = client ?? requireAdmin();
+  const updated = await supabase.from("crm_jobs").update({ status }).eq("id", id);
+  throwQuery(updated.error, "crm_jobs");
+}
+
+export async function insertInvoice(row: Invoice, client?: SupabaseClient) {
+  const supabase = client ?? requireAdmin();
+  const inserted = await supabase.from("crm_invoices").insert({ ...asInvoice(row), ord: freshOrd() });
+  throwQuery(inserted.error, "crm_invoices");
+}
+
+export async function updateInvoiceStatus(id: string, status: Invoice["status"], client?: SupabaseClient) {
+  const supabase = client ?? requireAdmin();
+  const updated = await supabase.from("crm_invoices").update({ status }).eq("id", id);
+  throwQuery(updated.error, "crm_invoices");
+}
+
+export async function createPublicLead(
+  input: {
+    name: string;
+    email: string;
+    phone: string;
+    company: string;
+    message: string;
+  },
+  client?: SupabaseClient,
+) {
+  const supabase = client ?? requireAdmin();
   const id = nid();
   const notes = [input.email, input.message].filter(Boolean).join("\n");
-
-  data.leads.unshift({
+  const inserted = await supabase.from("crm_leads").insert({
     id,
     name: input.name || "Website lead",
     company: input.company,
     phone: input.phone,
     stage: "New",
     notes,
+    ord: freshOrd(),
   });
-
-  await writeCrm(data);
+  throwQuery(inserted.error, "crm_leads");
   return id;
 }

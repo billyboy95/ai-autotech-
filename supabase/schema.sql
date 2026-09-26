@@ -547,3 +547,5 @@ create policy "tenant appointments" on appointments for all
 -- supabase/migrations/20260926160000_crm_automation.sql
 -- SMS, social queue, clicks, and outbound campaigns:
 -- supabase/migrations/20260926183000_outbound_channels.sql
+-- Marketing consent, suppressions, and per-send cost:
+-- supabase/migrations/20260926200000_send_compliance.sql

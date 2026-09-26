@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { addLeadNote, markLeadWon, toggleOnboardingTask, updateLeadStage } from "@/app/actions/automation";
+import { addLeadNote, markLeadWon, setLeadConsent, toggleOnboardingTask, updateLeadStage } from "@/app/actions/automation";
 import { CrmFrame } from "@/components/crm/frame";
 import { buildMailto, buildWaLink } from "@/lib/automation/channels";
+import { formatSendCost, marketingConsentFor, previewSendBlock } from "@/lib/automation/compliance";
 import { formatWhen, formatZar } from "@/lib/automation/ids";
 import { loadCommandData } from "@/lib/automation/page-data";
 import { PIPELINE_STAGES } from "@/lib/automation/types";
@@ -59,6 +60,7 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
             <Fact label="Source" value={[lead.utmSource || lead.source, lead.qrSource].filter(Boolean).join(" · ") || "Manual"} />
             <Fact label="Campaign" value={lead.campaign || "None"} />
             <Fact label="Team size" value={lead.companySize || "Unknown"} />
+            <Fact label="Marketing opt-in" value={lead.marketingConsent ? "Recorded" : "Not recorded"} />
           </dl>
           {lead.scoreReasons.length ? <p className="mt-3 text-sm text-slate-600">{lead.scoreReasons.join(" · ")}</p> : null}
           {lead.lostReason ? <p className="mt-3 text-sm font-medium text-rose-700">{lead.lostReason}</p> : null}
@@ -113,6 +115,20 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
               </form>
             ) : null}
 
+            <form action={setLeadConsent} className="grid gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+              <h2 className="font-display text-lg font-bold text-[#0B1F3A]">Marketing consent</h2>
+              <p className="text-sm text-slate-600">
+                {lead.marketingConsent
+                  ? "Opt-in is recorded. Marketing messages can send once the switch is on."
+                  : "No marketing opt-in. Follow-ups and campaigns stay blocked. Audit acknowledgements and reminders still queue."}
+              </p>
+              <input type="hidden" name="id" value={lead.id} />
+              <input type="hidden" name="consent" value={lead.marketingConsent ? "false" : "true"} />
+              <button className="h-10 rounded-md bg-[#0B1F3A] text-sm font-semibold text-white">
+                {lead.marketingConsent ? "Clear opt-in" : "Record opt-in"}
+              </button>
+            </form>
+
             <form action={addLeadNote} className="grid gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
               <h2 className="font-display text-lg font-bold text-[#0B1F3A]">Note</h2>
               <input type="hidden" name="id" value={lead.id} />
@@ -141,12 +157,24 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
               <h2 className="font-display text-lg font-bold text-[#0B1F3A]">Messages</h2>
               <ul className="mt-3 grid gap-2">
                 {messages.length === 0 ? <li className="text-sm text-slate-500">No messages queued.</li> : null}
-                {messages.map((message) => (
+                {messages.map((message) => {
+                  const block = previewSendBlock({
+                    category: message.category || "service",
+                    channel: message.channel,
+                    to: message.toAddress,
+                    marketingConsent: marketingConsentFor(workspace.state, message),
+                    suppressions: workspace.state.suppressions || [],
+                  });
+                  const cost = formatSendCost(message);
+                  return (
                   <li key={message.id} className="rounded-lg bg-slate-50 px-3 py-2 text-sm">
                     <p className="font-semibold text-[#0B1F3A]">
                       {message.templateKey} · {message.channel} · {message.status}
                     </p>
                     <p className="text-slate-600">{message.body.slice(0, 180)}</p>
+                    {message.error ? <p className="text-rose-700">{message.error}</p> : null}
+                    {cost ? <p className="text-xs text-slate-500">{cost}</p> : null}
+                    {block ? <p className="text-xs font-medium text-amber-800">{block}</p> : null}
                     {message.channel === "whatsapp" && message.waLink ? (
                       <a href={message.waLink} className="font-semibold text-[#2563EB]">
                         wa.me draft
@@ -163,7 +191,8 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
                       </a>
                     ) : null}
                   </li>
-                ))}
+                  );
+                })}
               </ul>
             </section>
 

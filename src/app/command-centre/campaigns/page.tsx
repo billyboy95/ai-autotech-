@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { importCampaignCsv, saveCampaignForm } from "@/app/actions/automation";
+import { importCampaignCsv, saveCampaignForm, setProspectConsent } from "@/app/actions/automation";
 import { CrmFrame } from "@/components/crm/frame";
 import { defaultCampaignSteps } from "@/lib/automation/campaigns";
 import { formatWhen } from "@/lib/automation/ids";
@@ -24,7 +24,7 @@ export default async function CampaignsPage() {
         <div>
           <h1 className="font-display text-2xl font-bold text-[#0B1F3A]">Campaigns</h1>
           <p className="text-sm text-slate-500">
-            Prospects stay off the pipeline until they reply or book. Messages wait in the outbox while sending is off.
+            Prospects stay off the pipeline until they reply or book. A CSV import is not marketing consent. Messages wait in the outbox while sending is off, and a marketing send stays blocked until opt-in is recorded.
           </p>
         </div>
 
@@ -109,13 +109,14 @@ export default async function CampaignsPage() {
                       <th>Phone</th>
                       <th>Email</th>
                       <th>Status</th>
+                      <th>Consent</th>
                       <th>Next step</th>
                     </tr>
                   </thead>
                   <tbody>
                     {people.length === 0 ? (
                       <tr>
-                        <td colSpan={6} className="py-3 text-slate-500">
+                        <td colSpan={7} className="py-3 text-slate-500">
                           No prospects yet.
                         </td>
                       </tr>
@@ -127,6 +128,15 @@ export default async function CampaignsPage() {
                         <td>{prospect.phone}</td>
                         <td>{prospect.email}</td>
                         <td>{prospect.leadId ? "In pipeline" : prospect.status}</td>
+                        <td>
+                          <form action={setProspectConsent}>
+                            <input type="hidden" name="id" value={prospect.id} />
+                            <input type="hidden" name="consent" value={prospect.marketingConsent ? "false" : "true"} />
+                            <button className="font-semibold text-[#2563EB]">
+                              {prospect.marketingConsent ? "Clear opt-in" : "Record opt-in"}
+                            </button>
+                          </form>
+                        </td>
                         <td>
                           {prospect.leadId ? (
                             <Link href={`/command-centre/leads/${prospect.leadId}`} className="font-semibold text-[#2563EB]">

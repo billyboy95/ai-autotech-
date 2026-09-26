@@ -10,6 +10,7 @@ import {
   approveMessage,
   cancelMessage,
   markWon,
+  setMarketingConsent,
   setStage,
   setTaskDone,
   updateSettings,
@@ -93,6 +94,20 @@ export async function markLeadWon(formData: FormData) {
   const whatSold = String(formData.get("whatSold") || "").trim();
   const now = new Date();
   await mutateWorkspace((state) => advanceHandovers(markWon(state, id, { valueZar, whatSold, deliveredBy: "Billy" }, now), now));
+  refresh();
+}
+
+export async function setLeadConsent(formData: FormData) {
+  const id = String(formData.get("id") || "");
+  const consent = String(formData.get("consent") || "") === "true";
+  await mutateWorkspace((state) => setMarketingConsent(state, { leadId: id }, consent, new Date()));
+  refresh();
+}
+
+export async function setProspectConsent(formData: FormData) {
+  const id = String(formData.get("id") || "");
+  const consent = String(formData.get("consent") || "") === "true";
+  await mutateWorkspace((state) => setMarketingConsent(state, { prospectId: id }, consent, new Date()));
   refresh();
 }
 

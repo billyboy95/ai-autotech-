@@ -1,6 +1,7 @@
 import net from "node:net";
 import tls from "node:tls";
 import { buildSmsLink, buildWaLink, isSendEnabled, toE164, type DeliveryRequest, type DeliveryResult, type EnvLike } from "@/lib/automation/channels";
+import { ensureMarketingFooter, quoteSendCost } from "@/lib/automation/compliance";
 
 function queued(message: DeliveryRequest, provider: string): DeliveryResult {
   return {
@@ -9,7 +10,33 @@ function queued(message: DeliveryRequest, provider: string): DeliveryResult {
     providerId: "",
     waLink: manualLink(message),
     error: "",
+    body: message.body,
   };
+}
+
+function blocked(message: DeliveryRequest, error: string): DeliveryResult {
+  return {
+    status: "blocked",
+    provider: "suppressed",
+    providerId: "",
+    waLink: "",
+    error,
+    body: message.body,
+  };
+}
+
+function quoteOnto(result: DeliveryResult, message: DeliveryRequest, env: EnvLike): DeliveryResult {
+  const sentAt = message.sentAt ? new Date(message.sentAt) : new Date();
+  const quote = quoteSendCost({
+    channel: message.channel,
+    provider: result.provider,
+    category: message.category ?? "service",
+    status: result.status,
+    sentAt: Number.isNaN(sentAt.getTime()) ? new Date() : sentAt,
+    serviceSendsThisMonth: message.serviceSendsThisMonth ?? 0,
+    env,
+  });
+  return { ...result, body: message.body, ...quote };
 }
 
 function manualLink(message: DeliveryRequest) {
@@ -27,27 +54,41 @@ export async function deliverMessage(
   env: EnvLike = process.env,
   fetchImpl: typeof fetch = fetch,
 ): Promise<DeliveryResult> {
-  if (!isSendEnabled(env)) return queued(message, "outbox");
+  const category = message.category ?? "service";
+  const body = category === "marketing" ? ensureMarketingFooter(message.body, message.owner || "Billy") : message.body;
+  const prepared: DeliveryRequest = { ...message, body, category };
 
-  if (message.channel === "email") {
-    if (env.RESEND_API_KEY) return sendResend(message, env, fetchImpl);
-    if (env.SMTP_HOST) return sendSmtp(message, env);
-    return {
-      status: "failed",
-      provider: "email",
-      providerId: "",
-      waLink: "",
-      error: "No email provider configured. Set RESEND_API_KEY or SMTP_HOST.",
-    };
+  if (prepared.suppressed) {
+    return quoteOnto(blocked(prepared, "Suppressed. This address opted out."), prepared, env);
+  }
+  if (category === "marketing" && prepared.marketingConsent !== true) {
+    return quoteOnto(blocked(prepared, "POPIA: marketing needs recorded opt-in consent before this can send."), prepared, env);
+  }
+  if (!isSendEnabled(env)) return quoteOnto(queued(prepared, "outbox"), prepared, env);
+
+  if (prepared.channel === "email") {
+    if (env.RESEND_API_KEY) return quoteOnto(await sendResend(prepared, env, fetchImpl), prepared, env);
+    if (env.SMTP_HOST) return quoteOnto(await sendSmtp(prepared, env), prepared, env);
+    return quoteOnto(
+      {
+        status: "failed",
+        provider: "email",
+        providerId: "",
+        waLink: "",
+        error: "No email provider configured. Set RESEND_API_KEY or SMTP_HOST.",
+      },
+      prepared,
+      env,
+    );
   }
 
-  if (message.channel === "sms") return sendSms(message, env, fetchImpl);
+  if (prepared.channel === "sms") return quoteOnto(await sendSms(prepared, env, fetchImpl), prepared, env);
 
   if (env.WHATSAPP_TOKEN && env.WHATSAPP_PHONE_NUMBER_ID) {
-    return sendWhatsAppCloud(message, env, fetchImpl);
+    return quoteOnto(await sendWhatsAppCloud(prepared, env, fetchImpl), prepared, env);
   }
 
-  return queued(message, "wa.me");
+  return quoteOnto(queued(prepared, "wa.me"), prepared, env);
 }
 
 async function sendSms(message: DeliveryRequest, env: EnvLike, fetchImpl: typeof fetch): Promise<DeliveryResult> {

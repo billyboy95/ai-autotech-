@@ -4,6 +4,7 @@ import { approveOutboxMessage, approveSocial, cancelOutboxMessage, cancelSocial 
 import { CopyButton } from "@/components/crm/copy-button";
 import { CrmFrame } from "@/components/crm/frame";
 import { buildMailto } from "@/lib/automation/channels";
+import { formatSendCost, marketingConsentFor, previewSendBlock } from "@/lib/automation/compliance";
 import { formatWhen } from "@/lib/automation/ids";
 import { loadCommandData } from "@/lib/automation/page-data";
 
@@ -36,7 +37,16 @@ export default async function OutboxPage() {
           {messages.length === 0 ? (
             <p className="rounded-xl border border-dashed border-slate-300 bg-white p-6 text-sm text-slate-500">No messages yet.</p>
           ) : null}
-          {messages.map((message) => (
+          {messages.map((message) => {
+            const block = previewSendBlock({
+              category: message.category || "service",
+              channel: message.channel,
+              to: message.toAddress,
+              marketingConsent: marketingConsentFor(workspace.state, message),
+              suppressions: workspace.state.suppressions || [],
+            });
+            const cost = formatSendCost(message);
+            return (
             <article key={message.id} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
@@ -58,6 +68,11 @@ export default async function OutboxPage() {
                 <p className="text-xs text-slate-400">{formatWhen(message.scheduledFor)}</p>
               </div>
               <p className="mt-3 whitespace-pre-wrap text-sm text-slate-700">{message.body}</p>
+              {message.error ? <p className="mt-2 text-sm font-medium text-rose-700">{message.error}</p> : null}
+              {block && message.status !== "sent" && message.status !== "cancelled" ? (
+                <p className="mt-2 text-sm font-medium text-amber-800">{block}</p>
+              ) : null}
+              {cost ? <p className="mt-2 text-xs text-slate-500">{cost}</p> : null}
               <div className="mt-3 flex flex-wrap gap-2">
                 {message.channel === "whatsapp" && message.waLink ? (
                   <a href={message.waLink} className="inline-flex h-9 items-center rounded-md border border-slate-200 px-3 text-sm font-semibold text-[#0B1F3A]">
@@ -91,7 +106,8 @@ export default async function OutboxPage() {
                 ) : null}
               </div>
             </article>
-          ))}
+            );
+          })}
         </div>
         <section className="grid gap-3">
           <h2 className="font-display text-lg font-bold text-[#0B1F3A]">Social queue</h2>

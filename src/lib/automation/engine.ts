@@ -1,6 +1,7 @@
 import { assignOwner } from "@/lib/automation/assign";
 import { ensureProspectInPipeline, queueDueCampaignSteps } from "@/lib/automation/campaigns";
 import { buildSmsLink, buildWaLink, isSendEnabled, renderTemplate, type EnvLike } from "@/lib/automation/channels";
+import { addSuppression, ensureMarketingFooter, isOptOutText, messageCategory, normalizeAddress, optOutAddresses } from "@/lib/automation/compliance";
 import { firstName, formatWhen, newId } from "@/lib/automation/ids";
 import { claimClick } from "@/lib/automation/social";
 import { readCompanySize, scoreLead } from "@/lib/automation/score";
@@ -12,6 +13,7 @@ import {
   type AutomationSettings,
   type AutomationState,
   type CaptureInput,
+  type Channel,
   type InboundEvent,
   type LeadRecord,
   type OutboxMessage,
@@ -43,6 +45,7 @@ export function createInitialState(partial?: Partial<AutomationState>): Automati
     campaigns: [],
     prospects: [],
     clicks: [],
+    suppressions: [],
     ...partial,
   };
 }
@@ -94,6 +97,7 @@ export function captureLead(state: AutomationState, input: CaptureInput, now: Da
     valueZar: input.valueZar ?? existing?.valueZar ?? 0,
     auditLeadId: input.auditLeadId ?? existing?.auditLeadId ?? null,
     contactLeadId: input.contactLeadId ?? existing?.contactLeadId ?? null,
+    marketingConsent: input.marketingConsent !== undefined ? input.marketingConsent === true : existing?.marketingConsent === true,
     createdAt,
     updatedAt: now.toISOString(),
     stageChangedAt: existing?.stageChangedAt || createdAt,
@@ -244,6 +248,7 @@ export function queueDueFollowUps(state: AutomationState, now: Date): Automation
 }
 
 export function applyInbound(state: AutomationState, event: InboundEvent, now: Date): AutomationState {
+  if (event.type === "reply.received" && isOptOutText(event.text || "")) return applyOptOut(state, event, now);
   const prepared = ensureProspectInPipeline(state, event, now);
   const lead = findInboundLead(prepared, event);
   if (!lead) return prepared;
@@ -505,7 +510,9 @@ function queueStep(state: AutomationState, leadId: string, step: SequenceStep, s
     if (state.outbox.some((item) => item.leadId === leadId && item.templateKey === key && item.status !== "cancelled")) {
       continue;
     }
-    const body = renderTemplate(template.body, vars);
+    const category = messageCategory(key);
+    const rendered = renderTemplate(template.body, vars);
+    const body = category === "marketing" ? ensureMarketingFooter(rendered, vars.owner) : rendered;
     const subject = renderTemplate(template.subject, vars);
     const message: OutboxMessage = {
       id: newId("msg"),
@@ -516,12 +523,16 @@ function queueStep(state: AutomationState, leadId: string, step: SequenceStep, s
       toAddress,
       subject,
       body,
+      category,
       status: "queued",
       scheduledFor: scheduledFor.toISOString(),
       sentAt: null,
       provider: "outbox",
       providerId: "",
       error: "",
+      costUsd: null,
+      costZar: null,
+      costCategory: "",
       waLink:
         template.channel === "whatsapp"
           ? buildWaLink(toAddress, body)
@@ -653,6 +664,99 @@ function patchLead(
     activities: [...state.activities, ...activities],
     outbox: [...state.outbox, ...messages],
   };
+}
+
+export function setMarketingConsent(
+  state: AutomationState,
+  target: { leadId?: string; prospectId?: string },
+  consent: boolean,
+  now: Date,
+): AutomationState {
+  const prospectIds = new Set<string>();
+  const leadIds = new Set<string>();
+  if (target.prospectId) prospectIds.add(target.prospectId);
+  if (target.leadId) leadIds.add(target.leadId);
+  for (const prospect of state.prospects) {
+    if (prospectIds.has(prospect.id) && prospect.leadId) leadIds.add(prospect.leadId);
+  }
+  for (const prospect of state.prospects) {
+    if (prospect.leadId && leadIds.has(prospect.leadId)) prospectIds.add(prospect.id);
+  }
+  const title = consent ? "Marketing opt-in recorded" : "Marketing opt-in cleared";
+  const activities = [...leadIds].map((leadId) =>
+    activity(leadId, "consent", title, consent ? "POPIA opt-in is on file." : "Marketing sends are blocked again.", now),
+  );
+  return {
+    ...state,
+    leads: state.leads.map((lead) => (leadIds.has(lead.id) ? { ...lead, marketingConsent: consent, updatedAt: now.toISOString() } : lead)),
+    prospects: state.prospects.map((prospect) =>
+      prospectIds.has(prospect.id) ? { ...prospect, marketingConsent: consent, updatedAt: now.toISOString() } : prospect,
+    ),
+    activities: [...state.activities, ...activities],
+  };
+}
+
+function applyOptOut(state: AutomationState, event: InboundEvent, now: Date): AutomationState {
+  const email = event.email?.trim().toLowerCase() || "";
+  const phone = event.phone || "";
+  const leads = state.leads.filter((lead) => {
+    if (event.leadId && lead.id === event.leadId) return true;
+    if (email && lead.email.toLowerCase() === email) return true;
+    if (phone && (phonesClose(lead.phone, phone) || phonesClose(lead.whatsapp, phone))) return true;
+    return false;
+  });
+  const leadIds = new Set(leads.map((lead) => lead.id));
+  const prospects = state.prospects.filter((prospect) => {
+    if (prospect.leadId && leadIds.has(prospect.leadId)) return true;
+    if (email && prospect.email.toLowerCase() === email) return true;
+    if (phone && phonesClose(prospect.phone, phone)) return true;
+    return false;
+  });
+  const prospectIds = new Set(prospects.map((prospect) => prospect.id));
+  const pairs: Array<{ channel: Channel; value: string }> = [];
+  if (email) pairs.push({ channel: "email", value: email });
+  if (phone) pairs.push({ channel: "whatsapp", value: phone });
+  for (const lead of leads) {
+    if (lead.email) pairs.push({ channel: "email", value: lead.email });
+    if (lead.phone) pairs.push({ channel: "whatsapp", value: lead.phone });
+    if (lead.whatsapp) pairs.push({ channel: "whatsapp", value: lead.whatsapp });
+  }
+  for (const prospect of prospects) {
+    if (prospect.email) pairs.push({ channel: "email", value: prospect.email });
+    if (prospect.phone) pairs.push({ channel: "whatsapp", value: prospect.phone });
+  }
+
+  let suppressions = state.suppressions || [];
+  for (const address of optOutAddresses(pairs)) {
+    suppressions = addSuppression(suppressions, address, now, "Inbound STOP");
+  }
+  const blocked = new Set(suppressions.map((item) => item.address));
+  const outbox = state.outbox.map((message) => {
+    if (message.status !== "queued" && message.status !== "approved") return message;
+    const key = normalizeAddress(message.channel, message.toAddress);
+    const hit = blocked.has(key) || (message.leadId && leadIds.has(message.leadId)) || (message.prospectId && prospectIds.has(message.prospectId));
+    if (!hit) return message;
+    return { ...message, status: "cancelled" as const, error: "Cancelled because this address opted out." };
+  });
+  const activities = leads.map((lead) =>
+    activity(lead.id, "opt_out", "Opted out", event.text || "STOP", now, { email, phone }),
+  );
+  return {
+    ...state,
+    suppressions,
+    outbox,
+    prospects: state.prospects.map((prospect) =>
+      prospectIds.has(prospect.id) ? { ...prospect, status: "stopped", updatedAt: now.toISOString() } : prospect,
+    ),
+    activities: activities.length ? [...state.activities, ...activities] : state.activities,
+  };
+}
+
+function phonesClose(left: string, right: string) {
+  const a = left.replace(/\D/g, "");
+  const b = right.replace(/\D/g, "");
+  if (!a || !b) return false;
+  return a.endsWith(b) || b.endsWith(a);
 }
 
 function activity(

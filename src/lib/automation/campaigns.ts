@@ -1,4 +1,5 @@
 import { buildSmsLink, buildWaLink, renderTemplate } from "@/lib/automation/channels";
+import { ensureMarketingFooter, messageCategory } from "@/lib/automation/compliance";
 import { firstName, newId } from "@/lib/automation/ids";
 import { assignOwner } from "@/lib/automation/assign";
 import { scoreLead } from "@/lib/automation/score";
@@ -41,7 +42,7 @@ export function defaultCampaignSteps(): CampaignStep[] {
   ];
 }
 
-export function parseProspectCsv(csv: string): { rows: Array<Omit<Prospect, "id" | "campaignId" | "status" | "stepIndex" | "leadId" | "touches" | "createdAt" | "updatedAt">>; error: string } {
+export function parseProspectCsv(csv: string): { rows: Array<Omit<Prospect, "id" | "campaignId" | "status" | "stepIndex" | "leadId" | "touches" | "createdAt" | "updatedAt" | "marketingConsent">>; error: string } {
   const lines = csv.replace(/^\uFEFF/, "").split(/\r?\n/).filter((line) => line.trim());
   if (!lines.length) return { rows: [], error: "The CSV is empty." };
   const header = splitCsvLine(lines[0]).map((cell) => cell.trim().toLowerCase());
@@ -116,6 +117,7 @@ export function importProspectCsv(state: AutomationState, csv: string, now: Date
       id: newId("prs"),
       campaignId: campaign.id,
       ...row,
+      marketingConsent: false,
       status: "in_sequence",
       stepIndex: 0,
       leadId: null,
@@ -192,7 +194,9 @@ function enqueueStep(state: AutomationState, prospect: Prospect, campaign: Campa
   }
 
   const vars = prospectVars(state, prospect);
-  const body = renderTemplate(step.body, vars);
+  const category = messageCategory(templateKey);
+  const rendered = renderTemplate(step.body, vars);
+  const body = category === "marketing" ? ensureMarketingFooter(rendered, vars.owner) : rendered;
   const subject = renderTemplate(step.subject, vars);
   const message: OutboxMessage = {
     id: newId("msg"),
@@ -203,12 +207,16 @@ function enqueueStep(state: AutomationState, prospect: Prospect, campaign: Campa
     toAddress: address,
     subject,
     body,
+    category,
     status: "queued",
     scheduledFor: when.toISOString(),
     sentAt: null,
     provider: "outbox",
     providerId: "",
     error: "",
+    costUsd: null,
+    costZar: null,
+    costCategory: "",
     waLink: step.channel === "whatsapp" ? buildWaLink(address, body) : step.channel === "sms" ? buildSmsLink(address, body) : "",
     createdAt: when.toISOString(),
   };
@@ -248,6 +256,7 @@ function materializeProspect(state: AutomationState, prospect: Prospect, event: 
     website: prospect.website,
     industry: prospect.niche,
     notes: prospect.openingLine,
+    marketingConsent: prospect.marketingConsent === true,
     source: "outbound_campaign",
     campaign: campaign?.name || "",
     utmSource: "",

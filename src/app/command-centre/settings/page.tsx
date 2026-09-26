@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { saveAutomationSettings } from "@/app/actions/automation";
-import { CrmFrame } from "@/components/crm/frame";
+import { CommandShell } from "@/components/crm/command-shell";
 import { loadCommandData } from "@/lib/automation/page-data";
 
 export const dynamic = "force-dynamic";
@@ -16,7 +16,7 @@ export default async function SettingsPage() {
   const rules = [0, 1, 2].map((index) => settings.rules[index]);
 
   return (
-    <CrmFrame setupError={workspace.setupError} sendingEnabled={sendingEnabled}>
+    <CommandShell setupError={workspace.setupError} sendingEnabled={sendingEnabled}>
       <div>
         <h1 className="font-display text-2xl font-bold text-[#0B1F3A]">Automation settings</h1>
         <p className="mt-2 max-w-3xl text-sm text-slate-600">
@@ -68,7 +68,7 @@ export default async function SettingsPage() {
         </label>
         <button className="h-10 w-fit rounded-md bg-[#2563EB] px-4 text-sm font-semibold text-white">Save settings</button>
       </form>
-    </CrmFrame>
+    </CommandShell>
   );
 }
 

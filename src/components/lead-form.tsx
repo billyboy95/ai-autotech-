@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 import { Send } from "lucide-react";
 import { createLead, type LeadActionState } from "@/app/actions/leads";
+import { OFFER_PACKAGES, OFFER_SERVICES } from "@/lib/brand/catalog";
 
 const initialState: LeadActionState = {
   ok: false,
@@ -93,11 +94,12 @@ export function LeadForm({ sourcePage = "website" }: { sourcePage?: string }) {
             <option value="" disabled>
               Select one
             </option>
-            <option>AI Agents</option>
-            <option>Automation</option>
-            <option>CRM Solutions</option>
-            <option>Software Development</option>
-            <option>Full Command Centre</option>
+            {OFFER_SERVICES.map((item) => (
+              <option key={item.name}>{item.name}</option>
+            ))}
+            {OFFER_PACKAGES.map((item) => (
+              <option key={item.name}>{item.name}</option>
+            ))}
           </select>
         </label>
       </div>

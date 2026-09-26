@@ -1,10 +1,12 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { insertClient, insertInvoice, insertJob, nid, updateInvoiceStatus, updateJobStatus } from "@/lib/crm-store";
+import { isJobKind } from "@/lib/brand/catalog";
+import { insertClient, insertInvoice, insertJob, nid, updateInvoiceStatus, updateJobStatus, type Job } from "@/lib/crm-store";
 
 function refresh() {
   revalidatePath("/command-centre");
+  revalidatePath("/agency");
   revalidatePath("/command-centre/clients");
   revalidatePath("/command-centre/jobs");
   revalidatePath("/command-centre/money");
@@ -27,7 +29,7 @@ export async function addJob(formData: FormData) {
     id: nid(),
     client: String(formData.get("client") || "").trim() || "Unknown",
     title: String(formData.get("title") || "").trim() || "Job",
-    kind: String(formData.get("kind") || "Other") as "Website" | "WhatsApp" | "AI Employee" | "Other",
+    kind: isJobKind(String(formData.get("kind") || "")) ? (String(formData.get("kind")) as Job["kind"]) : "Professional Websites",
     status: "Open",
   });
   refresh();

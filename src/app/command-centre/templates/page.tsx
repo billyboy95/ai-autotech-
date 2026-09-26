@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { saveTemplate } from "@/app/actions/automation";
-import { CrmFrame } from "@/components/crm/frame";
+import { CommandShell } from "@/components/crm/command-shell";
 import { loadCommandData } from "@/lib/automation/page-data";
 
 export const dynamic = "force-dynamic";
@@ -14,7 +14,7 @@ export default async function TemplatesPage() {
   const { workspace, sendingEnabled } = await loadCommandData();
 
   return (
-    <CrmFrame setupError={workspace.setupError} sendingEnabled={sendingEnabled}>
+    <CommandShell setupError={workspace.setupError} sendingEnabled={sendingEnabled}>
       <div>
         <h1 className="font-display text-2xl font-bold text-[#0B1F3A]">Message templates</h1>
         <p className="text-sm text-slate-500">
@@ -49,6 +49,6 @@ export default async function TemplatesPage() {
           </form>
         ))}
       </div>
-    </CrmFrame>
+    </CommandShell>
   );
 }

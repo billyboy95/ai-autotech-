@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { enrollLead } from "@/lib/automation/service";
 import { nid } from "@/lib/crm-store";
+import { agencyOrgId, insertForOrg, serviceConfigured } from "@/server/workers/with-org";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -171,8 +171,7 @@ export async function POST(request: Request) {
     return json({ ok: true, id: null }, 200, origin);
   }
 
-  const supabase = createSupabaseAdminClient();
-  if (!supabase) {
+  if (!serviceConfigured()) {
     return json({ ok: false, error: "Lead storage is not configured." }, 500, origin);
   }
 
@@ -180,28 +179,25 @@ export async function POST(request: Request) {
   const test = isTestSubmission(input.name, input.email);
   const crmLeadId = test ? null : nid();
 
-  const { data, error } = await supabase
-    .from("crm_contact_leads")
-    .insert({
-      status: test ? "test" : "new",
-      source: "website_contact",
-      name: input.name,
-      email: input.email,
-      phone: input.phone,
-      company,
-      message: input.message,
-      page: input.page,
-      utm_source: input.utm_source,
-      utm_medium: input.utm_medium,
-      utm_campaign: input.utm_campaign,
-      utm_term: input.utm_term,
-      utm_content: input.utm_content,
-      referrer: input.referrer,
-      user_agent: (request.headers.get("user-agent") ?? "").slice(0, 400),
-      crm_lead_id: crmLeadId,
-    })
-    .select("id")
-    .single();
+  const orgId = await agencyOrgId();
+  const { data, error } = await insertForOrg(orgId, "crm_contact_leads", {
+    status: test ? "test" : "new",
+    source: "website_contact",
+    name: input.name,
+    email: input.email,
+    phone: input.phone,
+    company,
+    message: input.message,
+    page: input.page,
+    utm_source: input.utm_source,
+    utm_medium: input.utm_medium,
+    utm_campaign: input.utm_campaign,
+    utm_term: input.utm_term,
+    utm_content: input.utm_content,
+    referrer: input.referrer,
+    user_agent: (request.headers.get("user-agent") ?? "").slice(0, 400),
+    crm_lead_id: crmLeadId,
+  });
 
   if (error || !data) {
     console.error("contact insert failed", error?.message);
@@ -217,7 +213,7 @@ export async function POST(request: Request) {
       `Source: website_contact${utm ? ` · UTM: ${utm}` : ""}${input.page ? ` · Page: ${input.page}` : ""}`,
     ].join("\n");
 
-    const lead = await supabase.from("crm_leads").insert({
+    const lead = await insertForOrg(orgId, "crm_leads", {
       id: crmLeadId,
       name: input.name,
       company,

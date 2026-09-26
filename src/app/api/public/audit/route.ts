@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { enrollLead } from "@/lib/automation/service";
 import { nid } from "@/lib/crm-store";
+import { agencyOrgId, insertForOrg, serviceConfigured } from "@/server/workers/with-org";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -184,8 +184,7 @@ export async function POST(request: Request) {
     return json({ ok: true, id: null, reference: makeReference() }, 200, origin);
   }
 
-  const supabase = createSupabaseAdminClient();
-  if (!supabase) {
+  if (!serviceConfigured()) {
     return json({ ok: false, error: "Lead storage is not configured." }, 500, origin);
   }
 
@@ -194,40 +193,37 @@ export async function POST(request: Request) {
   const crmLeadId = nid();
   const userAgent = (request.headers.get("user-agent") ?? "").slice(0, 400);
 
-  const { data, error } = await supabase
-    .from("crm_audit_leads")
-    .insert({
-      reference,
-      first_name: input.firstName,
-      last_name: input.lastName,
-      company: input.company,
-      email: input.email,
-      phone: input.phone,
-      whatsapp: input.phone,
-      role: input.role,
-      website: input.website,
-      industry: input.industry,
-      answers: input.answers,
-      score: input.score,
-      recommendations: input.recommendations,
-      recommended_agents: input.recommendedAgents,
-      source: t.source ?? "",
-      campaign: t.campaign ?? "",
-      event: t.event ?? "",
-      qr_source: t.qr_source ?? "",
-      utm_source: t.utm_source ?? "",
-      utm_medium: t.utm_medium ?? "",
-      utm_campaign: t.utm_campaign ?? "",
-      utm_term: t.utm_term ?? "",
-      utm_content: t.utm_content ?? "",
-      referrer: t.referrer ?? "",
-      user_agent: userAgent,
-      consent: true,
-      consent_text: input.consentText,
-      crm_lead_id: crmLeadId,
-    })
-    .select("id")
-    .single();
+  const orgId = await agencyOrgId();
+  const { data, error } = await insertForOrg(orgId, "crm_audit_leads", {
+    reference,
+    first_name: input.firstName,
+    last_name: input.lastName,
+    company: input.company,
+    email: input.email,
+    phone: input.phone,
+    whatsapp: input.phone,
+    role: input.role,
+    website: input.website,
+    industry: input.industry,
+    answers: input.answers,
+    score: input.score,
+    recommendations: input.recommendations,
+    recommended_agents: input.recommendedAgents,
+    source: t.source ?? "",
+    campaign: t.campaign ?? "",
+    event: t.event ?? "",
+    qr_source: t.qr_source ?? "",
+    utm_source: t.utm_source ?? "",
+    utm_medium: t.utm_medium ?? "",
+    utm_campaign: t.utm_campaign ?? "",
+    utm_term: t.utm_term ?? "",
+    utm_content: t.utm_content ?? "",
+    referrer: t.referrer ?? "",
+    user_agent: userAgent,
+    consent: true,
+    consent_text: input.consentText,
+    crm_lead_id: crmLeadId,
+  });
 
   if (error || !data) {
     console.error("audit insert failed", error?.message);
@@ -250,7 +246,7 @@ export async function POST(request: Request) {
     .filter(Boolean)
     .join("\n");
 
-  const lead = await supabase.from("crm_leads").insert({
+  const lead = await insertForOrg(orgId, "crm_leads", {
     id: crmLeadId,
     name: `${input.firstName} ${input.lastName}`.trim(),
     company: input.company,

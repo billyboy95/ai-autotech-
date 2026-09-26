@@ -4,6 +4,8 @@ import { BrandLogo } from "@/components/brand-logo";
 import { LeadForm } from "@/components/lead-form";
 import { publicPages } from "@/lib/platform-data";
 
+type PublicItem = string | { title: string; detail?: string; href?: string; hrefLabel?: string };
+
 export function PublicPageShell({
   title,
   description,
@@ -12,7 +14,7 @@ export function PublicPageShell({
 }: {
   title: string;
   description: string;
-  items: string[];
+  items: PublicItem[];
   sourcePage: string;
 }) {
   return (
@@ -43,14 +45,28 @@ export function PublicPageShell({
       </section>
       <section className="mx-auto grid max-w-7xl gap-8 px-4 py-12 lg:grid-cols-[1fr_420px] lg:px-6">
         <div className="grid gap-4 md:grid-cols-2">
-          {items.map((item) => (
-            <article key={item} className="rounded-md border border-slate-200 bg-white p-5 shadow-sm">
-              <h2 className="font-display text-lg font-bold text-[#0B1F3A]">{item}</h2>
-              <p className="mt-2 text-sm leading-6 text-slate-600">
-                Designed as a modular capability inside the AI AutoTech operating system and ready to connect with CRM, projects, reporting, and client portal workflows.
-              </p>
-            </article>
-          ))}
+          {items.map((item) => {
+            const titleText = typeof item === "string" ? item : item.title;
+            const detail = typeof item === "string" ? undefined : item.detail;
+            const href = typeof item === "string" ? undefined : item.href;
+            const hrefLabel = typeof item === "string" ? undefined : item.hrefLabel;
+            return (
+              <article key={titleText} className="rounded-md border border-slate-200 bg-white p-5 shadow-sm">
+                <h2 className="font-display text-lg font-bold text-[#0B1F3A]">{titleText}</h2>
+                {detail ? <p className="mt-2 text-sm leading-6 text-slate-600">{detail}</p> : null}
+                {typeof item === "string" ? (
+                  <p className="mt-2 text-sm leading-6 text-slate-600">
+                    Designed as a modular capability inside the AI AutoTech operating system and ready to connect with CRM, projects, reporting, and client portal workflows.
+                  </p>
+                ) : null}
+                {href ? (
+                  <a className="mt-3 inline-block text-sm font-semibold text-[#4A9EDB]" href={href}>
+                    {hrefLabel || "WhatsApp"}
+                  </a>
+                ) : null}
+              </article>
+            );
+          })}
         </div>
         <aside className="h-fit rounded-md border border-slate-200 bg-white p-5 shadow-sm">
           <h2 className="font-display text-xl font-bold text-[#0B1F3A]">Start a discovery call</h2>

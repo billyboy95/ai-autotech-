@@ -10,6 +10,18 @@ export async function getCurrentOrganizationId() {
     return null;
   }
 
+  const memberships = await supabase
+    .from("memberships")
+    .select("org_id")
+    .eq("user_id", user.id)
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
+  if (!memberships.error && memberships.data?.org_id) {
+    return memberships.data.org_id;
+  }
+
   const { data: membership } = await supabase
     .from("organization_members")
     .select("organization_id")

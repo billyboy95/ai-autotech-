@@ -1,19 +1,13 @@
 import { PublicPageShell } from "@/components/public-page-shell";
+import { AGENCY_PROMISE, AGENCY_TAGLINE, OPERATING_DIVISIONS } from "@/lib/brand/catalog";
 
 export default function AboutPage() {
   return (
     <PublicPageShell
       title="About AI AutoTech"
-      description="AI AutoTech builds automation, AI, software, and digital transformation systems for South African SMEs."
+      description={`${AGENCY_TAGLINE} AI AutoTech engineers digital systems that ${AGENCY_PROMISE}.`}
       sourcePage="about"
-      items={[
-        "South African SME focus",
-        "Automation-first operations",
-        "AI-assisted delivery",
-        "Scalable SaaS thinking",
-        "Secure client workflows",
-        "Long-term platform support",
-      ]}
+      items={OPERATING_DIVISIONS.map((name) => ({ title: name }))}
     />
   );
 }

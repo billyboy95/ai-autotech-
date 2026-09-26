@@ -97,6 +97,7 @@ export async function upsertPrivateModule(
 
   if (organizationId) {
     payload.organization_id = organizationId;
+    payload.org_id = organizationId;
   }
 
   if (base.data.module === "agents" && typeof payload.connected_tools === "string") {
@@ -110,7 +111,7 @@ export async function upsertPrivateModule(
     const { company_name, industry, status } = payload;
     const { data: company, error: companyError } = await supabase
       .from("companies")
-      .insert(cleanPayload({ name: company_name, industry, status, organization_id: organizationId }))
+      .insert(cleanPayload({ name: company_name, industry, status, organization_id: organizationId, org_id: organizationId }))
       .select("id")
       .single();
 

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { addLeadNote, markLeadWon, setLeadConsent, toggleOnboardingTask, updateLeadStage } from "@/app/actions/automation";
-import { CrmFrame } from "@/components/crm/frame";
+import { CommandShell } from "@/components/crm/command-shell";
 import { buildMailto, buildWaLink } from "@/lib/automation/channels";
 import { formatSendCost, marketingConsentFor, previewSendBlock } from "@/lib/automation/compliance";
 import { formatWhen, formatZar } from "@/lib/automation/ids";
@@ -33,7 +33,7 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
   const booking = workspace.state.settings.bookingUrl;
 
   return (
-    <CrmFrame setupError={workspace.setupError} sendingEnabled={sendingEnabled}>
+    <CommandShell setupError={workspace.setupError} sendingEnabled={sendingEnabled}>
       <div className="grid gap-4">
         <Link href="/command-centre/pipeline" className="text-sm font-semibold text-[#2563EB]">
           Back to pipeline
@@ -224,7 +224,7 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
           </div>
         </div>
       </div>
-    </CrmFrame>
+    </CommandShell>
   );
 }
 

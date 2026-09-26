@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { addPipelineLead } from "@/app/actions/automation";
-import { CrmFrame } from "@/components/crm/frame";
+import { CommandShell } from "@/components/crm/command-shell";
 import { PipelineBoard } from "@/components/crm/pipeline-board";
 import { loadCommandData } from "@/lib/automation/page-data";
 
@@ -15,7 +15,7 @@ export default async function PipelinePage() {
   const { workspace, sendingEnabled } = await loadCommandData();
 
   return (
-    <CrmFrame setupError={workspace.setupError} sendingEnabled={sendingEnabled}>
+    <CommandShell setupError={workspace.setupError} sendingEnabled={sendingEnabled}>
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="font-display text-2xl font-bold text-[#0B1F3A]">Pipeline</h1>
@@ -48,7 +48,7 @@ export default async function PipelinePage() {
           }))}
         />
       </div>
-    </CrmFrame>
+    </CommandShell>
   );
 }
 

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { approveSocial, cancelSocial, queueSocialPostForm } from "@/app/actions/automation";
 import { CopyButton } from "@/components/crm/copy-button";
-import { CrmFrame } from "@/components/crm/frame";
+import { CommandShell } from "@/components/crm/command-shell";
 import { formatWhen } from "@/lib/automation/ids";
 import { loadCommandData } from "@/lib/automation/page-data";
 import { trackedUrl } from "@/lib/automation/social";
@@ -18,7 +18,7 @@ export default async function SocialPage() {
   const posts = workspace.state.socialPosts.slice().sort((a, b) => a.scheduledFor.localeCompare(b.scheduledFor));
 
   return (
-    <CrmFrame setupError={workspace.setupError} sendingEnabled={sendingEnabled}>
+    <CommandShell setupError={workspace.setupError} sendingEnabled={sendingEnabled}>
       <div data-testid="social-calendar" className="grid min-w-0 grid-cols-1 gap-4">
         <div>
           <h1 className="font-display text-2xl font-bold text-[#0B1F3A]">Social calendar</h1>
@@ -100,6 +100,6 @@ export default async function SocialPage() {
           })}
         </div>
       </div>
-    </CrmFrame>
+    </CommandShell>
   );
 }

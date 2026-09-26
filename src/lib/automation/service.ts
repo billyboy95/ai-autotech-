@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { openServiceDatabase } from "@/server/workers/service-db";
 import { isSendEnabled } from "@/lib/automation/channels";
 import { applyStageRules, captureLead, createInitialState, runCron } from "@/lib/automation/engine";
 import { messageCategory } from "@/lib/automation/compliance";
@@ -26,9 +26,9 @@ export async function loadWorkspace(): Promise<Workspace> {
   if (isDemoMode()) {
     return { state: applyEnvDefaults(hydrateState(readDemoState())), automationReady: true, setupError: null, demo: true };
   }
-  const supabase = createSupabaseAdminClient();
+  const supabase = openServiceDatabase();
   if (!supabase) {
-    throw new Error("CRM store requires NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.");
+    throw new Error("CRM store requires a configured Supabase service role.");
   }
   const loaded = await loadSupabaseWorkspace(supabase);
   return { ...loaded, state: applyEnvDefaults(hydrateState(loaded.state)), demo: false };
@@ -45,7 +45,7 @@ export async function saveWorkspace(before: AutomationState, after: AutomationSt
     writeDemoState(after);
     return;
   }
-  const supabase = createSupabaseAdminClient();
+  const supabase = openServiceDatabase();
   if (!supabase) throw new Error("Supabase service role is not configured.");
   await saveSupabaseWorkspace(supabase, before, after);
 }

@@ -4,6 +4,20 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { BrandLogo } from "@/components/brand-logo";
+import { WorkspaceSwitcher } from "@/components/workspace-switcher";
+import type { WorkspaceOption } from "@/lib/tenant/types";
+
+export type CommandChrome = {
+  activeSlug: string;
+  activeName: string;
+  primaryColor: string;
+  workspaces: WorkspaceOption[];
+  signedIn: boolean;
+  showAgencyLink: boolean;
+  userEmail: string | null;
+  note: string | null;
+  agencyBanner: string | null;
+};
 
 const links = [
   ["/command-centre", "Today"],
@@ -23,10 +37,12 @@ export function CrmFrame({
   children,
   setupError,
   sendingEnabled = false,
+  chrome,
 }: {
   children: ReactNode;
   setupError?: string | null;
   sendingEnabled?: boolean;
+  chrome?: CommandChrome | null;
 }) {
   const pathname = usePathname();
 
@@ -37,10 +53,22 @@ export function CrmFrame({
           <div className="flex items-center gap-3">
             <BrandLogo compact />
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#2563EB]">Command centre</p>
-              <p className="text-sm font-semibold text-slate-700">AI AutoTech Pty Ltd</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: chrome?.primaryColor || "#2563EB" }}>
+                Command centre
+              </p>
+              <p className="text-sm font-semibold text-slate-700">{chrome?.activeName || "AI AutoTech Pty Ltd"}</p>
             </div>
           </div>
+          {chrome ? (
+            <WorkspaceSwitcher
+              activeSlug={chrome.activeSlug}
+              activeName={chrome.activeName}
+              workspaces={chrome.workspaces}
+              signedIn={chrome.signedIn}
+              showAgencyLink={chrome.showAgencyLink}
+              userEmail={chrome.userEmail}
+            />
+          ) : null}
           <p
             className={`rounded-full px-3 py-1 text-xs font-semibold ${
               sendingEnabled ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-900"
@@ -69,6 +97,12 @@ export function CrmFrame({
         </div>
       </header>
       <div className="mx-auto grid max-w-7xl grid-cols-1 gap-4 px-4 py-6">
+        {chrome?.agencyBanner ? (
+          <p className="rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-950">{chrome.agencyBanner}</p>
+        ) : null}
+        {chrome?.note ? (
+          <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">{chrome.note}</p>
+        ) : null}
         {setupError ? (
           <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">{setupError}</p>
         ) : null}

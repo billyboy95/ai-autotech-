@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { importCampaignCsv, saveCampaignForm, setProspectConsent } from "@/app/actions/automation";
-import { CrmFrame } from "@/components/crm/frame";
+import { CommandShell } from "@/components/crm/command-shell";
 import { defaultCampaignSteps } from "@/lib/automation/campaigns";
 import { formatWhen } from "@/lib/automation/ids";
 import { loadCommandData } from "@/lib/automation/page-data";
@@ -19,7 +19,7 @@ export default async function CampaignsPage() {
   const steps = defaultCampaignSteps();
 
   return (
-    <CrmFrame setupError={workspace.setupError} sendingEnabled={sendingEnabled}>
+    <CommandShell setupError={workspace.setupError} sendingEnabled={sendingEnabled}>
       <div data-testid="campaigns" className="grid min-w-0 max-w-full grid-cols-1 gap-4">
         <div>
           <h1 className="font-display text-2xl font-bold text-[#0B1F3A]">Campaigns</h1>
@@ -155,6 +155,6 @@ export default async function CampaignsPage() {
           );
         })}
       </div>
-    </CrmFrame>
+    </CommandShell>
   );
 }

@@ -480,6 +480,7 @@ declare
   key text;
   child jsonb;
   raw text;
+  scrubbed text;
 begin
   if doc is null or jsonb_typeof(doc) = 'null' then
     return issues;
@@ -488,9 +489,21 @@ begin
     for key, child in select entry.key, entry.value from jsonb_each(doc) as entry
     loop
       if lower(key) = any (forbidden) then
-        issues := issues || key;
+        issues := array_append(issues, key);
       end if;
-      issues := public.snapshot_walk(child, forbidden, issues);
+      -- Asset keys are catalogue ids. A UUID in one can hold a long digit run.
+      if (lower(key) = 'asset_key' or lower(key) like '%\_asset_key' escape '\')
+         and jsonb_typeof(child) = 'string' then
+        raw := child #>> '{}';
+        if raw ~* '[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}' then
+          issues := array_append(issues, 'email_address');
+        end if;
+        if raw ~* '(sk_live_|whsec_|api[_-]?key[[:space:]]*[:=]|bearer[[:space:]]+[a-z0-9]|secret[[:space:]]*[:=])' then
+          issues := array_append(issues, 'secret_value');
+        end if;
+      else
+        issues := public.snapshot_walk(child, forbidden, issues);
+      end if;
     end loop;
   elsif jsonb_typeof(doc) = 'array' then
     for child in select entry.value from jsonb_array_elements(doc) as entry
@@ -500,13 +513,21 @@ begin
   elsif jsonb_typeof(doc) = 'string' then
     raw := doc #>> '{}';
     if raw ~* '[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}' then
-      issues := issues || 'email_address';
+      issues := array_append(issues, 'email_address');
     end if;
     if raw ~* '(sk_live_|whsec_|api[_-]?key[[:space:]]*[:=]|bearer[[:space:]]+[a-z0-9]|secret[[:space:]]*[:=])' then
-      issues := issues || 'secret_value';
+      issues := array_append(issues, 'secret_value');
     end if;
-    if raw ~ '[[:digit:]]{10,}' then
-      issues := issues || 'phone_number';
+    -- Strip UUIDs before the digit run. array_append avoids casting the label as an array literal.
+    scrubbed := regexp_replace(
+      raw,
+      '[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}',
+      '',
+      'g'
+    );
+    if raw !~ '^(pipeline|stage|template|sequence|step|field|workflow|campaign):[A-Za-z0-9_.:-]+$'
+       and scrubbed ~ '[[:digit:]]{10,}' then
+      issues := array_append(issues, 'phone_number');
     end if;
   end if;
   return issues;

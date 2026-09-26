@@ -51,7 +51,13 @@ export function createInitialState(partial?: Partial<AutomationState>): Automati
   };
 }
 
-export function captureLead(state: AutomationState, input: CaptureInput, now: Date): AutomationState {
+export function captureLead(
+  state: AutomationState,
+  input: CaptureInput,
+  now: Date,
+  options?: { automate?: boolean },
+): AutomationState {
+  const automate = options?.automate !== false;
   const existing = state.leads.find((lead) => lead.id === input.id);
   if (existing?.enrolled) return state;
 
@@ -68,10 +74,12 @@ export function captureLead(state: AutomationState, input: CaptureInput, now: Da
     phone: input.phone || existing?.phone,
     website: input.website || existing?.website,
   });
-  const assigned = assignOwner(state.settings, {
-    source: input.source || existing?.source || "",
-    qrSource: input.qrSource || existing?.qrSource || "",
-  });
+  const assigned = automate
+    ? assignOwner(state.settings, {
+        source: input.source || existing?.source || "",
+        qrSource: input.qrSource || existing?.qrSource || "",
+      })
+    : { owner: existing?.ownerName || "", settings: state.settings, reason: "" };
 
   const lead = emptyLead({
     ...(existing ?? { id: input.id, name: input.name.trim() || "Unnamed", createdAt }),
@@ -108,12 +116,14 @@ export function captureLead(state: AutomationState, input: CaptureInput, now: Da
 
   const claimed = claimClick(state, lead.id, lead.utmSource, lead.campaign);
   const activities: Activity[] = [
-    activity(lead.id, "assigned", `Assigned to ${assigned.owner}`, assigned.reason, now, { owner: assigned.owner }),
     activity(lead.id, "scored", `Score ${scored.score}`, scored.reasons.join(" · "), now, {
       score: scored.score,
       reasons: scored.reasons,
     }),
   ];
+  if (automate) {
+    activities.unshift(activity(lead.id, "assigned", `Assigned to ${assigned.owner}`, assigned.reason, now, { owner: assigned.owner }));
+  }
   if (lead.utmSource || lead.campaign || claimed.click) {
     const source = lead.utmSource || lead.source || "unknown";
     const campaign = lead.campaign || "none";
@@ -134,6 +144,7 @@ export function captureLead(state: AutomationState, input: CaptureInput, now: Da
     lead,
     activities,
   );
+  if (!automate) return next;
   next = queueStep(next, lead.id, "ack", now);
   return next;
 }
@@ -568,6 +579,14 @@ function queueStep(state: AutomationState, leadId: string, step: SequenceStep, s
   return patchLead(state, leadId, { sequenceStep, updatedAt: scheduledFor.toISOString() }, activities, messages);
 }
 
+export function queueSequenceStep(state: AutomationState, leadId: string, step: SequenceStep, scheduledFor: Date) {
+  return queueStep(state, leadId, step, scheduledFor);
+}
+
+export function stopQueuedNudges(state: AutomationState, leadId: string, now: Date, title: string) {
+  return cancelQueued(state, leadId, NUDGE_KEYS, now, title);
+}
+
 function acknowledgementReady(state: AutomationState, leadId: string, env: EnvLike) {
   const acks = state.outbox.filter(
     (message) => message.leadId === leadId && message.templateKey.startsWith("ack_") && message.status !== "cancelled" && message.status !== "failed",
@@ -622,7 +641,7 @@ function cancelQueued(
   };
 }
 
-function findInboundLead(state: AutomationState, event: InboundEvent) {
+export function findInboundLead(state: AutomationState, event: InboundEvent) {
   if (event.leadId) {
     const byId = state.leads.find((lead) => lead.id === event.leadId);
     if (byId) return byId;

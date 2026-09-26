@@ -3,6 +3,9 @@ import path from "node:path";
 import { openServiceDatabase } from "@/server/workers/service-db";
 import { isSendEnabled } from "@/lib/automation/channels";
 import { applyStageRules, captureLead, createInitialState, runCron } from "@/lib/automation/engine";
+import { isWorkflowEngineEnabled } from "@/lib/workflows/flag";
+import { phase1Workflows } from "@/lib/workflows/phase1";
+import { dispatchEvent, runScheduledWorkflows } from "@/lib/workflows/runner";
 import { messageCategory } from "@/lib/automation/compliance";
 import { flushOutbox } from "@/lib/automation/flush";
 import { loadSupabaseWorkspace, MIGRATION_FILE, saveSupabaseWorkspace } from "@/lib/automation/persist";
@@ -57,8 +60,18 @@ export async function enrollLead(input: CaptureInput) {
       return { ok: false as const, error: workspace.setupError || `Apply ${MIGRATION_FILE} first.` };
     }
     const now = new Date();
-    let after = captureLead(workspace.state, input, now);
-    after = applyStageRules(after, now, process.env, input.id);
+    let after = captureLead(workspace.state, input, now, { automate: !isWorkflowEngineEnabled() });
+    if (isWorkflowEngineEnabled()) {
+      after = dispatchEvent(after, phase1Workflows(), {
+        type: "lead.created",
+        subjectId: input.id,
+        occurredAt: now.toISOString(),
+        id: `lead.created-${input.id}-${now.toISOString()}`,
+        payload: { source: input.source || "" },
+      }).state;
+    } else {
+      after = applyStageRules(after, now, process.env, input.id);
+    }
     await saveWorkspace(workspace.state, after);
     return { ok: true as const };
   } catch (error) {
@@ -74,10 +87,12 @@ export async function runAutomationJob() {
     return { ok: false as const, events: [] as string[], error: workspace.setupError || `Apply ${MIGRATION_FILE} first.` };
   }
   const now = new Date();
-  let after = runCron(workspace.state, now, process.env);
+  let after = isWorkflowEngineEnabled()
+    ? runScheduledWorkflows(workspace.state, phase1Workflows(), now, { env: process.env }).state
+    : runCron(workspace.state, now, process.env);
   after = await flushOutbox(after, now, process.env);
   after = await publishDuePosts(after, now, process.env);
-  if (isSendEnabled()) after = applyStageRules(after, now, process.env);
+  if (isSendEnabled() && !isWorkflowEngineEnabled()) after = applyStageRules(after, now, process.env);
   await saveWorkspace(workspace.state, after);
   return { ok: true as const, events: describeChanges(workspace.state, after), error: undefined };
 }

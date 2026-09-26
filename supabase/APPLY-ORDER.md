@@ -29,6 +29,7 @@ PR #3 is merged. Its files are on `main` and are still unapplied. Run them after
 8. `supabase/migrations/20261015120000_org_scope_phase1_tables.sql`
 9. `supabase/migrations/20261015140000_phase2b_channels_popia.sql`
 10. `supabase/migrations/20261016120000_phase2c_snapshots.sql`
+11. `supabase/migrations/20261017120000_phase2d_workflows.sql`
 
 Why this order:
 
@@ -41,6 +42,36 @@ Why this order:
 - `org_scope_phase1_tables` calls `attach_org_tenancy` on the automation tables (`crm_lead_activity`, `crm_outbox`, `crm_prospects`, `crm_suppressions`, and the rest of that list). It no-ops for any table that is not there yet, and it returns without changes if `attach_org_tenancy` is missing. Run it before phase 2b and phase 2c so those tables already exist.
 - `phase2b_channels_popia` adds channel connections, the vault secret RPCs, POPIA contacts, rate cards, and the usage ledger. It alters `crm_outbox` when that table exists, so it follows the automation and compliance files. It does not turn sending on and it does not put provider secrets in the migration.
 - `phase2c_snapshots` adds pipelines, pipeline stages, message templates, sequences, custom fields, and workspace snapshots. It adds `crm_leads.stage_id` only where the stage name matches exactly one stage in that organisation, and it adds `asset_key` on the phase 1 sequence tables. It follows phase 2b. Snapshot payloads do not include contacts, messages, or secrets. Applying a snapshot does not turn sending on.
+- `phase2d_workflows` adds the workflow engine tables (`events`, `workflows`, `workflow_runs`, `workflow_run_logs`, `workflow_alerts`, `contact_tags`) and seeds one workflow row per organisation for the phase 1 assignment, stage, and sequence behaviour. It follows phase 2c because snapshot export and apply grow a `workflows` array. `workflow_engine_enabled` stays false, and `sending_enabled` stays false. Leave `WORKFLOW_ENGINE_ENABLED` unset until this file has been applied. Snapshot export then includes workflows and still excludes contacts, messages, and secrets.
+
+## Workflow runner schedule
+
+`/api/cron/workflows` runs every minute once the engine flag is on. It claims due runs with `claim_due_workflow_runs` (`select … for update skip locked`, at most 100). While the flag is off the route does nothing and `/api/cron/automation` keeps the phase 1 job.
+
+Vercel Cron can use this schedule on a plan that allows minute jobs:
+
+```json
+{ "path": "/api/cron/workflows", "schedule": "* * * * *" }
+```
+
+That entry is not in `vercel.json`. A Hobby plan only accepts a daily cron, and adding a minute schedule would stop the deploy. Until the plan allows it, schedule the same route from Supabase. Do not run this until `SUPABASE_DB_URL` is available, and do not turn sending on.
+
+```sql
+create extension if not exists pg_cron;
+create extension if not exists pg_net;
+
+select cron.schedule(
+  'workflow-engine',
+  '* * * * *',
+  $$
+  select net.http_post(
+    url := 'https://REPLACE_WITH_THE_DEPLOYMENT_HOST/api/cron/workflows',
+    headers := jsonb_build_object('Authorization', 'Bearer REPLACE_WITH_CRON_SECRET'),
+    body := '{}'::jsonb
+  );
+  $$
+);
+```
 
 ## Shared timestamps
 

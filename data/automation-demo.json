@@ -1,0 +1,2139 @@
+{
+  "leads": [
+    {
+      "company": "Patel Logistics",
+      "phone": "0795550121",
+      "email": "ayesha@patel-logistics.example",
+      "whatsapp": "0795550121",
+      "stage": "Won",
+      "notes": "",
+      "source": "highlevel_event",
+      "qrSource": "billy_phone_qr",
+      "campaign": "",
+      "eventName": "",
+      "ownerName": "Billy",
+      "score": 67,
+      "scoreReasons": [
+        "Lead captured",
+        "Billy's phone QR",
+        "Growing team",
+        "Audit shows operational pain",
+        "Phone on file"
+      ],
+      "companySize": "25",
+      "website": "",
+      "industry": "",
+      "answers": {
+        "teamSize": "25",
+        "pain": "inbox overload"
+      },
+      "valueZar": 32000,
+      "bookedAt": null,
+      "auditDoneAt": null,
+      "proposalSentAt": null,
+      "stageChangedAt": "2026-09-25T16:02:32.064Z",
+      "updatedAt": "2026-09-25T16:02:32.064Z",
+      "sequenceStep": 1,
+      "lostReason": "",
+      "wonAt": "2026-09-25T16:02:32.064Z",
+      "repliedAt": null,
+      "enrolled": true,
+      "auditLeadId": null,
+      "contactLeadId": null,
+      "ord": -1789401752,
+      "id": "lead-ayesha",
+      "name": "Ayesha Patel",
+      "createdAt": "2026-09-14T16:02:32.064Z"
+    },
+    {
+      "company": "Botha Farming",
+      "phone": "0845550166",
+      "email": "johan@botha-farming.example",
+      "whatsapp": "0845550166",
+      "stage": "Proposal sent",
+      "notes": "",
+      "source": "website_contact",
+      "qrSource": "",
+      "campaign": "",
+      "eventName": "",
+      "ownerName": "Billy",
+      "score": 40,
+      "scoreReasons": [
+        "Lead captured",
+        "Came in from the website",
+        "Larger company",
+        "Phone on file"
+      ],
+      "companySize": "60",
+      "website": "",
+      "industry": "",
+      "answers": {},
+      "valueZar": 24000,
+      "bookedAt": null,
+      "auditDoneAt": null,
+      "proposalSentAt": "2026-09-21T16:02:32.064Z",
+      "stageChangedAt": "2026-09-21T16:02:32.064Z",
+      "updatedAt": "2026-09-21T16:02:32.064Z",
+      "sequenceStep": 1,
+      "lostReason": "",
+      "wonAt": null,
+      "repliedAt": null,
+      "enrolled": true,
+      "auditLeadId": null,
+      "contactLeadId": null,
+      "ord": -1789747352,
+      "id": "lead-johan",
+      "name": "Johan Botha",
+      "createdAt": "2026-09-18T16:02:32.064Z"
+    },
+    {
+      "company": "Mokoena Spa",
+      "phone": "0725550188",
+      "email": "lerato@mokoena-spa.example",
+      "whatsapp": "0725550188",
+      "stage": "Audit done",
+      "notes": "",
+      "source": "website_contact",
+      "qrSource": "",
+      "campaign": "",
+      "eventName": "",
+      "ownerName": "Billy",
+      "score": 20,
+      "scoreReasons": [
+        "Lead captured",
+        "Came in from the website",
+        "Phone on file"
+      ],
+      "companySize": "",
+      "website": "",
+      "industry": "",
+      "answers": {},
+      "valueZar": 0,
+      "bookedAt": null,
+      "auditDoneAt": "2026-09-25T16:02:32.064Z",
+      "proposalSentAt": null,
+      "stageChangedAt": "2026-09-25T16:02:32.064Z",
+      "updatedAt": "2026-09-25T16:02:32.064Z",
+      "sequenceStep": 1,
+      "lostReason": "",
+      "wonAt": null,
+      "repliedAt": null,
+      "enrolled": true,
+      "auditLeadId": null,
+      "contactLeadId": null,
+      "ord": -1789920152,
+      "id": "lead-lerato",
+      "name": "Lerato Mokoena",
+      "createdAt": "2026-09-20T16:02:32.064Z"
+    },
+    {
+      "company": "Venter Workshops",
+      "phone": "0825550133",
+      "email": "pieter@venter.example",
+      "whatsapp": "0825550133",
+      "stage": "Audit booked",
+      "notes": "",
+      "source": "public_form",
+      "qrSource": "",
+      "campaign": "",
+      "eventName": "",
+      "ownerName": "Billy",
+      "score": 20,
+      "scoreReasons": [
+        "Lead captured",
+        "Came in from the website",
+        "Phone on file"
+      ],
+      "companySize": "",
+      "website": "",
+      "industry": "",
+      "answers": {},
+      "valueZar": 0,
+      "bookedAt": "2026-09-25T16:02:32.064Z",
+      "auditDoneAt": null,
+      "proposalSentAt": null,
+      "stageChangedAt": "2026-09-23T16:02:32.064Z",
+      "updatedAt": "2026-09-23T16:02:32.064Z",
+      "sequenceStep": 1,
+      "lostReason": "",
+      "wonAt": null,
+      "repliedAt": null,
+      "enrolled": true,
+      "auditLeadId": null,
+      "contactLeadId": null,
+      "ord": -1790092952,
+      "id": "lead-pieter",
+      "name": "Pieter Venter",
+      "createdAt": "2026-09-22T16:02:32.064Z"
+    },
+    {
+      "company": "Dlamini Logistics",
+      "phone": "0835550177",
+      "email": "sipho@dlamini-logistics.example",
+      "whatsapp": "0835550177",
+      "stage": "Audit booked",
+      "notes": "",
+      "source": "website_contact",
+      "qrSource": "",
+      "campaign": "",
+      "eventName": "",
+      "ownerName": "Billy",
+      "score": 32,
+      "scoreReasons": [
+        "Lead captured",
+        "Came in from the website",
+        "Growing team",
+        "Phone on file"
+      ],
+      "companySize": "18",
+      "website": "",
+      "industry": "",
+      "answers": {},
+      "valueZar": 0,
+      "bookedAt": "2026-09-27T18:02:32.064Z",
+      "auditDoneAt": null,
+      "proposalSentAt": null,
+      "stageChangedAt": "2026-09-25T16:02:32.064Z",
+      "updatedAt": "2026-09-25T16:02:32.064Z",
+      "sequenceStep": 1,
+      "lostReason": "",
+      "wonAt": null,
+      "repliedAt": null,
+      "enrolled": true,
+      "auditLeadId": null,
+      "contactLeadId": null,
+      "ord": -1790265752,
+      "id": "lead-sipho",
+      "name": "Sipho Dlamini",
+      "createdAt": "2026-09-24T16:02:32.064Z"
+    },
+    {
+      "company": "Essop Accountants",
+      "phone": "0825550110",
+      "email": "fatima@essop.example",
+      "whatsapp": "0825550110",
+      "stage": "Contacted",
+      "notes": "",
+      "source": "website_contact",
+      "qrSource": "",
+      "campaign": "",
+      "eventName": "",
+      "ownerName": "Billy",
+      "score": 26,
+      "scoreReasons": [
+        "Lead captured",
+        "Came in from the website",
+        "Small team",
+        "Phone on file"
+      ],
+      "companySize": "8",
+      "website": "",
+      "industry": "",
+      "answers": {},
+      "valueZar": 0,
+      "bookedAt": null,
+      "auditDoneAt": null,
+      "proposalSentAt": null,
+      "stageChangedAt": "2026-09-25T16:02:32.064Z",
+      "updatedAt": "2026-09-25T16:02:32.064Z",
+      "sequenceStep": 1,
+      "lostReason": "",
+      "wonAt": null,
+      "repliedAt": null,
+      "enrolled": true,
+      "auditLeadId": null,
+      "contactLeadId": null,
+      "ord": -1790352152,
+      "id": "lead-fatima",
+      "name": "Fatima Essop",
+      "createdAt": "2026-09-25T16:02:32.064Z"
+    },
+    {
+      "company": "Khumalo Retail",
+      "phone": "0715550142",
+      "email": "nomsa@khumalo-retail.example",
+      "whatsapp": "0715550142",
+      "stage": "New",
+      "notes": "",
+      "source": "highlevel_event",
+      "qrSource": "billy_phone_qr",
+      "campaign": "",
+      "eventName": "",
+      "ownerName": "Billy",
+      "score": 82,
+      "scoreReasons": [
+        "Lead captured",
+        "Billy's phone QR",
+        "Growing team",
+        "Audit shows operational pain",
+        "Several AI opportunities",
+        "Website on file",
+        "Phone on file"
+      ],
+      "companySize": "40",
+      "website": "https://khumalo.example",
+      "industry": "",
+      "answers": {
+        "teamSize": "40",
+        "pain": "manual whatsapp follow-up"
+      },
+      "valueZar": 0,
+      "bookedAt": null,
+      "auditDoneAt": null,
+      "proposalSentAt": null,
+      "stageChangedAt": "2026-09-26T16:02:32.064Z",
+      "updatedAt": "2026-09-26T16:02:32.064Z",
+      "sequenceStep": 1,
+      "lostReason": "",
+      "wonAt": null,
+      "repliedAt": null,
+      "enrolled": true,
+      "auditLeadId": null,
+      "contactLeadId": null,
+      "ord": -1790438552,
+      "id": "lead-nomsa",
+      "name": "Nomsa Khumalo",
+      "createdAt": "2026-09-26T16:02:32.064Z"
+    },
+    {
+      "company": "Quiet Cafe",
+      "phone": "0825550199",
+      "email": "hello@quiet-cafe.example",
+      "whatsapp": "0825550199",
+      "stage": "Lost",
+      "notes": "",
+      "source": "website_contact",
+      "qrSource": "",
+      "campaign": "",
+      "eventName": "",
+      "ownerName": "Billy",
+      "score": 20,
+      "scoreReasons": [
+        "Lead captured",
+        "Came in from the website",
+        "Phone on file"
+      ],
+      "companySize": "",
+      "website": "",
+      "industry": "",
+      "answers": {},
+      "valueZar": 0,
+      "bookedAt": null,
+      "auditDoneAt": null,
+      "proposalSentAt": null,
+      "stageChangedAt": "2026-09-29T06:30:00.000Z",
+      "updatedAt": "2026-09-29T06:30:00.000Z",
+      "sequenceStep": 4,
+      "lostReason": "No reply after the day 1, day 3 and day 7 follow-ups.",
+      "wonAt": null,
+      "repliedAt": null,
+      "enrolled": true,
+      "auditLeadId": null,
+      "contactLeadId": null,
+      "ord": -1789885800,
+      "id": "lead-cafe",
+      "name": "Lindiwe Nkosi",
+      "createdAt": "2026-09-20T06:30:00.000Z"
+    },
+    {
+      "company": "Ndlovu Dental",
+      "phone": "0825550101",
+      "email": "thabo@ndlovi-dental.example",
+      "whatsapp": "0825550101",
+      "stage": "Onboarding/Handover",
+      "notes": "AI Business Audit from the phone QR.",
+      "source": "highlevel_event",
+      "qrSource": "billy_phone_qr",
+      "campaign": "",
+      "eventName": "",
+      "ownerName": "Billy",
+      "score": 82,
+      "scoreReasons": [
+        "Lead captured",
+        "Billy's phone QR",
+        "Growing team",
+        "Audit shows operational pain",
+        "Several AI opportunities",
+        "Website on file",
+        "Phone on file"
+      ],
+      "companySize": "12",
+      "website": "https://ndlovi-dental.example",
+      "industry": "",
+      "answers": {
+        "teamSize": "12",
+        "pain": "WhatsApp inbox is manual and leads fall through"
+      },
+      "valueZar": 18500,
+      "bookedAt": "2026-09-30T06:30:00.000Z",
+      "auditDoneAt": null,
+      "proposalSentAt": "2026-10-01T06:30:00.000Z",
+      "stageChangedAt": "2026-10-06T06:30:00.000Z",
+      "updatedAt": "2026-10-06T06:30:00.000Z",
+      "sequenceStep": 4,
+      "lostReason": "",
+      "wonAt": "2026-10-06T06:30:00.000Z",
+      "repliedAt": null,
+      "enrolled": true,
+      "auditLeadId": null,
+      "contactLeadId": null,
+      "ord": -1789885800,
+      "id": "lead-thabo",
+      "name": "Thabo Ndlovu",
+      "createdAt": "2026-09-20T06:30:00.000Z"
+    }
+  ],
+  "activities": [
+    {
+      "id": "act_1885352a5b30",
+      "leadId": "lead-thabo",
+      "kind": "assigned",
+      "title": "Assigned to Billy",
+      "body": "Billy's phone QR",
+      "metadata": {
+        "owner": "Billy"
+      },
+      "createdAt": "2026-09-20T06:30:00.000Z"
+    },
+    {
+      "id": "act_a696a8bb016d",
+      "leadId": "lead-thabo",
+      "kind": "scored",
+      "title": "Score 82",
+      "body": "Lead captured · Billy's phone QR · Growing team · Audit shows operational pain · Several AI opportunities · Website on file · Phone on file",
+      "metadata": {
+        "score": 82,
+        "reasons": [
+          "Lead captured",
+          "Billy's phone QR",
+          "Growing team",
+          "Audit shows operational pain",
+          "Several AI opportunities",
+          "Website on file",
+          "Phone on file"
+        ]
+      },
+      "createdAt": "2026-09-20T06:30:00.000Z"
+    },
+    {
+      "id": "act_85ca370a35fa",
+      "leadId": "lead-thabo",
+      "kind": "message_queued",
+      "title": "Queued Instant acknowledgement (WhatsApp)",
+      "body": "whatsapp · 0825550101",
+      "metadata": {
+        "templateKey": "ack_whatsapp",
+        "messageId": "msg_d3625e2ce221"
+      },
+      "createdAt": "2026-09-20T06:30:00.000Z"
+    },
+    {
+      "id": "act_6acb8efe809a",
+      "leadId": "lead-thabo",
+      "kind": "message_queued",
+      "title": "Queued Instant acknowledgement (email)",
+      "body": "email · thabo@ndlovi-dental.example",
+      "metadata": {
+        "templateKey": "ack_email",
+        "messageId": "msg_819db68bb6dc"
+      },
+      "createdAt": "2026-09-20T06:30:00.000Z"
+    },
+    {
+      "id": "act_0efdfff1b2d0",
+      "leadId": "lead-cafe",
+      "kind": "assigned",
+      "title": "Assigned to Billy",
+      "body": "Default owner",
+      "metadata": {
+        "owner": "Billy"
+      },
+      "createdAt": "2026-09-20T06:30:00.000Z"
+    },
+    {
+      "id": "act_ed1d6431b668",
+      "leadId": "lead-cafe",
+      "kind": "scored",
+      "title": "Score 20",
+      "body": "Lead captured · Came in from the website · Phone on file",
+      "metadata": {
+        "score": 20,
+        "reasons": [
+          "Lead captured",
+          "Came in from the website",
+          "Phone on file"
+        ]
+      },
+      "createdAt": "2026-09-20T06:30:00.000Z"
+    },
+    {
+      "id": "act_fae888791874",
+      "leadId": "lead-cafe",
+      "kind": "message_queued",
+      "title": "Queued Instant acknowledgement (WhatsApp)",
+      "body": "whatsapp · 0825550199",
+      "metadata": {
+        "templateKey": "ack_whatsapp",
+        "messageId": "msg_07acb3e512ac"
+      },
+      "createdAt": "2026-09-20T06:30:00.000Z"
+    },
+    {
+      "id": "act_ed686039a122",
+      "leadId": "lead-cafe",
+      "kind": "message_queued",
+      "title": "Queued Instant acknowledgement (email)",
+      "body": "email · hello@quiet-cafe.example",
+      "metadata": {
+        "templateKey": "ack_email",
+        "messageId": "msg_6881e4bfaa7e"
+      },
+      "createdAt": "2026-09-20T06:30:00.000Z"
+    },
+    {
+      "id": "act_94236c444fc3",
+      "leadId": "lead-cafe",
+      "kind": "stage",
+      "title": "New → Contacted",
+      "body": "Acknowledgement is in the outbox, so this lead is contacted.",
+      "metadata": {
+        "from": "New",
+        "to": "Contacted"
+      },
+      "createdAt": "2026-09-20T06:30:00.000Z"
+    },
+    {
+      "id": "act_9326c4d1f5f4",
+      "leadId": "lead-thabo",
+      "kind": "stage",
+      "title": "New → Contacted",
+      "body": "Acknowledgement is in the outbox, so this lead is contacted.",
+      "metadata": {
+        "from": "New",
+        "to": "Contacted"
+      },
+      "createdAt": "2026-09-20T06:30:00.000Z"
+    },
+    {
+      "id": "act_b236a8d977ad",
+      "leadId": "lead-cafe",
+      "kind": "message_queued",
+      "title": "Queued Day 1 nudge (WhatsApp)",
+      "body": "whatsapp · 0825550199",
+      "metadata": {
+        "templateKey": "nudge_day1_whatsapp",
+        "messageId": "msg_6d6ee937ec9a"
+      },
+      "createdAt": "2026-09-21T06:30:00.000Z"
+    },
+    {
+      "id": "act_ed4465ea0ee9",
+      "leadId": "lead-cafe",
+      "kind": "message_queued",
+      "title": "Queued Day 1 nudge (email)",
+      "body": "email · hello@quiet-cafe.example",
+      "metadata": {
+        "templateKey": "nudge_day1_email",
+        "messageId": "msg_d1ddcf0f4043"
+      },
+      "createdAt": "2026-09-21T06:30:00.000Z"
+    },
+    {
+      "id": "act_e4108e4323e6",
+      "leadId": "lead-thabo",
+      "kind": "message_queued",
+      "title": "Queued Day 1 nudge (WhatsApp)",
+      "body": "whatsapp · 0825550101",
+      "metadata": {
+        "templateKey": "nudge_day1_whatsapp",
+        "messageId": "msg_02813de34144"
+      },
+      "createdAt": "2026-09-21T06:30:00.000Z"
+    },
+    {
+      "id": "act_a14556227504",
+      "leadId": "lead-thabo",
+      "kind": "message_queued",
+      "title": "Queued Day 1 nudge (email)",
+      "body": "email · thabo@ndlovi-dental.example",
+      "metadata": {
+        "templateKey": "nudge_day1_email",
+        "messageId": "msg_929f4eaeef1c"
+      },
+      "createdAt": "2026-09-21T06:30:00.000Z"
+    },
+    {
+      "id": "act_83907aff130d",
+      "leadId": "lead-cafe",
+      "kind": "message_queued",
+      "title": "Queued Day 3 nudge (WhatsApp)",
+      "body": "whatsapp · 0825550199",
+      "metadata": {
+        "templateKey": "nudge_day3_whatsapp",
+        "messageId": "msg_05fb5e1e7dad"
+      },
+      "createdAt": "2026-09-23T06:30:00.000Z"
+    },
+    {
+      "id": "act_5d9a4f10cd72",
+      "leadId": "lead-cafe",
+      "kind": "message_queued",
+      "title": "Queued Day 3 nudge (email)",
+      "body": "email · hello@quiet-cafe.example",
+      "metadata": {
+        "templateKey": "nudge_day3_email",
+        "messageId": "msg_76e203103169"
+      },
+      "createdAt": "2026-09-23T06:30:00.000Z"
+    },
+    {
+      "id": "act_320b79a8c91e",
+      "leadId": "lead-thabo",
+      "kind": "message_queued",
+      "title": "Queued Day 3 nudge (WhatsApp)",
+      "body": "whatsapp · 0825550101",
+      "metadata": {
+        "templateKey": "nudge_day3_whatsapp",
+        "messageId": "msg_384a71b1a0ad"
+      },
+      "createdAt": "2026-09-23T06:30:00.000Z"
+    },
+    {
+      "id": "act_7b1a38cfa37d",
+      "leadId": "lead-thabo",
+      "kind": "message_queued",
+      "title": "Queued Day 3 nudge (email)",
+      "body": "email · thabo@ndlovi-dental.example",
+      "metadata": {
+        "templateKey": "nudge_day3_email",
+        "messageId": "msg_8340f7e0f18c"
+      },
+      "createdAt": "2026-09-23T06:30:00.000Z"
+    },
+    {
+      "id": "act_de06bf3e3118",
+      "leadId": "lead-cafe",
+      "kind": "message_queued",
+      "title": "Queued Day 7 nudge (WhatsApp)",
+      "body": "whatsapp · 0825550199",
+      "metadata": {
+        "templateKey": "nudge_day7_whatsapp",
+        "messageId": "msg_21adf3282487"
+      },
+      "createdAt": "2026-09-27T06:30:00.000Z"
+    },
+    {
+      "id": "act_5720ee20bd1e",
+      "leadId": "lead-cafe",
+      "kind": "message_queued",
+      "title": "Queued Day 7 nudge (email)",
+      "body": "email · hello@quiet-cafe.example",
+      "metadata": {
+        "templateKey": "nudge_day7_email",
+        "messageId": "msg_656d419b7e37"
+      },
+      "createdAt": "2026-09-27T06:30:00.000Z"
+    },
+    {
+      "id": "act_1d79ba0ee1ef",
+      "leadId": "lead-thabo",
+      "kind": "message_queued",
+      "title": "Queued Day 7 nudge (WhatsApp)",
+      "body": "whatsapp · 0825550101",
+      "metadata": {
+        "templateKey": "nudge_day7_whatsapp",
+        "messageId": "msg_a3daa3581ec4"
+      },
+      "createdAt": "2026-09-27T06:30:00.000Z"
+    },
+    {
+      "id": "act_efc947cb1623",
+      "leadId": "lead-thabo",
+      "kind": "message_queued",
+      "title": "Queued Day 7 nudge (email)",
+      "body": "email · thabo@ndlovi-dental.example",
+      "metadata": {
+        "templateKey": "nudge_day7_email",
+        "messageId": "msg_86202b349bc9"
+      },
+      "createdAt": "2026-09-27T06:30:00.000Z"
+    },
+    {
+      "id": "act_69e2cd7afc5b",
+      "leadId": "lead-thabo",
+      "kind": "sequence_stopped",
+      "title": "Follow-up nudges stopped because an audit was booked.",
+      "body": "6 queued nudges cancelled.",
+      "metadata": {},
+      "createdAt": "2026-09-28T06:30:00.000Z"
+    },
+    {
+      "id": "act_b1a6cacdd5d5",
+      "leadId": "lead-thabo",
+      "kind": "booking",
+      "title": "Audit booked",
+      "body": "Booked for 30 Sept 2026, 08:30.",
+      "metadata": {
+        "startsAt": "2026-09-30T06:30:00.000Z"
+      },
+      "createdAt": "2026-09-28T06:30:00.000Z"
+    },
+    {
+      "id": "act_59465335fee2",
+      "leadId": "lead-thabo",
+      "kind": "message_queued",
+      "title": "Queued Audit reminder (WhatsApp)",
+      "body": "whatsapp · 0825550101",
+      "metadata": {
+        "templateKey": "audit_reminder_whatsapp",
+        "messageId": "msg_4e4f363dd213"
+      },
+      "createdAt": "2026-09-29T06:30:00.000Z"
+    },
+    {
+      "id": "act_6f254f2fe35c",
+      "leadId": "lead-thabo",
+      "kind": "message_queued",
+      "title": "Queued Audit reminder (email)",
+      "body": "email · thabo@ndlovi-dental.example",
+      "metadata": {
+        "templateKey": "audit_reminder_email",
+        "messageId": "msg_23bcd1095ad3"
+      },
+      "createdAt": "2026-09-29T06:30:00.000Z"
+    },
+    {
+      "id": "act_81631218d6b0",
+      "leadId": "lead-cafe",
+      "kind": "stage",
+      "title": "Contacted → Lost",
+      "body": "No reply after the day 1, day 3 and day 7 follow-ups.",
+      "metadata": {
+        "from": "Contacted",
+        "to": "Lost"
+      },
+      "createdAt": "2026-09-29T06:30:00.000Z"
+    },
+    {
+      "id": "act_cc2dc297cef2",
+      "leadId": "lead-thabo",
+      "kind": "stage",
+      "title": "Audit booked → Audit done",
+      "body": "Audit marked done from the booking webhook.",
+      "metadata": {
+        "from": "Audit booked",
+        "to": "Audit done"
+      },
+      "createdAt": "2026-09-30T06:30:00.000Z"
+    },
+    {
+      "id": "act_178b61630b39",
+      "leadId": "lead-thabo",
+      "kind": "stage",
+      "title": "Audit done → Proposal sent",
+      "body": "WhatsApp lead desk",
+      "metadata": {
+        "from": "Audit done",
+        "to": "Proposal sent"
+      },
+      "createdAt": "2026-10-01T06:30:00.000Z"
+    },
+    {
+      "id": "act_1bffc8bc33ea",
+      "leadId": "lead-thabo",
+      "kind": "message_queued",
+      "title": "Queued Proposal follow-up (WhatsApp)",
+      "body": "whatsapp · 0825550101",
+      "metadata": {
+        "templateKey": "proposal_followup_whatsapp",
+        "messageId": "msg_aa0190dc5c89"
+      },
+      "createdAt": "2026-10-04T06:30:00.000Z"
+    },
+    {
+      "id": "act_cb2e3e55f4b5",
+      "leadId": "lead-thabo",
+      "kind": "message_queued",
+      "title": "Queued Proposal follow-up (email)",
+      "body": "email · thabo@ndlovi-dental.example",
+      "metadata": {
+        "templateKey": "proposal_followup_email",
+        "messageId": "msg_6cce1aeec5ba"
+      },
+      "createdAt": "2026-10-04T06:30:00.000Z"
+    },
+    {
+      "id": "act_c17b1838aee5",
+      "leadId": "lead-thabo",
+      "kind": "won",
+      "title": "Marked won",
+      "body": "WhatsApp lead desk · Billy",
+      "metadata": {
+        "valueZar": 18500,
+        "whatSold": "WhatsApp lead desk",
+        "deliveredBy": "Billy"
+      },
+      "createdAt": "2026-10-06T06:30:00.000Z"
+    },
+    {
+      "id": "act_99493ba7d252",
+      "leadId": "lead-thabo",
+      "kind": "handover",
+      "title": "Handover opened",
+      "body": "Billy delivers: WhatsApp lead desk",
+      "metadata": {
+        "handoverId": "ho_67ccc7914047"
+      },
+      "createdAt": "2026-10-06T06:30:00.000Z"
+    },
+    {
+      "id": "act_2f43d2afe978",
+      "leadId": "lead-thabo",
+      "kind": "quote",
+      "title": "Draft quote created",
+      "body": "Q-20261006-HABO",
+      "metadata": {
+        "quoteId": "quo_289bb2f9c9b4",
+        "amountZar": 18500
+      },
+      "createdAt": "2026-10-06T06:30:00.000Z"
+    },
+    {
+      "id": "act_71750b738e5e",
+      "leadId": "lead-thabo",
+      "kind": "stage",
+      "title": "Won → Onboarding/Handover",
+      "body": "Won deal moved into onboarding and handover.",
+      "metadata": {
+        "from": "Won",
+        "to": "Onboarding/Handover"
+      },
+      "createdAt": "2026-10-06T06:30:00.000Z"
+    },
+    {
+      "id": "act_277d9fc8384c",
+      "leadId": "lead-nomsa",
+      "kind": "assigned",
+      "title": "Assigned to Billy",
+      "body": "Billy's phone QR",
+      "metadata": {
+        "owner": "Billy"
+      },
+      "createdAt": "2026-09-26T16:02:32.064Z"
+    },
+    {
+      "id": "act_46391a10c0e6",
+      "leadId": "lead-nomsa",
+      "kind": "scored",
+      "title": "Score 82",
+      "body": "Lead captured · Billy's phone QR · Growing team · Audit shows operational pain · Several AI opportunities · Website on file · Phone on file",
+      "metadata": {
+        "score": 82,
+        "reasons": [
+          "Lead captured",
+          "Billy's phone QR",
+          "Growing team",
+          "Audit shows operational pain",
+          "Several AI opportunities",
+          "Website on file",
+          "Phone on file"
+        ]
+      },
+      "createdAt": "2026-09-26T16:02:32.064Z"
+    },
+    {
+      "id": "act_814d9d503f5f",
+      "leadId": "lead-nomsa",
+      "kind": "message_queued",
+      "title": "Queued Instant acknowledgement (WhatsApp)",
+      "body": "whatsapp · 0715550142",
+      "metadata": {
+        "templateKey": "ack_whatsapp",
+        "messageId": "msg_ed509c5ab92d"
+      },
+      "createdAt": "2026-09-26T16:02:32.064Z"
+    },
+    {
+      "id": "act_3f0e6acd126a",
+      "leadId": "lead-nomsa",
+      "kind": "message_queued",
+      "title": "Queued Instant acknowledgement (email)",
+      "body": "email · nomsa@khumalo-retail.example",
+      "metadata": {
+        "templateKey": "ack_email",
+        "messageId": "msg_e5bb9c336982"
+      },
+      "createdAt": "2026-09-26T16:02:32.064Z"
+    },
+    {
+      "id": "act_95d8a0efb952",
+      "leadId": "lead-fatima",
+      "kind": "assigned",
+      "title": "Assigned to Billy",
+      "body": "Default owner",
+      "metadata": {
+        "owner": "Billy"
+      },
+      "createdAt": "2026-09-25T16:02:32.064Z"
+    },
+    {
+      "id": "act_9eebc766c447",
+      "leadId": "lead-fatima",
+      "kind": "scored",
+      "title": "Score 26",
+      "body": "Lead captured · Came in from the website · Small team · Phone on file",
+      "metadata": {
+        "score": 26,
+        "reasons": [
+          "Lead captured",
+          "Came in from the website",
+          "Small team",
+          "Phone on file"
+        ]
+      },
+      "createdAt": "2026-09-25T16:02:32.064Z"
+    },
+    {
+      "id": "act_fea76ad01f5d",
+      "leadId": "lead-fatima",
+      "kind": "message_queued",
+      "title": "Queued Instant acknowledgement (WhatsApp)",
+      "body": "whatsapp · 0825550110",
+      "metadata": {
+        "templateKey": "ack_whatsapp",
+        "messageId": "msg_b9ab50dd2070"
+      },
+      "createdAt": "2026-09-25T16:02:32.064Z"
+    },
+    {
+      "id": "act_25051ae71309",
+      "leadId": "lead-fatima",
+      "kind": "message_queued",
+      "title": "Queued Instant acknowledgement (email)",
+      "body": "email · fatima@essop.example",
+      "metadata": {
+        "templateKey": "ack_email",
+        "messageId": "msg_7c362a7eb32e"
+      },
+      "createdAt": "2026-09-25T16:02:32.064Z"
+    },
+    {
+      "id": "act_ee2d15107904",
+      "leadId": "lead-fatima",
+      "kind": "stage",
+      "title": "New → Contacted",
+      "body": "Acknowledgement is in the outbox, so this lead is contacted.",
+      "metadata": {
+        "from": "New",
+        "to": "Contacted"
+      },
+      "createdAt": "2026-09-25T16:02:32.064Z"
+    },
+    {
+      "id": "act_25d516c9de87",
+      "leadId": "lead-sipho",
+      "kind": "assigned",
+      "title": "Assigned to Billy",
+      "body": "Default owner",
+      "metadata": {
+        "owner": "Billy"
+      },
+      "createdAt": "2026-09-24T16:02:32.064Z"
+    },
+    {
+      "id": "act_183c02f78797",
+      "leadId": "lead-sipho",
+      "kind": "scored",
+      "title": "Score 32",
+      "body": "Lead captured · Came in from the website · Growing team · Phone on file",
+      "metadata": {
+        "score": 32,
+        "reasons": [
+          "Lead captured",
+          "Came in from the website",
+          "Growing team",
+          "Phone on file"
+        ]
+      },
+      "createdAt": "2026-09-24T16:02:32.064Z"
+    },
+    {
+      "id": "act_37ead2cd3eb8",
+      "leadId": "lead-sipho",
+      "kind": "message_queued",
+      "title": "Queued Instant acknowledgement (WhatsApp)",
+      "body": "whatsapp · 0835550177",
+      "metadata": {
+        "templateKey": "ack_whatsapp",
+        "messageId": "msg_dd07e0dd321d"
+      },
+      "createdAt": "2026-09-24T16:02:32.064Z"
+    },
+    {
+      "id": "act_57f097255b81",
+      "leadId": "lead-sipho",
+      "kind": "message_queued",
+      "title": "Queued Instant acknowledgement (email)",
+      "body": "email · sipho@dlamini-logistics.example",
+      "metadata": {
+        "templateKey": "ack_email",
+        "messageId": "msg_39c6b44cfca6"
+      },
+      "createdAt": "2026-09-24T16:02:32.064Z"
+    },
+    {
+      "id": "act_1a45815dd8e4",
+      "leadId": "lead-sipho",
+      "kind": "stage",
+      "title": "New → Contacted",
+      "body": "Acknowledgement is in the outbox, so this lead is contacted.",
+      "metadata": {
+        "from": "New",
+        "to": "Contacted"
+      },
+      "createdAt": "2026-09-24T16:02:32.064Z"
+    },
+    {
+      "id": "act_12aa66daecaa",
+      "leadId": "lead-sipho",
+      "kind": "booking",
+      "title": "Audit booked",
+      "body": "Booked for 27 Sept 2026, 20:02.",
+      "metadata": {
+        "startsAt": "2026-09-27T18:02:32.064Z"
+      },
+      "createdAt": "2026-09-25T16:02:32.064Z"
+    },
+    {
+      "id": "act_1ac1f61dbd6a",
+      "leadId": "lead-pieter",
+      "kind": "assigned",
+      "title": "Assigned to Billy",
+      "body": "Default owner",
+      "metadata": {
+        "owner": "Billy"
+      },
+      "createdAt": "2026-09-22T16:02:32.064Z"
+    },
+    {
+      "id": "act_a8ff9afa6ee3",
+      "leadId": "lead-pieter",
+      "kind": "scored",
+      "title": "Score 20",
+      "body": "Lead captured · Came in from the website · Phone on file",
+      "metadata": {
+        "score": 20,
+        "reasons": [
+          "Lead captured",
+          "Came in from the website",
+          "Phone on file"
+        ]
+      },
+      "createdAt": "2026-09-22T16:02:32.064Z"
+    },
+    {
+      "id": "act_e2bd594d3184",
+      "leadId": "lead-pieter",
+      "kind": "message_queued",
+      "title": "Queued Instant acknowledgement (WhatsApp)",
+      "body": "whatsapp · 0825550133",
+      "metadata": {
+        "templateKey": "ack_whatsapp",
+        "messageId": "msg_ae0153ad5fda"
+      },
+      "createdAt": "2026-09-22T16:02:32.064Z"
+    },
+    {
+      "id": "act_8bc5caf74b63",
+      "leadId": "lead-pieter",
+      "kind": "message_queued",
+      "title": "Queued Instant acknowledgement (email)",
+      "body": "email · pieter@venter.example",
+      "metadata": {
+        "templateKey": "ack_email",
+        "messageId": "msg_2265eb50b91d"
+      },
+      "createdAt": "2026-09-22T16:02:32.064Z"
+    },
+    {
+      "id": "act_d00b38e011fa",
+      "leadId": "lead-pieter",
+      "kind": "stage",
+      "title": "New → Contacted",
+      "body": "Acknowledgement is in the outbox, so this lead is contacted.",
+      "metadata": {
+        "from": "New",
+        "to": "Contacted"
+      },
+      "createdAt": "2026-09-22T16:02:32.064Z"
+    },
+    {
+      "id": "act_9360136e6f86",
+      "leadId": "lead-pieter",
+      "kind": "booking",
+      "title": "Audit booked",
+      "body": "Booked for 25 Sept 2026, 18:02.",
+      "metadata": {
+        "startsAt": "2026-09-25T16:02:32.064Z"
+      },
+      "createdAt": "2026-09-23T16:02:32.064Z"
+    },
+    {
+      "id": "act_6343e82d13cf",
+      "leadId": "lead-lerato",
+      "kind": "assigned",
+      "title": "Assigned to Billy",
+      "body": "Default owner",
+      "metadata": {
+        "owner": "Billy"
+      },
+      "createdAt": "2026-09-20T16:02:32.064Z"
+    },
+    {
+      "id": "act_eb4e2aa816be",
+      "leadId": "lead-lerato",
+      "kind": "scored",
+      "title": "Score 20",
+      "body": "Lead captured · Came in from the website · Phone on file",
+      "metadata": {
+        "score": 20,
+        "reasons": [
+          "Lead captured",
+          "Came in from the website",
+          "Phone on file"
+        ]
+      },
+      "createdAt": "2026-09-20T16:02:32.064Z"
+    },
+    {
+      "id": "act_9fa533986a2a",
+      "leadId": "lead-lerato",
+      "kind": "message_queued",
+      "title": "Queued Instant acknowledgement (WhatsApp)",
+      "body": "whatsapp · 0725550188",
+      "metadata": {
+        "templateKey": "ack_whatsapp",
+        "messageId": "msg_62e4658eaf96"
+      },
+      "createdAt": "2026-09-20T16:02:32.064Z"
+    },
+    {
+      "id": "act_51353cff1c75",
+      "leadId": "lead-lerato",
+      "kind": "message_queued",
+      "title": "Queued Instant acknowledgement (email)",
+      "body": "email · lerato@mokoena-spa.example",
+      "metadata": {
+        "templateKey": "ack_email",
+        "messageId": "msg_6a41795642bb"
+      },
+      "createdAt": "2026-09-20T16:02:32.064Z"
+    },
+    {
+      "id": "act_05b073a59376",
+      "leadId": "lead-lerato",
+      "kind": "stage",
+      "title": "New → Audit done",
+      "body": "Stage set to Audit done.",
+      "metadata": {
+        "from": "New",
+        "to": "Audit done"
+      },
+      "createdAt": "2026-09-25T16:02:32.064Z"
+    },
+    {
+      "id": "act_c7ae2e991974",
+      "leadId": "lead-johan",
+      "kind": "assigned",
+      "title": "Assigned to Billy",
+      "body": "Default owner",
+      "metadata": {
+        "owner": "Billy"
+      },
+      "createdAt": "2026-09-18T16:02:32.064Z"
+    },
+    {
+      "id": "act_c01dcd0447b1",
+      "leadId": "lead-johan",
+      "kind": "scored",
+      "title": "Score 40",
+      "body": "Lead captured · Came in from the website · Larger company · Phone on file",
+      "metadata": {
+        "score": 40,
+        "reasons": [
+          "Lead captured",
+          "Came in from the website",
+          "Larger company",
+          "Phone on file"
+        ]
+      },
+      "createdAt": "2026-09-18T16:02:32.064Z"
+    },
+    {
+      "id": "act_018bdc6ee1df",
+      "leadId": "lead-johan",
+      "kind": "message_queued",
+      "title": "Queued Instant acknowledgement (WhatsApp)",
+      "body": "whatsapp · 0845550166",
+      "metadata": {
+        "templateKey": "ack_whatsapp",
+        "messageId": "msg_eff03fb4b7c9"
+      },
+      "createdAt": "2026-09-18T16:02:32.064Z"
+    },
+    {
+      "id": "act_b96d911bb5f1",
+      "leadId": "lead-johan",
+      "kind": "message_queued",
+      "title": "Queued Instant acknowledgement (email)",
+      "body": "email · johan@botha-farming.example",
+      "metadata": {
+        "templateKey": "ack_email",
+        "messageId": "msg_cad9ac89f582"
+      },
+      "createdAt": "2026-09-18T16:02:32.064Z"
+    },
+    {
+      "id": "act_e3ff7a92d43f",
+      "leadId": "lead-johan",
+      "kind": "stage",
+      "title": "New → Proposal sent",
+      "body": "Stage set to Proposal sent.",
+      "metadata": {
+        "from": "New",
+        "to": "Proposal sent"
+      },
+      "createdAt": "2026-09-21T16:02:32.064Z"
+    },
+    {
+      "id": "act_dfa3753d7a7d",
+      "leadId": "lead-ayesha",
+      "kind": "assigned",
+      "title": "Assigned to Billy",
+      "body": "Billy's phone QR",
+      "metadata": {
+        "owner": "Billy"
+      },
+      "createdAt": "2026-09-14T16:02:32.064Z"
+    },
+    {
+      "id": "act_db95e3bd486d",
+      "leadId": "lead-ayesha",
+      "kind": "scored",
+      "title": "Score 67",
+      "body": "Lead captured · Billy's phone QR · Growing team · Audit shows operational pain · Phone on file",
+      "metadata": {
+        "score": 67,
+        "reasons": [
+          "Lead captured",
+          "Billy's phone QR",
+          "Growing team",
+          "Audit shows operational pain",
+          "Phone on file"
+        ]
+      },
+      "createdAt": "2026-09-14T16:02:32.064Z"
+    },
+    {
+      "id": "act_301838684c7d",
+      "leadId": "lead-ayesha",
+      "kind": "message_queued",
+      "title": "Queued Instant acknowledgement (WhatsApp)",
+      "body": "whatsapp · 0795550121",
+      "metadata": {
+        "templateKey": "ack_whatsapp",
+        "messageId": "msg_69c5346c528f"
+      },
+      "createdAt": "2026-09-14T16:02:32.064Z"
+    },
+    {
+      "id": "act_7a639b8e6b8a",
+      "leadId": "lead-ayesha",
+      "kind": "message_queued",
+      "title": "Queued Instant acknowledgement (email)",
+      "body": "email · ayesha@patel-logistics.example",
+      "metadata": {
+        "templateKey": "ack_email",
+        "messageId": "msg_abeb62e96c10"
+      },
+      "createdAt": "2026-09-14T16:02:32.064Z"
+    },
+    {
+      "id": "act_76a8a2f0cf7d",
+      "leadId": "lead-ayesha",
+      "kind": "won",
+      "title": "Marked won",
+      "body": "AI employee for the inbox · Billy",
+      "metadata": {
+        "valueZar": 32000,
+        "whatSold": "AI employee for the inbox",
+        "deliveredBy": "Billy"
+      },
+      "createdAt": "2026-09-25T16:02:32.064Z"
+    },
+    {
+      "id": "act_d236fe35ffc7",
+      "leadId": "lead-ayesha",
+      "kind": "handover",
+      "title": "Handover opened",
+      "body": "Billy delivers: AI employee for the inbox",
+      "metadata": {
+        "handoverId": "ho_f50efb23d968"
+      },
+      "createdAt": "2026-09-25T16:02:32.064Z"
+    },
+    {
+      "id": "act_558a4b8de640",
+      "leadId": "lead-ayesha",
+      "kind": "quote",
+      "title": "Draft quote created",
+      "body": "Q-20260925-ESHA",
+      "metadata": {
+        "quoteId": "quo_ebcefe1f0ba1",
+        "amountZar": 32000
+      },
+      "createdAt": "2026-09-25T16:02:32.064Z"
+    }
+  ],
+  "outbox": [
+    {
+      "id": "msg_d3625e2ce221",
+      "leadId": "lead-thabo",
+      "templateKey": "ack_whatsapp",
+      "channel": "whatsapp",
+      "toAddress": "0825550101",
+      "subject": "",
+      "body": "Hi Thabo, it's Billy from AI AutoTech. Thanks for getting in touch about Ndlovu Dental. I've got your details and I'll look at where automation can take work off your team.\n\nBook a short audit here: https://cal.com/ai-autotech/audit\n\nIf the link is awkward, just reply and I'll send times.",
+      "status": "queued",
+      "scheduledFor": "2026-09-20T06:30:00.000Z",
+      "sentAt": null,
+      "provider": "outbox",
+      "providerId": "",
+      "error": "",
+      "waLink": "https://wa.me/27825550101?text=Hi%20Thabo%2C%20it's%20Billy%20from%20AI%20AutoTech.%20Thanks%20for%20getting%20in%20touch%20about%20Ndlovu%20Dental.%20I've%20got%20your%20details%20and%20I'll%20look%20at%20where%20automation%20can%20take%20work%20off%20your%20team.%0A%0ABook%20a%20short%20audit%20here%3A%20https%3A%2F%2Fcal.com%2Fai-autotech%2Faudit%0A%0AIf%20the%20link%20is%20awkward%2C%20just%20reply%20and%20I'll%20send%20times.",
+      "createdAt": "2026-09-20T06:30:00.000Z"
+    },
+    {
+      "id": "msg_819db68bb6dc",
+      "leadId": "lead-thabo",
+      "templateKey": "ack_email",
+      "channel": "email",
+      "toAddress": "thabo@ndlovi-dental.example",
+      "subject": "Ndlovu Dental — we have your details",
+      "body": "Hi Thabo,\n\nBilly here from AI AutoTech. Thanks for reaching out about Ndlovu Dental. I've received it and I'll review where an AI employee or a cleaner follow-up process would help.\n\nBook a 20-minute audit: https://cal.com/ai-autotech/audit\n\nIf none of those times work, reply to this email and I'll fit around you.\n\nBilly\nAI AutoTech Pty Ltd",
+      "status": "queued",
+      "scheduledFor": "2026-09-20T06:30:00.000Z",
+      "sentAt": null,
+      "provider": "outbox",
+      "providerId": "",
+      "error": "",
+      "waLink": "",
+      "createdAt": "2026-09-20T06:30:00.000Z"
+    },
+    {
+      "id": "msg_07acb3e512ac",
+      "leadId": "lead-cafe",
+      "templateKey": "ack_whatsapp",
+      "channel": "whatsapp",
+      "toAddress": "0825550199",
+      "subject": "",
+      "body": "Hi Lindiwe, it's Billy from AI AutoTech. Thanks for getting in touch about Quiet Cafe. I've got your details and I'll look at where automation can take work off your team.\n\nBook a short audit here: https://cal.com/ai-autotech/audit\n\nIf the link is awkward, just reply and I'll send times.",
+      "status": "queued",
+      "scheduledFor": "2026-09-20T06:30:00.000Z",
+      "sentAt": null,
+      "provider": "outbox",
+      "providerId": "",
+      "error": "",
+      "waLink": "https://wa.me/27825550199?text=Hi%20Lindiwe%2C%20it's%20Billy%20from%20AI%20AutoTech.%20Thanks%20for%20getting%20in%20touch%20about%20Quiet%20Cafe.%20I've%20got%20your%20details%20and%20I'll%20look%20at%20where%20automation%20can%20take%20work%20off%20your%20team.%0A%0ABook%20a%20short%20audit%20here%3A%20https%3A%2F%2Fcal.com%2Fai-autotech%2Faudit%0A%0AIf%20the%20link%20is%20awkward%2C%20just%20reply%20and%20I'll%20send%20times.",
+      "createdAt": "2026-09-20T06:30:00.000Z"
+    },
+    {
+      "id": "msg_6881e4bfaa7e",
+      "leadId": "lead-cafe",
+      "templateKey": "ack_email",
+      "channel": "email",
+      "toAddress": "hello@quiet-cafe.example",
+      "subject": "Quiet Cafe — we have your details",
+      "body": "Hi Lindiwe,\n\nBilly here from AI AutoTech. Thanks for reaching out about Quiet Cafe. I've received it and I'll review where an AI employee or a cleaner follow-up process would help.\n\nBook a 20-minute audit: https://cal.com/ai-autotech/audit\n\nIf none of those times work, reply to this email and I'll fit around you.\n\nBilly\nAI AutoTech Pty Ltd",
+      "status": "queued",
+      "scheduledFor": "2026-09-20T06:30:00.000Z",
+      "sentAt": null,
+      "provider": "outbox",
+      "providerId": "",
+      "error": "",
+      "waLink": "",
+      "createdAt": "2026-09-20T06:30:00.000Z"
+    },
+    {
+      "id": "msg_6d6ee937ec9a",
+      "leadId": "lead-cafe",
+      "templateKey": "nudge_day1_whatsapp",
+      "channel": "whatsapp",
+      "toAddress": "0825550199",
+      "subject": "",
+      "body": "Hi Lindiwe, Billy again. Just checking my note about Quiet Cafe landed. The usual first win is WhatsApp and lead follow-up, so nothing sits unanswered.\n\nHere's the booking link: https://cal.com/ai-autotech/audit",
+      "status": "queued",
+      "scheduledFor": "2026-09-21T06:30:00.000Z",
+      "sentAt": null,
+      "provider": "outbox",
+      "providerId": "",
+      "error": "",
+      "waLink": "https://wa.me/27825550199?text=Hi%20Lindiwe%2C%20Billy%20again.%20Just%20checking%20my%20note%20about%20Quiet%20Cafe%20landed.%20The%20usual%20first%20win%20is%20WhatsApp%20and%20lead%20follow-up%2C%20so%20nothing%20sits%20unanswered.%0A%0AHere's%20the%20booking%20link%3A%20https%3A%2F%2Fcal.com%2Fai-autotech%2Faudit",
+      "createdAt": "2026-09-21T06:30:00.000Z"
+    },
+    {
+      "id": "msg_d1ddcf0f4043",
+      "leadId": "lead-cafe",
+      "templateKey": "nudge_day1_email",
+      "channel": "email",
+      "toAddress": "hello@quiet-cafe.example",
+      "subject": "Quick follow-up for Quiet Cafe",
+      "body": "Hi Lindiwe,\n\nChecking you saw my note about Quiet Cafe. If you want the audit, here is the link again: https://cal.com/ai-autotech/audit\n\nBilly\nAI AutoTech Pty Ltd",
+      "status": "queued",
+      "scheduledFor": "2026-09-21T06:30:00.000Z",
+      "sentAt": null,
+      "provider": "outbox",
+      "providerId": "",
+      "error": "",
+      "waLink": "",
+      "createdAt": "2026-09-21T06:30:00.000Z"
+    },
+    {
+      "id": "msg_02813de34144",
+      "leadId": "lead-thabo",
+      "templateKey": "nudge_day1_whatsapp",
+      "channel": "whatsapp",
+      "toAddress": "0825550101",
+      "subject": "",
+      "body": "Hi Thabo, Billy again. Just checking my note about Ndlovu Dental landed. The usual first win is WhatsApp and lead follow-up, so nothing sits unanswered.\n\nHere's the booking link: https://cal.com/ai-autotech/audit",
+      "status": "cancelled",
+      "scheduledFor": "2026-09-21T06:30:00.000Z",
+      "sentAt": null,
+      "provider": "outbox",
+      "providerId": "",
+      "error": "",
+      "waLink": "https://wa.me/27825550101?text=Hi%20Thabo%2C%20Billy%20again.%20Just%20checking%20my%20note%20about%20Ndlovu%20Dental%20landed.%20The%20usual%20first%20win%20is%20WhatsApp%20and%20lead%20follow-up%2C%20so%20nothing%20sits%20unanswered.%0A%0AHere's%20the%20booking%20link%3A%20https%3A%2F%2Fcal.com%2Fai-autotech%2Faudit",
+      "createdAt": "2026-09-21T06:30:00.000Z"
+    },
+    {
+      "id": "msg_929f4eaeef1c",
+      "leadId": "lead-thabo",
+      "templateKey": "nudge_day1_email",
+      "channel": "email",
+      "toAddress": "thabo@ndlovi-dental.example",
+      "subject": "Quick follow-up for Ndlovu Dental",
+      "body": "Hi Thabo,\n\nChecking you saw my note about Ndlovu Dental. If you want the audit, here is the link again: https://cal.com/ai-autotech/audit\n\nBilly\nAI AutoTech Pty Ltd",
+      "status": "cancelled",
+      "scheduledFor": "2026-09-21T06:30:00.000Z",
+      "sentAt": null,
+      "provider": "outbox",
+      "providerId": "",
+      "error": "",
+      "waLink": "",
+      "createdAt": "2026-09-21T06:30:00.000Z"
+    },
+    {
+      "id": "msg_05fb5e1e7dad",
+      "leadId": "lead-cafe",
+      "templateKey": "nudge_day3_whatsapp",
+      "channel": "whatsapp",
+      "toAddress": "0825550199",
+      "subject": "",
+      "body": "Hi Lindiwe, a short nudge from AI AutoTech. Teams that book the audit this week usually want the inbox and follow-up handled for them. 20 minutes with me: https://cal.com/ai-autotech/audit",
+      "status": "queued",
+      "scheduledFor": "2026-09-23T06:30:00.000Z",
+      "sentAt": null,
+      "provider": "outbox",
+      "providerId": "",
+      "error": "",
+      "waLink": "https://wa.me/27825550199?text=Hi%20Lindiwe%2C%20a%20short%20nudge%20from%20AI%20AutoTech.%20Teams%20that%20book%20the%20audit%20this%20week%20usually%20want%20the%20inbox%20and%20follow-up%20handled%20for%20them.%2020%20minutes%20with%20me%3A%20https%3A%2F%2Fcal.com%2Fai-autotech%2Faudit",
+      "createdAt": "2026-09-23T06:30:00.000Z"
+    },
+    {
+      "id": "msg_76e203103169",
+      "leadId": "lead-cafe",
+      "templateKey": "nudge_day3_email",
+      "channel": "email",
+      "toAddress": "hello@quiet-cafe.example",
+      "subject": "Still worth a look for Quiet Cafe?",
+      "body": "Hi Lindiwe,\n\nStill happy to walk through Quiet Cafe whenever it suits you. Booking link: https://cal.com/ai-autotech/audit\n\nBilly\nAI AutoTech Pty Ltd",
+      "status": "queued",
+      "scheduledFor": "2026-09-23T06:30:00.000Z",
+      "sentAt": null,
+      "provider": "outbox",
+      "providerId": "",
+      "error": "",
+      "waLink": "",
+      "createdAt": "2026-09-23T06:30:00.000Z"
+    },
+    {
+      "id": "msg_384a71b1a0ad",
+      "leadId": "lead-thabo",
+      "templateKey": "nudge_day3_whatsapp",
+      "channel": "whatsapp",
+      "toAddress": "0825550101",
+      "subject": "",
+      "body": "Hi Thabo, a short nudge from AI AutoTech. Teams that book the audit this week usually want the inbox and follow-up handled for them. 20 minutes with me: https://cal.com/ai-autotech/audit",
+      "status": "cancelled",
+      "scheduledFor": "2026-09-23T06:30:00.000Z",
+      "sentAt": null,
+      "provider": "outbox",
+      "providerId": "",
+      "error": "",
+      "waLink": "https://wa.me/27825550101?text=Hi%20Thabo%2C%20a%20short%20nudge%20from%20AI%20AutoTech.%20Teams%20that%20book%20the%20audit%20this%20week%20usually%20want%20the%20inbox%20and%20follow-up%20handled%20for%20them.%2020%20minutes%20with%20me%3A%20https%3A%2F%2Fcal.com%2Fai-autotech%2Faudit",
+      "createdAt": "2026-09-23T06:30:00.000Z"
+    },
+    {
+      "id": "msg_8340f7e0f18c",
+      "leadId": "lead-thabo",
+      "templateKey": "nudge_day3_email",
+      "channel": "email",
+      "toAddress": "thabo@ndlovi-dental.example",
+      "subject": "Still worth a look for Ndlovu Dental?",
+      "body": "Hi Thabo,\n\nStill happy to walk through Ndlovu Dental whenever it suits you. Booking link: https://cal.com/ai-autotech/audit\n\nBilly\nAI AutoTech Pty Ltd",
+      "status": "cancelled",
+      "scheduledFor": "2026-09-23T06:30:00.000Z",
+      "sentAt": null,
+      "provider": "outbox",
+      "providerId": "",
+      "error": "",
+      "waLink": "",
+      "createdAt": "2026-09-23T06:30:00.000Z"
+    },
+    {
+      "id": "msg_21adf3282487",
+      "leadId": "lead-cafe",
+      "templateKey": "nudge_day7_whatsapp",
+      "channel": "whatsapp",
+      "toAddress": "0825550199",
+      "subject": "",
+      "body": "Hi Lindiwe, last note from me on Quiet Cafe unless you want to pick it up. I won't keep pinging you. Reply \"later\" if the timing is off, or book here: https://cal.com/ai-autotech/audit",
+      "status": "queued",
+      "scheduledFor": "2026-09-27T06:30:00.000Z",
+      "sentAt": null,
+      "provider": "outbox",
+      "providerId": "",
+      "error": "",
+      "waLink": "https://wa.me/27825550199?text=Hi%20Lindiwe%2C%20last%20note%20from%20me%20on%20Quiet%20Cafe%20unless%20you%20want%20to%20pick%20it%20up.%20I%20won't%20keep%20pinging%20you.%20Reply%20%22later%22%20if%20the%20timing%20is%20off%2C%20or%20book%20here%3A%20https%3A%2F%2Fcal.com%2Fai-autotech%2Faudit",
+      "createdAt": "2026-09-27T06:30:00.000Z"
+    },
+    {
+      "id": "msg_656d419b7e37",
+      "leadId": "lead-cafe",
+      "templateKey": "nudge_day7_email",
+      "channel": "email",
+      "toAddress": "hello@quiet-cafe.example",
+      "subject": "Last note on the Quiet Cafe audit",
+      "body": "Hi Lindiwe,\n\nThis is my last follow-up on Quiet Cafe. If you want the audit, book here: https://cal.com/ai-autotech/audit. If now is the wrong time, reply \"later\" and I'll leave it.\n\nBilly\nAI AutoTech Pty Ltd",
+      "status": "queued",
+      "scheduledFor": "2026-09-27T06:30:00.000Z",
+      "sentAt": null,
+      "provider": "outbox",
+      "providerId": "",
+      "error": "",
+      "waLink": "",
+      "createdAt": "2026-09-27T06:30:00.000Z"
+    },
+    {
+      "id": "msg_a3daa3581ec4",
+      "leadId": "lead-thabo",
+      "templateKey": "nudge_day7_whatsapp",
+      "channel": "whatsapp",
+      "toAddress": "0825550101",
+      "subject": "",
+      "body": "Hi Thabo, last note from me on Ndlovu Dental unless you want to pick it up. I won't keep pinging you. Reply \"later\" if the timing is off, or book here: https://cal.com/ai-autotech/audit",
+      "status": "cancelled",
+      "scheduledFor": "2026-09-27T06:30:00.000Z",
+      "sentAt": null,
+      "provider": "outbox",
+      "providerId": "",
+      "error": "",
+      "waLink": "https://wa.me/27825550101?text=Hi%20Thabo%2C%20last%20note%20from%20me%20on%20Ndlovu%20Dental%20unless%20you%20want%20to%20pick%20it%20up.%20I%20won't%20keep%20pinging%20you.%20Reply%20%22later%22%20if%20the%20timing%20is%20off%2C%20or%20book%20here%3A%20https%3A%2F%2Fcal.com%2Fai-autotech%2Faudit",
+      "createdAt": "2026-09-27T06:30:00.000Z"
+    },
+    {
+      "id": "msg_86202b349bc9",
+      "leadId": "lead-thabo",
+      "templateKey": "nudge_day7_email",
+      "channel": "email",
+      "toAddress": "thabo@ndlovi-dental.example",
+      "subject": "Last note on the Ndlovu Dental audit",
+      "body": "Hi Thabo,\n\nThis is my last follow-up on Ndlovu Dental. If you want the audit, book here: https://cal.com/ai-autotech/audit. If now is the wrong time, reply \"later\" and I'll leave it.\n\nBilly\nAI AutoTech Pty Ltd",
+      "status": "cancelled",
+      "scheduledFor": "2026-09-27T06:30:00.000Z",
+      "sentAt": null,
+      "provider": "outbox",
+      "providerId": "",
+      "error": "",
+      "waLink": "",
+      "createdAt": "2026-09-27T06:30:00.000Z"
+    },
+    {
+      "id": "msg_4e4f363dd213",
+      "leadId": "lead-thabo",
+      "templateKey": "audit_reminder_whatsapp",
+      "channel": "whatsapp",
+      "toAddress": "0825550101",
+      "subject": "",
+      "body": "Hi Thabo, reminder from Billy at AI AutoTech. Your audit for Ndlovu Dental is coming up (30 Sept 2026, 08:30). Reply if you need to move it.",
+      "status": "queued",
+      "scheduledFor": "2026-09-29T06:30:00.000Z",
+      "sentAt": null,
+      "provider": "outbox",
+      "providerId": "",
+      "error": "",
+      "waLink": "https://wa.me/27825550101?text=Hi%20Thabo%2C%20reminder%20from%20Billy%20at%20AI%20AutoTech.%20Your%20audit%20for%20Ndlovu%20Dental%20is%20coming%20up%20(30%20Sept%202026%2C%2008%3A30).%20Reply%20if%20you%20need%20to%20move%20it.",
+      "createdAt": "2026-09-29T06:30:00.000Z"
+    },
+    {
+      "id": "msg_23bcd1095ad3",
+      "leadId": "lead-thabo",
+      "templateKey": "audit_reminder_email",
+      "channel": "email",
+      "toAddress": "thabo@ndlovi-dental.example",
+      "subject": "Reminder: Ndlovu Dental audit",
+      "body": "Hi Thabo,\n\nYour AI AutoTech audit for Ndlovu Dental is coming up (30 Sept 2026, 08:30). Reply if you need a different time.\n\nBilly\nAI AutoTech Pty Ltd",
+      "status": "queued",
+      "scheduledFor": "2026-09-29T06:30:00.000Z",
+      "sentAt": null,
+      "provider": "outbox",
+      "providerId": "",
+      "error": "",
+      "waLink": "",
+      "createdAt": "2026-09-29T06:30:00.000Z"
+    },
+    {
+      "id": "msg_aa0190dc5c89",
+      "leadId": "lead-thabo",
+      "templateKey": "proposal_followup_whatsapp",
+      "channel": "whatsapp",
+      "toAddress": "0825550101",
+      "subject": "",
+      "body": "Hi Thabo, Billy from AI AutoTech. The proposal for Ndlovu Dental has been with you for a few days. Happy to walk through the price and what we deliver. Reply here, or book: https://cal.com/ai-autotech/audit",
+      "status": "queued",
+      "scheduledFor": "2026-10-04T06:30:00.000Z",
+      "sentAt": null,
+      "provider": "outbox",
+      "providerId": "",
+      "error": "",
+      "waLink": "https://wa.me/27825550101?text=Hi%20Thabo%2C%20Billy%20from%20AI%20AutoTech.%20The%20proposal%20for%20Ndlovu%20Dental%20has%20been%20with%20you%20for%20a%20few%20days.%20Happy%20to%20walk%20through%20the%20price%20and%20what%20we%20deliver.%20Reply%20here%2C%20or%20book%3A%20https%3A%2F%2Fcal.com%2Fai-autotech%2Faudit",
+      "createdAt": "2026-10-04T06:30:00.000Z"
+    },
+    {
+      "id": "msg_6cce1aeec5ba",
+      "leadId": "lead-thabo",
+      "templateKey": "proposal_followup_email",
+      "channel": "email",
+      "toAddress": "thabo@ndlovi-dental.example",
+      "subject": "Following up on the Ndlovu Dental proposal",
+      "body": "Hi Thabo,\n\nChecking in on the proposal for Ndlovu Dental. I can walk through the price and the handover whenever you're ready.\n\nBilly\nAI AutoTech Pty Ltd",
+      "status": "queued",
+      "scheduledFor": "2026-10-04T06:30:00.000Z",
+      "sentAt": null,
+      "provider": "outbox",
+      "providerId": "",
+      "error": "",
+      "waLink": "",
+      "createdAt": "2026-10-04T06:30:00.000Z"
+    },
+    {
+      "id": "msg_ed509c5ab92d",
+      "leadId": "lead-nomsa",
+      "templateKey": "ack_whatsapp",
+      "channel": "whatsapp",
+      "toAddress": "0715550142",
+      "subject": "",
+      "body": "Hi Nomsa, it's Billy from AI AutoTech. Thanks for getting in touch about Khumalo Retail. I've got your details and I'll look at where automation can take work off your team.\n\nBook a short audit here: https://cal.com/ai-autotech/audit\n\nIf the link is awkward, just reply and I'll send times.",
+      "status": "queued",
+      "scheduledFor": "2026-09-26T16:02:32.064Z",
+      "sentAt": null,
+      "provider": "outbox",
+      "providerId": "",
+      "error": "",
+      "waLink": "https://wa.me/27715550142?text=Hi%20Nomsa%2C%20it's%20Billy%20from%20AI%20AutoTech.%20Thanks%20for%20getting%20in%20touch%20about%20Khumalo%20Retail.%20I've%20got%20your%20details%20and%20I'll%20look%20at%20where%20automation%20can%20take%20work%20off%20your%20team.%0A%0ABook%20a%20short%20audit%20here%3A%20https%3A%2F%2Fcal.com%2Fai-autotech%2Faudit%0A%0AIf%20the%20link%20is%20awkward%2C%20just%20reply%20and%20I'll%20send%20times.",
+      "createdAt": "2026-09-26T16:02:32.064Z"
+    },
+    {
+      "id": "msg_e5bb9c336982",
+      "leadId": "lead-nomsa",
+      "templateKey": "ack_email",
+      "channel": "email",
+      "toAddress": "nomsa@khumalo-retail.example",
+      "subject": "Khumalo Retail — we have your details",
+      "body": "Hi Nomsa,\n\nBilly here from AI AutoTech. Thanks for reaching out about Khumalo Retail. I've received it and I'll review where an AI employee or a cleaner follow-up process would help.\n\nBook a 20-minute audit: https://cal.com/ai-autotech/audit\n\nIf none of those times work, reply to this email and I'll fit around you.\n\nBilly\nAI AutoTech Pty Ltd",
+      "status": "queued",
+      "scheduledFor": "2026-09-26T16:02:32.064Z",
+      "sentAt": null,
+      "provider": "outbox",
+      "providerId": "",
+      "error": "",
+      "waLink": "",
+      "createdAt": "2026-09-26T16:02:32.064Z"
+    },
+    {
+      "id": "msg_b9ab50dd2070",
+      "leadId": "lead-fatima",
+      "templateKey": "ack_whatsapp",
+      "channel": "whatsapp",
+      "toAddress": "0825550110",
+      "subject": "",
+      "body": "Hi Fatima, it's Billy from AI AutoTech. Thanks for getting in touch about Essop Accountants. I've got your details and I'll look at where automation can take work off your team.\n\nBook a short audit here: https://cal.com/ai-autotech/audit\n\nIf the link is awkward, just reply and I'll send times.",
+      "status": "queued",
+      "scheduledFor": "2026-09-25T16:02:32.064Z",
+      "sentAt": null,
+      "provider": "outbox",
+      "providerId": "",
+      "error": "",
+      "waLink": "https://wa.me/27825550110?text=Hi%20Fatima%2C%20it's%20Billy%20from%20AI%20AutoTech.%20Thanks%20for%20getting%20in%20touch%20about%20Essop%20Accountants.%20I've%20got%20your%20details%20and%20I'll%20look%20at%20where%20automation%20can%20take%20work%20off%20your%20team.%0A%0ABook%20a%20short%20audit%20here%3A%20https%3A%2F%2Fcal.com%2Fai-autotech%2Faudit%0A%0AIf%20the%20link%20is%20awkward%2C%20just%20reply%20and%20I'll%20send%20times.",
+      "createdAt": "2026-09-25T16:02:32.064Z"
+    },
+    {
+      "id": "msg_7c362a7eb32e",
+      "leadId": "lead-fatima",
+      "templateKey": "ack_email",
+      "channel": "email",
+      "toAddress": "fatima@essop.example",
+      "subject": "Essop Accountants — we have your details",
+      "body": "Hi Fatima,\n\nBilly here from AI AutoTech. Thanks for reaching out about Essop Accountants. I've received it and I'll review where an AI employee or a cleaner follow-up process would help.\n\nBook a 20-minute audit: https://cal.com/ai-autotech/audit\n\nIf none of those times work, reply to this email and I'll fit around you.\n\nBilly\nAI AutoTech Pty Ltd",
+      "status": "queued",
+      "scheduledFor": "2026-09-25T16:02:32.064Z",
+      "sentAt": null,
+      "provider": "outbox",
+      "providerId": "",
+      "error": "",
+      "waLink": "",
+      "createdAt": "2026-09-25T16:02:32.064Z"
+    },
+    {
+      "id": "msg_dd07e0dd321d",
+      "leadId": "lead-sipho",
+      "templateKey": "ack_whatsapp",
+      "channel": "whatsapp",
+      "toAddress": "0835550177",
+      "subject": "",
+      "body": "Hi Sipho, it's Billy from AI AutoTech. Thanks for getting in touch about Dlamini Logistics. I've got your details and I'll look at where automation can take work off your team.\n\nBook a short audit here: https://cal.com/ai-autotech/audit\n\nIf the link is awkward, just reply and I'll send times.",
+      "status": "queued",
+      "scheduledFor": "2026-09-24T16:02:32.064Z",
+      "sentAt": null,
+      "provider": "outbox",
+      "providerId": "",
+      "error": "",
+      "waLink": "https://wa.me/27835550177?text=Hi%20Sipho%2C%20it's%20Billy%20from%20AI%20AutoTech.%20Thanks%20for%20getting%20in%20touch%20about%20Dlamini%20Logistics.%20I've%20got%20your%20details%20and%20I'll%20look%20at%20where%20automation%20can%20take%20work%20off%20your%20team.%0A%0ABook%20a%20short%20audit%20here%3A%20https%3A%2F%2Fcal.com%2Fai-autotech%2Faudit%0A%0AIf%20the%20link%20is%20awkward%2C%20just%20reply%20and%20I'll%20send%20times.",
+      "createdAt": "2026-09-24T16:02:32.064Z"
+    },
+    {
+      "id": "msg_39c6b44cfca6",
+      "leadId": "lead-sipho",
+      "templateKey": "ack_email",
+      "channel": "email",
+      "toAddress": "sipho@dlamini-logistics.example",
+      "subject": "Dlamini Logistics — we have your details",
+      "body": "Hi Sipho,\n\nBilly here from AI AutoTech. Thanks for reaching out about Dlamini Logistics. I've received it and I'll review where an AI employee or a cleaner follow-up process would help.\n\nBook a 20-minute audit: https://cal.com/ai-autotech/audit\n\nIf none of those times work, reply to this email and I'll fit around you.\n\nBilly\nAI AutoTech Pty Ltd",
+      "status": "queued",
+      "scheduledFor": "2026-09-24T16:02:32.064Z",
+      "sentAt": null,
+      "provider": "outbox",
+      "providerId": "",
+      "error": "",
+      "waLink": "",
+      "createdAt": "2026-09-24T16:02:32.064Z"
+    },
+    {
+      "id": "msg_ae0153ad5fda",
+      "leadId": "lead-pieter",
+      "templateKey": "ack_whatsapp",
+      "channel": "whatsapp",
+      "toAddress": "0825550133",
+      "subject": "",
+      "body": "Hi Pieter, it's Billy from AI AutoTech. Thanks for getting in touch about Venter Workshops. I've got your details and I'll look at where automation can take work off your team.\n\nBook a short audit here: https://cal.com/ai-autotech/audit\n\nIf the link is awkward, just reply and I'll send times.",
+      "status": "queued",
+      "scheduledFor": "2026-09-22T16:02:32.064Z",
+      "sentAt": null,
+      "provider": "outbox",
+      "providerId": "",
+      "error": "",
+      "waLink": "https://wa.me/27825550133?text=Hi%20Pieter%2C%20it's%20Billy%20from%20AI%20AutoTech.%20Thanks%20for%20getting%20in%20touch%20about%20Venter%20Workshops.%20I've%20got%20your%20details%20and%20I'll%20look%20at%20where%20automation%20can%20take%20work%20off%20your%20team.%0A%0ABook%20a%20short%20audit%20here%3A%20https%3A%2F%2Fcal.com%2Fai-autotech%2Faudit%0A%0AIf%20the%20link%20is%20awkward%2C%20just%20reply%20and%20I'll%20send%20times.",
+      "createdAt": "2026-09-22T16:02:32.064Z"
+    },
+    {
+      "id": "msg_2265eb50b91d",
+      "leadId": "lead-pieter",
+      "templateKey": "ack_email",
+      "channel": "email",
+      "toAddress": "pieter@venter.example",
+      "subject": "Venter Workshops — we have your details",
+      "body": "Hi Pieter,\n\nBilly here from AI AutoTech. Thanks for reaching out about Venter Workshops. I've received it and I'll review where an AI employee or a cleaner follow-up process would help.\n\nBook a 20-minute audit: https://cal.com/ai-autotech/audit\n\nIf none of those times work, reply to this email and I'll fit around you.\n\nBilly\nAI AutoTech Pty Ltd",
+      "status": "queued",
+      "scheduledFor": "2026-09-22T16:02:32.064Z",
+      "sentAt": null,
+      "provider": "outbox",
+      "providerId": "",
+      "error": "",
+      "waLink": "",
+      "createdAt": "2026-09-22T16:02:32.064Z"
+    },
+    {
+      "id": "msg_62e4658eaf96",
+      "leadId": "lead-lerato",
+      "templateKey": "ack_whatsapp",
+      "channel": "whatsapp",
+      "toAddress": "0725550188",
+      "subject": "",
+      "body": "Hi Lerato, it's Billy from AI AutoTech. Thanks for getting in touch about Mokoena Spa. I've got your details and I'll look at where automation can take work off your team.\n\nBook a short audit here: https://cal.com/ai-autotech/audit\n\nIf the link is awkward, just reply and I'll send times.",
+      "status": "queued",
+      "scheduledFor": "2026-09-20T16:02:32.064Z",
+      "sentAt": null,
+      "provider": "outbox",
+      "providerId": "",
+      "error": "",
+      "waLink": "https://wa.me/27725550188?text=Hi%20Lerato%2C%20it's%20Billy%20from%20AI%20AutoTech.%20Thanks%20for%20getting%20in%20touch%20about%20Mokoena%20Spa.%20I've%20got%20your%20details%20and%20I'll%20look%20at%20where%20automation%20can%20take%20work%20off%20your%20team.%0A%0ABook%20a%20short%20audit%20here%3A%20https%3A%2F%2Fcal.com%2Fai-autotech%2Faudit%0A%0AIf%20the%20link%20is%20awkward%2C%20just%20reply%20and%20I'll%20send%20times.",
+      "createdAt": "2026-09-20T16:02:32.064Z"
+    },
+    {
+      "id": "msg_6a41795642bb",
+      "leadId": "lead-lerato",
+      "templateKey": "ack_email",
+      "channel": "email",
+      "toAddress": "lerato@mokoena-spa.example",
+      "subject": "Mokoena Spa — we have your details",
+      "body": "Hi Lerato,\n\nBilly here from AI AutoTech. Thanks for reaching out about Mokoena Spa. I've received it and I'll review where an AI employee or a cleaner follow-up process would help.\n\nBook a 20-minute audit: https://cal.com/ai-autotech/audit\n\nIf none of those times work, reply to this email and I'll fit around you.\n\nBilly\nAI AutoTech Pty Ltd",
+      "status": "queued",
+      "scheduledFor": "2026-09-20T16:02:32.064Z",
+      "sentAt": null,
+      "provider": "outbox",
+      "providerId": "",
+      "error": "",
+      "waLink": "",
+      "createdAt": "2026-09-20T16:02:32.064Z"
+    },
+    {
+      "id": "msg_eff03fb4b7c9",
+      "leadId": "lead-johan",
+      "templateKey": "ack_whatsapp",
+      "channel": "whatsapp",
+      "toAddress": "0845550166",
+      "subject": "",
+      "body": "Hi Johan, it's Billy from AI AutoTech. Thanks for getting in touch about Botha Farming. I've got your details and I'll look at where automation can take work off your team.\n\nBook a short audit here: https://cal.com/ai-autotech/audit\n\nIf the link is awkward, just reply and I'll send times.",
+      "status": "queued",
+      "scheduledFor": "2026-09-18T16:02:32.064Z",
+      "sentAt": null,
+      "provider": "outbox",
+      "providerId": "",
+      "error": "",
+      "waLink": "https://wa.me/27845550166?text=Hi%20Johan%2C%20it's%20Billy%20from%20AI%20AutoTech.%20Thanks%20for%20getting%20in%20touch%20about%20Botha%20Farming.%20I've%20got%20your%20details%20and%20I'll%20look%20at%20where%20automation%20can%20take%20work%20off%20your%20team.%0A%0ABook%20a%20short%20audit%20here%3A%20https%3A%2F%2Fcal.com%2Fai-autotech%2Faudit%0A%0AIf%20the%20link%20is%20awkward%2C%20just%20reply%20and%20I'll%20send%20times.",
+      "createdAt": "2026-09-18T16:02:32.064Z"
+    },
+    {
+      "id": "msg_cad9ac89f582",
+      "leadId": "lead-johan",
+      "templateKey": "ack_email",
+      "channel": "email",
+      "toAddress": "johan@botha-farming.example",
+      "subject": "Botha Farming — we have your details",
+      "body": "Hi Johan,\n\nBilly here from AI AutoTech. Thanks for reaching out about Botha Farming. I've received it and I'll review where an AI employee or a cleaner follow-up process would help.\n\nBook a 20-minute audit: https://cal.com/ai-autotech/audit\n\nIf none of those times work, reply to this email and I'll fit around you.\n\nBilly\nAI AutoTech Pty Ltd",
+      "status": "queued",
+      "scheduledFor": "2026-09-18T16:02:32.064Z",
+      "sentAt": null,
+      "provider": "outbox",
+      "providerId": "",
+      "error": "",
+      "waLink": "",
+      "createdAt": "2026-09-18T16:02:32.064Z"
+    },
+    {
+      "id": "msg_69c5346c528f",
+      "leadId": "lead-ayesha",
+      "templateKey": "ack_whatsapp",
+      "channel": "whatsapp",
+      "toAddress": "0795550121",
+      "subject": "",
+      "body": "Hi Ayesha, it's Billy from AI AutoTech. Thanks for getting in touch about Patel Logistics. I've got your details and I'll look at where automation can take work off your team.\n\nBook a short audit here: https://cal.com/ai-autotech/audit\n\nIf the link is awkward, just reply and I'll send times.",
+      "status": "queued",
+      "scheduledFor": "2026-09-14T16:02:32.064Z",
+      "sentAt": null,
+      "provider": "outbox",
+      "providerId": "",
+      "error": "",
+      "waLink": "https://wa.me/27795550121?text=Hi%20Ayesha%2C%20it's%20Billy%20from%20AI%20AutoTech.%20Thanks%20for%20getting%20in%20touch%20about%20Patel%20Logistics.%20I've%20got%20your%20details%20and%20I'll%20look%20at%20where%20automation%20can%20take%20work%20off%20your%20team.%0A%0ABook%20a%20short%20audit%20here%3A%20https%3A%2F%2Fcal.com%2Fai-autotech%2Faudit%0A%0AIf%20the%20link%20is%20awkward%2C%20just%20reply%20and%20I'll%20send%20times.",
+      "createdAt": "2026-09-14T16:02:32.064Z"
+    },
+    {
+      "id": "msg_abeb62e96c10",
+      "leadId": "lead-ayesha",
+      "templateKey": "ack_email",
+      "channel": "email",
+      "toAddress": "ayesha@patel-logistics.example",
+      "subject": "Patel Logistics — we have your details",
+      "body": "Hi Ayesha,\n\nBilly here from AI AutoTech. Thanks for reaching out about Patel Logistics. I've received it and I'll review where an AI employee or a cleaner follow-up process would help.\n\nBook a 20-minute audit: https://cal.com/ai-autotech/audit\n\nIf none of those times work, reply to this email and I'll fit around you.\n\nBilly\nAI AutoTech Pty Ltd",
+      "status": "queued",
+      "scheduledFor": "2026-09-14T16:02:32.064Z",
+      "sentAt": null,
+      "provider": "outbox",
+      "providerId": "",
+      "error": "",
+      "waLink": "",
+      "createdAt": "2026-09-14T16:02:32.064Z"
+    }
+  ],
+  "templates": [
+    {
+      "key": "ack_whatsapp",
+      "channel": "whatsapp",
+      "name": "Instant acknowledgement (WhatsApp)",
+      "subject": "",
+      "active": true,
+      "body": "Hi {{firstName}}, it's Billy from AI AutoTech. Thanks for getting in touch about {{company}}. I've got your details and I'll look at where automation can take work off your team.\n\nBook a short audit here: {{bookingUrl}}\n\nIf the link is awkward, just reply and I'll send times."
+    },
+    {
+      "key": "ack_email",
+      "channel": "email",
+      "name": "Instant acknowledgement (email)",
+      "subject": "{{company}} — we have your details",
+      "active": true,
+      "body": "Hi {{firstName}},\n\nBilly here from AI AutoTech. Thanks for reaching out about {{company}}. I've received it and I'll review where an AI employee or a cleaner follow-up process would help.\n\nBook a 20-minute audit: {{bookingUrl}}\n\nIf none of those times work, reply to this email and I'll fit around you.\n\nBilly\nAI AutoTech Pty Ltd"
+    },
+    {
+      "key": "nudge_day1_whatsapp",
+      "channel": "whatsapp",
+      "name": "Day 1 nudge (WhatsApp)",
+      "subject": "",
+      "active": true,
+      "body": "Hi {{firstName}}, Billy again. Just checking my note about {{company}} landed. The usual first win is WhatsApp and lead follow-up, so nothing sits unanswered.\n\nHere's the booking link: {{bookingUrl}}"
+    },
+    {
+      "key": "nudge_day1_email",
+      "channel": "email",
+      "name": "Day 1 nudge (email)",
+      "subject": "Quick follow-up for {{company}}",
+      "active": true,
+      "body": "Hi {{firstName}},\n\nChecking you saw my note about {{company}}. If you want the audit, here is the link again: {{bookingUrl}}\n\nBilly\nAI AutoTech Pty Ltd"
+    },
+    {
+      "key": "nudge_day3_whatsapp",
+      "channel": "whatsapp",
+      "name": "Day 3 nudge (WhatsApp)",
+      "subject": "",
+      "active": true,
+      "body": "Hi {{firstName}}, a short nudge from AI AutoTech. Teams that book the audit this week usually want the inbox and follow-up handled for them. 20 minutes with me: {{bookingUrl}}"
+    },
+    {
+      "key": "nudge_day3_email",
+      "channel": "email",
+      "name": "Day 3 nudge (email)",
+      "subject": "Still worth a look for {{company}}?",
+      "active": true,
+      "body": "Hi {{firstName}},\n\nStill happy to walk through {{company}} whenever it suits you. Booking link: {{bookingUrl}}\n\nBilly\nAI AutoTech Pty Ltd"
+    },
+    {
+      "key": "nudge_day7_whatsapp",
+      "channel": "whatsapp",
+      "name": "Day 7 nudge (WhatsApp)",
+      "subject": "",
+      "active": true,
+      "body": "Hi {{firstName}}, last note from me on {{company}} unless you want to pick it up. I won't keep pinging you. Reply \"later\" if the timing is off, or book here: {{bookingUrl}}"
+    },
+    {
+      "key": "nudge_day7_email",
+      "channel": "email",
+      "name": "Day 7 nudge (email)",
+      "subject": "Last note on the {{company}} audit",
+      "active": true,
+      "body": "Hi {{firstName}},\n\nThis is my last follow-up on {{company}}. If you want the audit, book here: {{bookingUrl}}. If now is the wrong time, reply \"later\" and I'll leave it.\n\nBilly\nAI AutoTech Pty Ltd"
+    },
+    {
+      "key": "audit_reminder_whatsapp",
+      "channel": "whatsapp",
+      "name": "Audit reminder (WhatsApp)",
+      "subject": "",
+      "active": true,
+      "body": "Hi {{firstName}}, reminder from Billy at AI AutoTech. Your audit for {{company}} is coming up{{when}}. Reply if you need to move it."
+    },
+    {
+      "key": "audit_reminder_email",
+      "channel": "email",
+      "name": "Audit reminder (email)",
+      "subject": "Reminder: {{company}} audit",
+      "active": true,
+      "body": "Hi {{firstName}},\n\nYour AI AutoTech audit for {{company}} is coming up{{when}}. Reply if you need a different time.\n\nBilly\nAI AutoTech Pty Ltd"
+    },
+    {
+      "key": "proposal_followup_whatsapp",
+      "channel": "whatsapp",
+      "name": "Proposal follow-up (WhatsApp)",
+      "subject": "",
+      "active": true,
+      "body": "Hi {{firstName}}, Billy from AI AutoTech. The proposal for {{company}} has been with you for a few days. Happy to walk through the price and what we deliver. Reply here, or book: {{bookingUrl}}"
+    },
+    {
+      "key": "proposal_followup_email",
+      "channel": "email",
+      "name": "Proposal follow-up (email)",
+      "subject": "Following up on the {{company}} proposal",
+      "active": true,
+      "body": "Hi {{firstName}},\n\nChecking in on the proposal for {{company}}. I can walk through the price and the handover whenever you're ready.\n\nBilly\nAI AutoTech Pty Ltd"
+    }
+  ],
+  "settings": {
+    "defaultOwner": "Billy",
+    "strategy": "fixed",
+    "team": [
+      "Billy"
+    ],
+    "roundRobinIndex": 0,
+    "bookingUrl": "https://cal.com/ai-autotech/audit",
+    "proposalFollowupDays": 3,
+    "staleGraceDays": 2,
+    "stuckAfterDays": 3,
+    "checklist": [
+      "Confirm what was sold and how we will know it worked",
+      "Introduce the person who will deliver the work",
+      "Collect WhatsApp, website, and inbox access",
+      "Book the kickoff call",
+      "Send the draft quote or invoice for acceptance"
+    ],
+    "rules": [
+      {
+        "id": "qr-billy",
+        "name": "Billy's phone QR",
+        "active": true,
+        "matchSource": "",
+        "matchQrSource": "billy_phone_qr",
+        "owner": "Billy"
+      }
+    ]
+  },
+  "handovers": [
+    {
+      "id": "ho_67ccc7914047",
+      "leadId": "lead-thabo",
+      "deliveredBy": "Billy",
+      "whatSold": "WhatsApp lead desk",
+      "valueZar": 18500,
+      "createdAt": "2026-10-06T06:30:00.000Z"
+    },
+    {
+      "id": "ho_f50efb23d968",
+      "leadId": "lead-ayesha",
+      "deliveredBy": "Billy",
+      "whatSold": "AI employee for the inbox",
+      "valueZar": 32000,
+      "createdAt": "2026-09-25T16:02:32.064Z"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "task_7b09b2c079e4",
+      "leadId": "lead-thabo",
+      "handoverId": "ho_67ccc7914047",
+      "title": "Confirm what was sold and how we will know it worked",
+      "done": false,
+      "ord": 0,
+      "createdAt": "2026-10-06T06:30:00.000Z"
+    },
+    {
+      "id": "task_8e5781ab1519",
+      "leadId": "lead-thabo",
+      "handoverId": "ho_67ccc7914047",
+      "title": "Introduce the person who will deliver the work",
+      "done": false,
+      "ord": 1,
+      "createdAt": "2026-10-06T06:30:00.000Z"
+    },
+    {
+      "id": "task_163cfad0b988",
+      "leadId": "lead-thabo",
+      "handoverId": "ho_67ccc7914047",
+      "title": "Collect WhatsApp, website, and inbox access",
+      "done": false,
+      "ord": 2,
+      "createdAt": "2026-10-06T06:30:00.000Z"
+    },
+    {
+      "id": "task_74d4013a0c39",
+      "leadId": "lead-thabo",
+      "handoverId": "ho_67ccc7914047",
+      "title": "Book the kickoff call",
+      "done": false,
+      "ord": 3,
+      "createdAt": "2026-10-06T06:30:00.000Z"
+    },
+    {
+      "id": "task_70c00b4ae1d1",
+      "leadId": "lead-thabo",
+      "handoverId": "ho_67ccc7914047",
+      "title": "Send the draft quote or invoice for acceptance",
+      "done": false,
+      "ord": 4,
+      "createdAt": "2026-10-06T06:30:00.000Z"
+    },
+    {
+      "id": "task_18856b7528be",
+      "leadId": "lead-ayesha",
+      "handoverId": "ho_f50efb23d968",
+      "title": "Confirm what was sold and how we will know it worked",
+      "done": false,
+      "ord": 0,
+      "createdAt": "2026-09-25T16:02:32.064Z"
+    },
+    {
+      "id": "task_c8ec96310d34",
+      "leadId": "lead-ayesha",
+      "handoverId": "ho_f50efb23d968",
+      "title": "Introduce the person who will deliver the work",
+      "done": false,
+      "ord": 1,
+      "createdAt": "2026-09-25T16:02:32.064Z"
+    },
+    {
+      "id": "task_f66bebf1dae7",
+      "leadId": "lead-ayesha",
+      "handoverId": "ho_f50efb23d968",
+      "title": "Collect WhatsApp, website, and inbox access",
+      "done": false,
+      "ord": 2,
+      "createdAt": "2026-09-25T16:02:32.064Z"
+    },
+    {
+      "id": "task_9320ee69f442",
+      "leadId": "lead-ayesha",
+      "handoverId": "ho_f50efb23d968",
+      "title": "Book the kickoff call",
+      "done": false,
+      "ord": 3,
+      "createdAt": "2026-09-25T16:02:32.064Z"
+    },
+    {
+      "id": "task_5564b88c9123",
+      "leadId": "lead-ayesha",
+      "handoverId": "ho_f50efb23d968",
+      "title": "Send the draft quote or invoice for acceptance",
+      "done": false,
+      "ord": 4,
+      "createdAt": "2026-09-25T16:02:32.064Z"
+    }
+  ],
+  "quotes": [
+    {
+      "id": "quo_289bb2f9c9b4",
+      "leadId": "lead-thabo",
+      "handoverId": "ho_67ccc7914047",
+      "kind": "quote",
+      "reference": "Q-20261006-HABO",
+      "description": "WhatsApp lead desk",
+      "amountZar": 18500,
+      "status": "Draft",
+      "createdAt": "2026-10-06T06:30:00.000Z"
+    },
+    {
+      "id": "quo_ebcefe1f0ba1",
+      "leadId": "lead-ayesha",
+      "handoverId": "ho_f50efb23d968",
+      "kind": "quote",
+      "reference": "Q-20260925-ESHA",
+      "description": "AI employee for the inbox",
+      "amountZar": 32000,
+      "status": "Draft",
+      "createdAt": "2026-09-25T16:02:32.064Z"
+    }
+  ]
+}

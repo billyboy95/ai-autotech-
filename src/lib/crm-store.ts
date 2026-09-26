@@ -6,7 +6,17 @@ export type Lead = {
   name: string;
   company: string;
   phone: string;
-  stage: "New" | "Talking" | "Quoted" | "Won" | "Lost";
+  stage:
+    | "New"
+    | "Contacted"
+    | "Audit booked"
+    | "Audit done"
+    | "Proposal sent"
+    | "Won"
+    | "Lost"
+    | "Onboarding/Handover"
+    | "Talking"
+    | "Quoted";
   notes: string;
 };
 

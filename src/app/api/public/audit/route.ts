@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { enrollLead } from "@/lib/automation/service";
 import { nid } from "@/lib/crm-store";
 
 export const runtime = "nodejs";
@@ -261,6 +262,27 @@ export async function POST(request: Request) {
   if (lead.error) {
     // Audit row is saved; CRM mirror failure should not lose the lead.
     console.error("crm_leads mirror failed", lead.error.message);
+  }
+
+  const enrolled = await enrollLead({
+    id: crmLeadId,
+    name: `${input.firstName} ${input.lastName}`.trim(),
+    company: input.company,
+    phone: input.phone,
+    email: input.email,
+    notes,
+    source: t.source ?? "",
+    qrSource: t.qr_source ?? "",
+    campaign: t.campaign ?? "",
+    eventName: t.event ?? "",
+    website: input.website,
+    industry: input.industry,
+    answers: input.answers,
+    recommendations: input.recommendations,
+    auditLeadId: data.id,
+  });
+  if (!enrolled.ok) {
+    console.error("audit automation skipped", enrolled.error);
   }
 
   return json({ ok: true, id: data.id, reference }, 200, origin);

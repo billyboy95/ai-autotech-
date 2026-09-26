@@ -8,26 +8,9 @@ async function save(mutator: (data: CrmData) => void) {
   mutator(data);
   await writeCrm(data);
   revalidatePath("/command-centre");
-}
-
-export async function addLead(formData: FormData) {
-  await save((data) => {
-    data.leads.unshift({
-      id: nid(),
-      name: String(formData.get("name") || "").trim() || "Unnamed",
-      company: String(formData.get("company") || "").trim(),
-      phone: String(formData.get("phone") || "").trim(),
-      stage: "New",
-      notes: String(formData.get("notes") || "").trim(),
-    });
-  });
-}
-
-export async function setLeadStage(id: string, stage: "New" | "Talking" | "Quoted" | "Won" | "Lost") {
-  await save((data) => {
-    const lead = data.leads.find((item) => item.id === id);
-    if (lead) lead.stage = stage;
-  });
+  revalidatePath("/command-centre/clients");
+  revalidatePath("/command-centre/jobs");
+  revalidatePath("/command-centre/money");
 }
 
 export async function addClient(formData: FormData) {

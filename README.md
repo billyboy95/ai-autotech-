@@ -117,6 +117,57 @@ Analytics placeholders are enabled only when these variables are present:
 - `NEXT_PUBLIC_META_PIXEL_ID`
 - `NEXT_PUBLIC_CLARITY_PROJECT_ID`
 
+## Automated CRM
+
+The command centre works leads from capture through handover. Stages are New, Contacted, Audit booked, Audit done, Proposal sent, Won, Lost, and Onboarding/Handover.
+
+Intake at `/api/public/audit`, `/api/public/contact`, and `/api/public/leads` still saves the lead first. After that, the automation layer assigns an owner, scores the lead, and queues the acknowledgement. If the automation tables are missing, the original insert still succeeds.
+
+### Apply the migration
+
+In the Supabase SQL editor, run the whole file:
+
+`supabase/migrations/20260926160000_crm_automation.sql`
+
+It only adds columns and tables. It remaps existing `Talking` leads to `Contacted` and `Quoted` leads to `Proposal sent`. It does not delete rows. Run it before expecting stage changes or the outbox to save. Until then, the board still lists current leads and shows a setup note.
+
+### What runs without extra keys
+
+- Pipeline board, lead timeline, templates, settings, and the daily summary
+- Auto-assignment (default owner Billy, optional round-robin, QR rule for `qr_source=billy_phone_qr`)
+- Scoring from audit answers, source, and company size
+- Follow-up queue: acknowledgement, day 1, day 3, day 7, audit reminder, proposal follow-up
+- Stage rules, booking webhook, won → handover checklist, draft quote
+- `GET /api/automation/summary` for a bot
+- `POST /api/automation/inbound` for `booking.created`, `reply.received`, `audit.completed`, `proposal.sent` (Calendly `invitee.created` is accepted)
+- Vercel Cron `0 4 * * *` (06:00 Africa/Johannesburg) hits `/api/cron/automation`
+
+### What needs configuration
+
+| Need | Variable |
+| --- | --- |
+| Scheduled job in production | `CRON_SECRET`. Vercel sends `Authorization: Bearer <CRON_SECRET>`. |
+| Booking or reply webhooks in production | `AUTOMATION_WEBHOOK_SECRET` (or `CRON_SECRET`) as `x-automation-secret` |
+| Booking link inside templates | Settings → booking URL. If that is empty, `NEXT_PUBLIC_CALENDLY_URL` is used |
+| Actually email someone | `AUTOMATION_SEND_ENABLED=true` plus `RESEND_API_KEY` or `SMTP_HOST` |
+| Actually WhatsApp someone | `AUTOMATION_SEND_ENABLED=true` plus `WHATSAPP_TOKEN` and `WHATSAPP_PHONE_NUMBER_ID`. Without those, the outbox keeps a `wa.me` link |
+| Lock the summary API | `AUTOMATION_SUMMARY_TOKEN` |
+
+`AUTOMATION_SEND_ENABLED` defaults off. Do not turn it on until you intend to message real leads. Approving a draft does not send while the switch is off.
+
+Local proof, with no Supabase:
+
+```bash
+npm run demo:automation
+npm test
+```
+
+`CRM_DEMO_DATA=1` makes the command centre read `data/automation-demo.json` instead of Supabase.
+
+### Privacy
+
+`/command-centre` is intentionally open. There is no login gate. Anyone with the URL can see lead names, phone numbers, email addresses, and audit answers. Do not publish the link. This was left open on purpose and has not been put back.
+
 ## Next Build Steps
 
 - Replace mock dashboard data with Supabase queries.

@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import { addWorkspaceMember, saveWorkspaceSettings, type TenantActionState } from "@/app/actions/tenant";
+import { addWorkspaceMember, createInvitation, saveWorkspaceSettings, type TenantActionState } from "@/app/actions/tenant";
 import type { ShopifyStoreRecord, WorkspaceSummary } from "@/lib/tenant/types";
 
 const initial: TenantActionState = { ok: false, message: "" };
@@ -12,15 +12,18 @@ export function WorkspaceSettingsForm({
   members,
   stores,
   canEdit,
+  canToggleSending,
 }: {
   workspace: WorkspaceSummary;
   stages: string[];
   members: { email: string; role: string }[];
   stores: ShopifyStoreRecord[];
   canEdit: boolean;
+  canToggleSending: boolean;
 }) {
   const [saved, save, saving] = useActionState(saveWorkspaceSettings, initial);
   const [added, add, adding] = useActionState(addWorkspaceMember, initial);
+  const [invited, invite, inviting] = useActionState(createInvitation, initial);
   const intake = `/api/public/intake/${workspace.formKey}`;
 
   return (
@@ -36,7 +39,17 @@ export function WorkspaceSettingsForm({
           <Field name="logoUrl" label="Logo URL" defaultValue={workspace.logoUrl} />
           <Field name="primaryColor" label="Primary colour" defaultValue={workspace.primaryColor} />
           <Field name="accentColor" label="Accent colour" defaultValue={workspace.accentColor} />
+          <Field name="senderName" label="Sender name" defaultValue={workspace.senderName} />
+          <Field name="informationOfficerName" label="Information officer" defaultValue="" />
+          <Field name="informationOfficerEmail" label="Information officer email" defaultValue="" />
         </div>
+        <label className="flex items-center gap-2 text-sm text-slate-700">
+          <input name="sendingEnabled" type="checkbox" defaultChecked={workspace.sendingEnabled} disabled={!canToggleSending} />
+          Sending enabled
+        </label>
+        <p className="text-sm text-slate-500">
+          Off by default. Only an agency owner can turn sending on. Outbound messages stay held until then, and each one still needs a sender name and a lawful opt-out.
+        </p>
         <h2 className="mt-2 font-display text-lg font-bold text-[#0B1F3A]">Channel placeholders</h2>
         <p className="text-sm text-slate-500">Stored on the workspace. Nothing is sent until a channel adapter is switched on.</p>
         <div className="grid gap-3 sm:grid-cols-2">
@@ -127,6 +140,20 @@ export function WorkspaceSettingsForm({
           </button>
         </form>
         {added.message ? <p className={`mt-2 text-sm ${added.ok ? "text-emerald-700" : "text-rose-700"}`}>{added.message}</p> : null}
+        <form action={invite} className="mt-4 grid gap-3 sm:grid-cols-[1fr_180px_auto]">
+          <input type="hidden" name="slug" value={workspace.slug} />
+          <input name="email" type="email" placeholder="invite@company.co.za" className="h-10 rounded-md border border-slate-200 px-3 text-sm" />
+          <select name="role" defaultValue={workspace.orgType === "agency" ? "agency_staff" : "client_admin"} className="h-10 rounded-md border border-slate-200 px-3 text-sm">
+            {workspace.orgType === "agency" ? <option value="agency_owner">Agency owner</option> : null}
+            {workspace.orgType === "agency" ? <option value="agency_staff">Agency staff</option> : null}
+            <option value="client_admin">Client admin</option>
+            <option value="client_user">Client user</option>
+          </select>
+          <button disabled={!canEdit || inviting} className="h-10 rounded-md border border-slate-200 px-3 text-sm font-semibold text-[#0B1F3A] disabled:opacity-60">
+            {inviting ? "Creating…" : "Create invite link"}
+          </button>
+        </form>
+        {invited.message ? <p className={`mt-2 text-sm ${invited.ok ? "text-emerald-700" : "text-rose-700"}`}>{invited.message}</p> : null}
       </section>
     </div>
   );

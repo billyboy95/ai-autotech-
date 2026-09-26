@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { approveOutboxMessage, approveSocial, cancelOutboxMessage, cancelSocial } from "@/app/actions/automation";
 import { CopyButton } from "@/components/crm/copy-button";
-import { CrmFrame } from "@/components/crm/frame";
+import { CommandShell } from "@/components/crm/command-shell";
 import { buildMailto } from "@/lib/automation/channels";
 import { formatSendCost, marketingConsentFor, previewSendBlock } from "@/lib/automation/compliance";
 import { formatWhen } from "@/lib/automation/ids";
@@ -25,7 +25,7 @@ export default async function OutboxPage() {
   const posts = workspace.state.socialPosts.slice().sort((a, b) => b.scheduledFor.localeCompare(a.scheduledFor));
 
   return (
-    <CrmFrame setupError={workspace.setupError} sendingEnabled={sendingEnabled}>
+    <CommandShell setupError={workspace.setupError} sendingEnabled={sendingEnabled}>
       <div data-testid="outbox" className="grid gap-4">
         <div>
           <h1 className="font-display text-2xl font-bold text-[#0B1F3A]">Outbox</h1>
@@ -137,6 +137,6 @@ export default async function OutboxPage() {
           ))}
         </section>
       </div>
-    </CrmFrame>
+    </CommandShell>
   );
 }

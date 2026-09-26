@@ -1,7 +1,9 @@
 import { isSendEnabled } from "@/lib/automation/channels";
+import { createInitialState } from "@/lib/automation/engine";
 import { loadWorkspace, type Workspace } from "@/lib/automation/service";
 import type { CrmData } from "@/lib/crm-store";
 import { readCrm } from "@/lib/crm-store";
+import { safeResolveWorkspace } from "@/lib/tenant/context";
 
 const DEMO_CLASSIC: CrmData = {
   leads: [],
@@ -41,15 +43,30 @@ const DEMO_CLASSIC: CrmData = {
   ],
 };
 
+const EMPTY_CLASSIC: CrmData = { leads: [], clients: [], jobs: [], invoices: [] };
+
 export async function loadCommandData(): Promise<{ workspace: Workspace; classic: CrmData; sendingEnabled: boolean }> {
-  const workspace = await loadWorkspace();
-  let classic = DEMO_CLASSIC;
+  let workspace: Workspace;
+  try {
+    workspace = await loadWorkspace();
+  } catch (error) {
+    console.error("automation workspace load failed", error);
+    workspace = {
+      state: createInitialState(),
+      automationReady: false,
+      setupError: error instanceof Error ? error.message : "Command centre data is unavailable.",
+      demo: false,
+    };
+  }
+  let classic = workspace.demo ? DEMO_CLASSIC : EMPTY_CLASSIC;
   if (!workspace.demo) {
     try {
-      classic = await readCrm();
+      const tenant = await safeResolveWorkspace();
+      const orgId = tenant.scoped && !tenant.active.id.startsWith("preview-") ? tenant.active.id : null;
+      classic = await readCrm(orgId);
     } catch (error) {
       console.error("classic crm load failed", error);
-      classic = { leads: [], clients: [], jobs: [], invoices: [] };
+      classic = EMPTY_CLASSIC;
     }
   }
   return { workspace, classic, sendingEnabled: isSendEnabled() };

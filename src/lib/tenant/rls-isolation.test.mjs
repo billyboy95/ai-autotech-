@@ -6,11 +6,13 @@ import { PGlite } from "@electric-sql/pglite";
 const AGENCY_USER = "11111111-1111-4111-8111-111111111111";
 const EASTC_USER = "22222222-2222-4222-8222-222222222222";
 const OTHER_USER = "33333333-3333-4333-8333-333333333333";
+const STAFF_USER = "44444444-4444-4444-8444-444444444444";
 
 async function applyMigrations(db) {
   const company = readFileSync(new URL("../../../supabase/migrations/20260903000000_company_crm.sql", import.meta.url), "utf8");
   const tenancy = readFileSync(new URL("../../../supabase/migrations/20260926160000_agency_tenancy.sql", import.meta.url), "utf8");
   const zentrix = readFileSync(new URL("../../../supabase/migrations/20260926180000_zentrix_shopify.sql", import.meta.url), "utf8");
+  const phase2a = readFileSync(new URL("../../../supabase/migrations/20260926200000_phase2a_access.sql", import.meta.url), "utf8");
   const phase1 = readFileSync(new URL("../../../supabase/migrations/20261015120000_org_scope_phase1_tables.sql", import.meta.url), "utf8");
   await db.exec(`
     do $$
@@ -27,6 +29,7 @@ async function applyMigrations(db) {
   await db.exec(company);
   await db.exec(tenancy);
   await db.exec(zentrix);
+  await db.exec(phase2a);
   await db.exec(phase1);
 }
 
@@ -162,6 +165,54 @@ test("a client user cannot read another organisation's CRM rows", async () => {
     ),
     /row-level security|permission denied|new row violates/i,
   );
+
+  const definition = await db.query(
+    "select pg_get_functiondef('public.can_access_organization(uuid)'::regprocedure) as def",
+  );
+  assert.equal(definition.rows[0].def.includes("is_admin"), false);
+
+  const agencyCount = await asUser(
+    db,
+    AGENCY_USER,
+    "select count(*)::int as n from crm_leads where org_id = (select id from organizations where slug = 'ai-autotech')",
+  );
+  await asUser(
+    db,
+    EASTC_USER,
+    `insert into crm_leads (id, name, company, phone, stage, notes, ord, org_id)
+     select 'eastc-extra', 'Nomsa', 'EASTC', '012', 'New', 'own row', 4, id from organizations where slug = 'eastc'`,
+  );
+  const agencyCountAfter = await asUser(
+    db,
+    AGENCY_USER,
+    "select count(*)::int as n from crm_leads where org_id = (select id from organizations where slug = 'ai-autotech')",
+  );
+  assert.equal(agencyCountAfter.rows[0].n, agencyCount.rows[0].n);
+
+  await db.exec(`
+    insert into auth.users (id, email) values ('${STAFF_USER}', 'staff@aiautotech.co.za');
+    insert into memberships (user_id, org_id, role)
+    select '${STAFF_USER}', id, 'agency_staff' from organizations where slug = 'ai-autotech';
+  `);
+  const openStores = await asUser(db, STAFF_USER, "select niche from workspace_shopify_stores");
+  assert.equal(openStores.rows.length, 10);
+
+  await db.exec(`
+    insert into member_org_access (member_id, org_id)
+    select m.id, o.id
+    from memberships m
+    join organizations o on o.slug = 'eastc'
+    where m.user_id = '${STAFF_USER}';
+  `);
+  const limitedStores = await asUser(db, STAFF_USER, "select niche from workspace_shopify_stores");
+  assert.deepEqual(limitedStores.rows, []);
+  const limitedLeads = await asUser(db, STAFF_USER, "select id from crm_leads order by id");
+  assert.deepEqual(limitedLeads.rows.map((row) => row.id), ["agency-lead", "eastc-extra", "eastc-lead"]);
+
+  const sending = await db.query(
+    "select slug, sending_enabled from organizations where slug in ('ai-autotech', 'eastc', 'zentrix') order by slug",
+  );
+  assert.deepEqual(sending.rows.map((row) => row.sending_enabled), [false, false, false]);
 
   await db.close();
 });

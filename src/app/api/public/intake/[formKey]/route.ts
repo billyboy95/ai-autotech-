@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { nid } from "@/lib/crm-store";
-import { findOrgByFormKey } from "@/lib/tenant/data";
-import { insertPreferringOrg } from "@/lib/tenant/writes";
+import { recordConsent } from "@/server/webhooks/compliance";
+import { insertForOrg, lookupRow, serviceConfigured } from "@/server/workers/with-org";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -25,8 +24,24 @@ const schema = z.object({
   phone: z.string().trim().max(40).default(""),
   company: z.string().trim().max(160).default(""),
   message: z.string().trim().max(4000).default(""),
+  consent: z.boolean().optional(),
   hp: z.string().max(200).optional(),
 });
+
+const CONSENT_TEXT = "I agree that this workspace may contact me about this enquiry, and I can opt out later.";
+
+async function workspaceForKey(formKey: string) {
+  const found = await lookupRow("organizations", "form_key", formKey, "id, slug, domain, form_key, name, sender_name");
+  if (!found.configured || found.error || !found.data) return null;
+  const row = found.data as unknown as { id: string; slug: string; domain: string | null; form_key: string | null; name: string; sender_name?: string };
+  return {
+    id: String(row.id),
+    slug: String(row.slug),
+    domain: row.domain ?? "",
+    formKey: row.form_key || row.slug,
+    name: row.name,
+  };
+}
 
 function originAllowed(origin: string | null, domain: string, host: string | null) {
   if (!origin) return true;
@@ -71,7 +86,7 @@ function rateLimited(ip: string) {
 
 export async function OPTIONS(request: Request, context: { params: Promise<{ formKey: string }> }) {
   const { formKey } = await context.params;
-  const org = await findOrgByFormKey(formKey).catch(() => null);
+  const org = await workspaceForKey(formKey);
   const origin = request.headers.get("origin");
   return new NextResponse(null, { status: 204, headers: corsHeaders(origin, org?.domain ?? "", request.headers.get("host")) });
 }
@@ -80,15 +95,14 @@ export async function POST(request: Request, context: { params: Promise<{ formKe
   const { formKey } = await context.params;
   const origin = request.headers.get("origin");
   const host = request.headers.get("host");
-  const supabase = createSupabaseAdminClient();
-  const org = supabase ? await findOrgByFormKey(formKey).catch(() => null) : null;
+  const org = serviceConfigured() ? await workspaceForKey(formKey) : null;
   const headers = corsHeaders(origin, org?.domain ?? "", host);
   const json = (body: unknown, status: number) => NextResponse.json(body, { status, headers });
 
   if (origin && !originAllowed(origin, org?.domain ?? "", host)) {
     return json({ ok: false, error: "Origin not allowed." }, 403);
   }
-  if (!supabase) return json({ ok: false, error: "Lead storage is not configured." }, 500);
+  if (!serviceConfigured()) return json({ ok: false, error: "Lead storage is not configured." }, 500);
   if (!org) {
     return json({ ok: false, error: "Unknown workspace form key." }, 404);
   }
@@ -117,7 +131,7 @@ export async function POST(request: Request, context: { params: Promise<{ formKe
   }
 
   const crmLeadId = nid();
-  const saved = await insertPreferringOrg(supabase, "crm_contact_leads", {
+  const saved = await insertForOrg(org.id, "crm_contact_leads", {
     status: "new",
     source: `intake:${org.formKey}`,
     name: parsed.data.name,
@@ -127,12 +141,12 @@ export async function POST(request: Request, context: { params: Promise<{ formKe
     message: parsed.data.message,
     page: `/intake/${org.formKey}`,
     crm_lead_id: crmLeadId,
-  }, org.id);
+  });
   if (saved.error || !saved.data) {
     return json({ ok: false, error: "Could not save this enquiry." }, 500);
   }
 
-  await insertPreferringOrg(supabase, "crm_leads", {
+  await insertForOrg(org.id, "crm_leads", {
     id: crmLeadId,
     name: parsed.data.name,
     company: parsed.data.company,
@@ -140,7 +154,21 @@ export async function POST(request: Request, context: { params: Promise<{ formKe
     stage: "New",
     notes: [`Workspace intake ${org.formKey}`, parsed.data.email, parsed.data.message].filter(Boolean).join("\n"),
     ord: -Math.floor(Date.now() / 1000),
-  }, org.id);
+  });
+
+  if (parsed.data.consent && (parsed.data.email || parsed.data.phone)) {
+    const address = parsed.data.email || parsed.data.phone;
+    await recordConsent({
+      orgId: org.id,
+      channel: parsed.data.email ? "email" : "sms",
+      purpose: "service",
+      status: "opted_in",
+      basis: "consent",
+      address,
+      source: `/intake/${org.formKey}`,
+      evidence: { consent_text: CONSENT_TEXT },
+    });
+  }
 
   return json({ ok: true, id: saved.data.id, workspace: org.slug }, 200);
 }

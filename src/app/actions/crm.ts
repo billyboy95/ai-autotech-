@@ -5,6 +5,7 @@ import { insertClient, insertInvoice, insertJob, nid, updateInvoiceStatus, updat
 
 function refresh() {
   revalidatePath("/command-centre");
+  revalidatePath("/agency");
   revalidatePath("/command-centre/clients");
   revalidatePath("/command-centre/jobs");
   revalidatePath("/command-centre/money");

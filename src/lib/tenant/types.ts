@@ -2,6 +2,7 @@ export const AGENCY_SLUG = "ai-autotech";
 export const EASTC_SLUG = "eastc";
 export const ZENTRIX_SLUG = "zentrix";
 export const WORKSPACE_COOKIE = "aat_workspace";
+export const ORG_COOKIE = "aat_org";
 
 export const MEMBERSHIP_ROLES = ["agency_owner", "agency_staff", "client_admin", "client_user"] as const;
 export type MembershipRole = (typeof MEMBERSHIP_ROLES)[number];
@@ -23,6 +24,10 @@ export type WorkspaceSummary = {
   domain: string;
   formKey: string;
   settings: WorkspaceSettings;
+  sendingEnabled: boolean;
+  senderName: string;
+  timezone: string;
+  currency: string;
 };
 
 export type ChannelPlaceholders = {
@@ -43,9 +48,11 @@ export type WorkspaceSettings = {
 };
 
 export type Membership = {
+  id?: string;
   userId: string;
   orgId: string;
   role: MembershipRole;
+  restrictedOrgIds?: string[];
 };
 
 export type WorkspaceOption = {

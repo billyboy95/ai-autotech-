@@ -15,6 +15,10 @@ export type OrganizationRow = {
   domain: string | null;
   form_key: string | null;
   settings: unknown;
+  sending_enabled?: boolean | null;
+  sender_name?: string | null;
+  timezone?: string | null;
+  currency?: string | null;
 };
 
 function asRecord(value: unknown): Record<string, unknown> {
@@ -73,6 +77,10 @@ export function toWorkspace(row: OrganizationRow): WorkspaceSummary | null {
     domain: row.domain ?? "",
     formKey: row.form_key || row.slug,
     settings: parseSettings(row.settings),
+    sendingEnabled: Boolean(row.sending_enabled),
+    senderName: row.sender_name || row.name,
+    timezone: row.timezone || "Africa/Johannesburg",
+    currency: row.currency || "ZAR",
   };
 }
 

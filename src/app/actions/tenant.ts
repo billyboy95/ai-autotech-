@@ -1,12 +1,14 @@
 "use server";
 
+import { createHash, randomBytes } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { resolveWorkspace } from "@/lib/tenant/context";
 import { addMembership, createClientWorkspace, findOrgBySlug, setShopifyPlanStatus, updateWorkspace } from "@/lib/tenant/data";
 import { parseSettings } from "@/lib/tenant/rows";
-import { MEMBERSHIP_ROLES, WORKSPACE_COOKIE, type MembershipRole } from "@/lib/tenant/types";
+import { MEMBERSHIP_ROLES, ORG_COOKIE, WORKSPACE_COOKIE, type MembershipRole } from "@/lib/tenant/types";
 
 export type TenantActionState = {
   ok: boolean;
@@ -24,7 +26,18 @@ export async function openWorkspace(formData: FormData) {
     redirect(`/login?next=${encodeURIComponent(`/command-centre?org=${slug}`)}`);
   }
   const store = await cookies();
-  store.set(WORKSPACE_COOKIE, workspace.active.slug, { httpOnly: true, sameSite: "lax", path: "/" });
+  const options = { httpOnly: true, sameSite: "lax" as const, path: "/" };
+  store.set(WORKSPACE_COOKIE, workspace.active.slug, options);
+  store.set(ORG_COOKIE, workspace.active.slug, options);
+  const supabase = await createSupabaseServerClient();
+  const user = await supabase.auth.getUser().then((result) => result.data.user).catch(() => null);
+  if (user) {
+    await supabase.from("user_prefs").upsert({
+      user_id: user.id,
+      active_org_id: workspace.active.id,
+      updated_at: new Date().toISOString(),
+    });
+  }
   redirect(`/command-centre?org=${workspace.active.slug}`);
 }
 
@@ -110,6 +123,14 @@ export async function saveWorkspaceSettings(
       logo_url: String(formData.get("logoUrl") ?? ""),
       primary_color: String(formData.get("primaryColor") ?? workspace.active.primaryColor),
       accent_color: String(formData.get("accentColor") ?? workspace.active.accentColor),
+      sender_name: String(formData.get("senderName") ?? workspace.active.senderName),
+      information_officer: {
+        name: String(formData.get("informationOfficerName") ?? ""),
+        email: String(formData.get("informationOfficerEmail") ?? ""),
+      },
+      ...(workspace.role === "agency_owner"
+        ? { sending_enabled: formData.get("sendingEnabled") === "on" }
+        : {}),
       settings,
     });
     const hasShopify = Boolean(settings.shopify.adminAccessToken.trim() || settings.shopify.webhookSecret.trim());
@@ -151,4 +172,45 @@ export async function addWorkspaceMember(
   }
   revalidatePath(`/agency/${slug}/settings`);
   return { ok: true, message: `${email} can now open this workspace.` };
+}
+
+export async function createInvitation(
+  _state: TenantActionState,
+  formData: FormData,
+): Promise<TenantActionState> {
+  const slug = String(formData.get("slug") ?? "");
+  const workspace = await resolveWorkspace(slug);
+  if (workspace.mode !== "member" || !canEdit(workspace.role, workspace.mode) || workspace.active.slug !== slug) {
+    return { ok: false, message: "Sign in as an admin to invite someone." };
+  }
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
+  const role = String(formData.get("role") ?? "client_user");
+  if (!email.includes("@")) return { ok: false, message: "Enter the person's email." };
+  if (!MEMBERSHIP_ROLES.includes(role as MembershipRole)) return { ok: false, message: "Choose a valid role." };
+  if ((role === "agency_owner" || role === "agency_staff") && workspace.role !== "agency_owner") {
+    return { ok: false, message: "Only an agency owner can invite agency roles." };
+  }
+  const supabase = await createSupabaseServerClient();
+  const user = await supabase.auth.getUser();
+  const token = randomBytes(24).toString("hex");
+  const tokenHash = createHash("sha256").update(token).digest("hex");
+  const { error } = await supabase.from("invitations").insert({
+    org_id: workspace.active.id,
+    email,
+    role,
+    token_hash: tokenHash,
+    invited_by: user.data.user?.id ?? null,
+    expires_at: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
+  });
+  if (error) return { ok: false, message: error.message };
+  return { ok: true, message: `Share this link with ${email}: /invite/${token}` };
+}
+
+export async function acceptInvitation(token: string): Promise<TenantActionState> {
+  const supabase = await createSupabaseServerClient();
+  const user = await supabase.auth.getUser();
+  if (!user.data.user) return { ok: false, message: "Sign in with the invited email, then accept." };
+  const { error } = await supabase.rpc("accept_invitation", { raw_token: token });
+  if (error) return { ok: false, message: error.message };
+  return { ok: true, message: "Invitation accepted. Open the workspace from the switcher." };
 }

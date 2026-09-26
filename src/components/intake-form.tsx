@@ -24,6 +24,7 @@ export function IntakeForm({ formKey }: { formKey: string }) {
               phone: form.get("phone"),
               company: form.get("company"),
               message: form.get("message"),
+              consent: form.get("consent") === "on",
               hp: form.get("hp"),
             }),
           });
@@ -43,6 +44,10 @@ export function IntakeForm({ formKey }: { formKey: string }) {
       <input name="phone" placeholder="Phone" className="h-10 rounded-md border border-slate-200 px-3 text-sm" />
       <input name="company" placeholder="School or company" className="h-10 rounded-md border border-slate-200 px-3 text-sm" />
       <textarea name="message" placeholder="How can we help?" className="min-h-24 rounded-md border border-slate-200 px-3 py-2 text-sm" />
+      <label className="flex items-start gap-2 text-sm text-slate-600">
+        <input name="consent" type="checkbox" className="mt-1" />
+        I agree that this workspace may contact me about this enquiry, and I can opt out later.
+      </label>
       <button disabled={pending} className="h-10 rounded-md bg-[#0B1F3A] text-sm font-semibold text-white disabled:opacity-60">
         {pending ? "Sending…" : "Send enquiry"}
       </button>

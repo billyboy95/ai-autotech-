@@ -13,7 +13,8 @@ In the Supabase SQL editor, run these files in order if they are not already app
 3. `supabase/migrations/20260925120000_contact_leads.sql`
 4. `supabase/migrations/20260926160000_agency_tenancy.sql`
 5. `supabase/migrations/20260926180000_zentrix_shopify.sql` (Zentrix Online, 10 stores, Shopify tables)
-6. `supabase/migrations/20261015120000_org_scope_phase1_tables.sql` (no-op until the pipeline engine tables exist, then it adds `org_id` and RLS)
+6. `supabase/migrations/20260926200000_phase2a_access.sql` (send switch default off, POPIA tables, staff limits, legacy Admin bypass closed)
+7. `supabase/migrations/20261015120000_org_scope_phase1_tables.sql` (no-op until the pipeline engine tables exist, then it adds `org_id` and RLS)
 
 ## 2. Environment variables
 
@@ -37,6 +38,7 @@ That inserts one `memberships` row: your user, the AI AutoTech organisation, rol
 5. EASTC is already there, with enrolment stages: Enquiry, Contacted, Campus visit booked, Application, Enrolled, Lost.
 6. Zentrix Online is the second workspace: Pets, Auto, Kitchens, Camping, Holidays, Home, Beauty, Baby, Fitness, and Tools. Its pipeline is Visitor/lead, Subscriber, Cart abandoned, Customer, Repeat customer, Lost.
 7. Shopify is not called. On `/agency/zentrix/settings`, paste the Admin API token and webhook secret when you have them. In Shopify admin, send orders, customers, and checkouts to `POST /api/shopify/webhook`. Paid orders then show as revenue on `/agency`. Until the secret is saved, the webhook refuses the request and writes nothing.
+8. Sending is off for every workspace until you, as agency owner, tick "Sending enabled" on that workspace's settings. Marketing still needs a consent record or an existing-customer basis, and every outbound message adds the sender name plus an opt-out. Opt-outs land on the workspace suppression list.
 
 ## 4. What stays open
 

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { recordStripeSubscription } from "@/server/webhooks/billing";
 import { getStripe } from "@/lib/stripe";
 
 export async function POST(request: Request) {
@@ -28,12 +28,6 @@ export async function POST(request: Request) {
     );
   }
 
-  const supabase = createSupabaseAdminClient();
-
-  if (!supabase) {
-    return NextResponse.json({ received: true, warning: "Supabase admin client not configured." });
-  }
-
   if (
     event.type === "checkout.session.completed" ||
     event.type === "customer.subscription.updated" ||
@@ -51,19 +45,13 @@ export async function POST(request: Request) {
     const organizationId = object.metadata?.organization_id;
 
     if (organizationId) {
-      await supabase.from("subscriptions").upsert(
-        {
-          organization_id: organizationId,
-          stripe_customer_id: typeof object.customer === "string" ? object.customer : null,
-          stripe_subscription_id:
-            typeof object.subscription === "string" ? object.subscription : object.id,
-          status: object.status ?? "active",
-          current_period_end: object.current_period_end
-            ? new Date(object.current_period_end * 1000).toISOString()
-            : null,
-        },
-        { onConflict: "organization_id" },
-      );
+      await recordStripeSubscription({
+        organizationId,
+        stripeCustomerId: typeof object.customer === "string" ? object.customer : null,
+        stripeSubscriptionId: typeof object.subscription === "string" ? object.subscription : object.id,
+        status: object.status ?? "active",
+        currentPeriodEnd: object.current_period_end ? new Date(object.current_period_end * 1000).toISOString() : null,
+      });
     }
   }
 

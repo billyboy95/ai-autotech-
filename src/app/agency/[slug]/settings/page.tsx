@@ -33,7 +33,7 @@ export default async function WorkspaceSettingsPage({ params }: { params: Promis
           <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
             Preview only. Settings save after Supabase Auth and the tenancy migration are in place.
           </p>
-          <WorkspaceSettingsForm workspace={org} stages={stages} members={[]} stores={stores} canEdit={false} />
+          <WorkspaceSettingsForm workspace={org} stages={stages} members={[]} stores={stores} canEdit={false} canToggleSending={false} />
         </div>
       </main>
     );
@@ -61,7 +61,14 @@ export default async function WorkspaceSettingsPage({ params }: { params: Promis
           <Link href={`/command-centre?org=${slug}`} className="text-sm font-semibold text-[#0B1F3A]">Open CRM</Link>
         </div>
         <h1 className="font-display text-2xl font-bold" style={{ color: org.primaryColor }}>{org.name} settings</h1>
-        <WorkspaceSettingsForm workspace={org} stages={stages} members={members} stores={stores} canEdit={canEdit} />
+        <WorkspaceSettingsForm
+          workspace={org}
+          stages={stages}
+          members={members}
+          stores={stores}
+          canEdit={canEdit}
+          canToggleSending={workspace.role === "agency_owner"}
+        />
       </div>
     </main>
   );

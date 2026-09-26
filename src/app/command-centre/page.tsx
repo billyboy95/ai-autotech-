@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { runAutomationsNow } from "@/app/actions/automation";
-import { CrmFrame } from "@/components/crm/frame";
+import { CommandShell } from "@/components/crm/command-shell";
 import { formatZar } from "@/lib/automation/ids";
 import { loadCommandData } from "@/lib/automation/page-data";
 import { buildReport } from "@/lib/automation/report";
@@ -13,14 +13,19 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-export default async function CommandCentrePage() {
+export default async function CommandCentrePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ org?: string }>;
+}) {
+  const params = await searchParams;
   const { workspace, classic, sendingEnabled } = await loadCommandData();
   const report = buildReport(workspace.state, new Date(), sendingEnabled);
   const openJobs = classic.jobs.filter((job) => job.status !== "Done");
   const unpaid = classic.invoices.filter((invoice) => invoice.status === "Unpaid");
 
   return (
-    <CrmFrame setupError={workspace.setupError} sendingEnabled={sendingEnabled}>
+    <CommandShell setupError={workspace.setupError} sendingEnabled={sendingEnabled} requestedSlug={params.org}>
       <div data-testid="dashboard" className="grid gap-4">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
@@ -132,7 +137,7 @@ export default async function CommandCentrePage() {
           </article>
         </section>
       </div>
-    </CrmFrame>
+    </CommandShell>
   );
 }
 

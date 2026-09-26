@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { enrollLead } from "@/lib/automation/service";
 import { nid } from "@/lib/crm-store";
-import { insertPreferringOrg, lookupAgencyOrgId } from "@/lib/tenant/writes";
+import { agencyOrgId, insertForOrg, serviceConfigured } from "@/server/workers/with-org";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -172,8 +171,7 @@ export async function POST(request: Request) {
     return json({ ok: true, id: null }, 200, origin);
   }
 
-  const supabase = createSupabaseAdminClient();
-  if (!supabase) {
+  if (!serviceConfigured()) {
     return json({ ok: false, error: "Lead storage is not configured." }, 500, origin);
   }
 
@@ -181,8 +179,8 @@ export async function POST(request: Request) {
   const test = isTestSubmission(input.name, input.email);
   const crmLeadId = test ? null : nid();
 
-  const orgId = await lookupAgencyOrgId(supabase);
-  const { data, error } = await insertPreferringOrg(supabase, "crm_contact_leads", {
+  const orgId = await agencyOrgId();
+  const { data, error } = await insertForOrg(orgId, "crm_contact_leads", {
     status: test ? "test" : "new",
     source: "website_contact",
     name: input.name,
@@ -199,7 +197,7 @@ export async function POST(request: Request) {
     referrer: input.referrer,
     user_agent: (request.headers.get("user-agent") ?? "").slice(0, 400),
     crm_lead_id: crmLeadId,
-  }, orgId);
+  });
 
   if (error || !data) {
     console.error("contact insert failed", error?.message);
@@ -215,7 +213,7 @@ export async function POST(request: Request) {
       `Source: website_contact${utm ? ` · UTM: ${utm}` : ""}${input.page ? ` · Page: ${input.page}` : ""}`,
     ].join("\n");
 
-    const lead = await insertPreferringOrg(supabase, "crm_leads", {
+    const lead = await insertForOrg(orgId, "crm_leads", {
       id: crmLeadId,
       name: input.name,
       company,
@@ -223,7 +221,7 @@ export async function POST(request: Request) {
       stage: "New",
       notes,
       ord: -Math.floor(Date.now() / 1000),
-    }, orgId);
+    });
     if (lead.error) {
       // Contact row is saved; CRM mirror failure should not lose the lead.
       console.error("crm_leads mirror failed", lead.error.message);

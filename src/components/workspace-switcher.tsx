@@ -34,12 +34,16 @@ export function WorkspaceSwitcher({
           }}
           className="h-10 min-w-48 rounded-md border border-slate-200 bg-white px-3 text-sm font-semibold text-[#0B1F3A]"
         >
-          {workspaces.map((workspace) => (
-            <option key={workspace.slug} value={workspace.slug}>
-              {workspace.name}
-              {workspace.orgType === "agency" ? " · agency" : ""}
-            </option>
-          ))}
+          <optgroup label="Agency">
+            {workspaces.filter((workspace) => workspace.orgType === "agency").map((workspace) => (
+              <option key={workspace.slug} value={workspace.slug}>{workspace.name}</option>
+            ))}
+          </optgroup>
+          <optgroup label="Clients">
+            {workspaces.filter((workspace) => workspace.orgType === "client").map((workspace) => (
+              <option key={workspace.slug} value={workspace.slug}>{workspace.name}</option>
+            ))}
+          </optgroup>
         </select>
       </label>
       {showAgencyLink ? (

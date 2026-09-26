@@ -9,10 +9,11 @@ export function expandAccessibleOrgs(orgs: WorkspaceSummary[], memberships: Memb
     if (!org) continue;
     allowed.set(org.id, org);
     if (!isAgencyRole(membership.role)) continue;
+    const restricted = membership.restrictedOrgIds ?? [];
     for (const child of orgs) {
-      if (child.orgType === "client" && child.parentId === org.id) {
-        allowed.set(child.id, child);
-      }
+      if (child.orgType !== "client" || child.parentId !== org.id) continue;
+      if (membership.role === "agency_staff" && restricted.length > 0 && !restricted.includes(child.id)) continue;
+      allowed.set(child.id, child);
     }
   }
 

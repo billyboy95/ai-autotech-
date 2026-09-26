@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { acceptShopifyWebhook } from "@/lib/shopify/persist";
+import { acceptShopifyWebhook } from "@/server/webhooks/shopify";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";

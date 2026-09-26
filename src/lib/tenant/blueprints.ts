@@ -122,10 +122,14 @@ export function previewWorkspaces(): WorkspaceSummary[] {
     domain: "aiautotech.co.za",
     formKey: "ai-autotech",
     settings: { channels: emptyChannels(), shopify: emptyShopify() },
+    sendingEnabled: false,
+    senderName: "AI AutoTech Pty Ltd",
+    timezone: "Africa/Johannesburg",
+    currency: "ZAR",
   };
   const eastc: WorkspaceSummary = {
     id: "preview-eastc",
-    name: "EASTC",
+    name: "East Sea Technocentric Varsity (EASTC)",
     slug: "eastc",
     orgType: "client",
     parentId: agency.id,
@@ -138,6 +142,10 @@ export function previewWorkspaces(): WorkspaceSummary[] {
     domain: "eastech.co.za",
     formKey: "eastc",
     settings: { channels: emptyChannels(), shopify: emptyShopify() },
+    sendingEnabled: false,
+    senderName: "East Sea Technocentric Varsity (EASTC)",
+    timezone: "Africa/Johannesburg",
+    currency: "ZAR",
   };
   const zentrix: WorkspaceSummary = {
     id: "preview-zentrix",
@@ -154,6 +162,10 @@ export function previewWorkspaces(): WorkspaceSummary[] {
     domain: "zentrixonline.co.za",
     formKey: "zentrix",
     settings: { channels: emptyChannels(), shopify: emptyShopify() },
+    sendingEnabled: false,
+    senderName: "Zentrix Online",
+    timezone: "Africa/Johannesburg",
+    currency: "ZAR",
   };
   return [agency, eastc, zentrix];
 }

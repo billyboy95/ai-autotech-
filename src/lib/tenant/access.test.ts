@@ -35,6 +35,18 @@ test("client user cannot see another organisation", () => {
   assert.equal(roleForOrg(outsider, memberships, orgs), null);
 });
 
+test("restricted agency staff see only the listed client workspaces", () => {
+  const zentrix = previewWorkspaces()[2];
+  const memberships: Membership[] = [{
+    userId: "staff",
+    orgId: agency.id,
+    role: "agency_staff",
+    restrictedOrgIds: [eastc.id],
+  }];
+  const allowed = expandAccessibleOrgs([agency, eastc, zentrix], memberships).map((org) => org.slug);
+  assert.deepEqual(allowed, ["ai-autotech", "eastc"]);
+});
+
 test("agency staff do not inherit a different agency's clients", () => {
   const memberships: Membership[] = [{ userId: "staff", orgId: agency.id, role: "agency_staff" }];
   const allowed = expandAccessibleOrgs(orgs, memberships).map((org) => org.slug);

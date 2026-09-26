@@ -2,7 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { nid } from "@/lib/crm-store";
-import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { agencyOrgId, insertForOrg } from "@/server/workers/with-org";
+import { openServiceDatabase } from "@/server/workers/service-db";
 import { importProspectCsv, saveCampaign } from "@/lib/automation/campaigns";
 import {
   addNote,
@@ -47,9 +48,9 @@ export async function addPipelineLead(formData: FormData) {
   const enrolled = await enrollLead(input);
   if (!enrolled.ok) {
     if (isDemoMode()) throw new Error(enrolled.error || "Could not save the lead.");
-    const supabase = createSupabaseAdminClient();
+    const supabase = openServiceDatabase();
     if (!supabase) throw new Error(enrolled.error || "Lead storage is not configured.");
-    const inserted = await supabase.from("crm_leads").insert({
+    const row = {
       id: input.id,
       name: input.name,
       company: input.company,
@@ -57,7 +58,14 @@ export async function addPipelineLead(formData: FormData) {
       stage: "New",
       notes: [input.email, input.notes].filter(Boolean).join("\n"),
       ord: -Math.floor(Date.now() / 1000),
-    });
+    };
+    let orgId: string | null = null;
+    try {
+      orgId = await agencyOrgId();
+    } catch {
+      orgId = null;
+    }
+    const inserted = orgId ? await insertForOrg(orgId, "crm_leads", row) : await supabase.from("crm_leads").insert(row);
     if (inserted.error) throw new Error(inserted.error.message);
   }
   refresh();

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { CrmFrame } from "@/components/crm/frame";
+import { CommandShell } from "@/components/crm/command-shell";
 import { formatZar } from "@/lib/automation/ids";
 import { loadCommandData } from "@/lib/automation/page-data";
 import { buildReport, summaryLines } from "@/lib/automation/report";
@@ -17,7 +17,7 @@ export default async function SummaryPage() {
   const report = buildReport(workspace.state, new Date(), sendingEnabled);
 
   return (
-    <CrmFrame setupError={workspace.setupError} sendingEnabled={sendingEnabled}>
+    <CommandShell setupError={workspace.setupError} sendingEnabled={sendingEnabled}>
       <div className="grid gap-4">
         <div>
           <h1 className="font-display text-2xl font-bold text-[#0B1F3A]">Daily summary</h1>
@@ -57,6 +57,6 @@ export default async function SummaryPage() {
           </p>
         </article>
       </div>
-    </CrmFrame>
+    </CommandShell>
   );
 }

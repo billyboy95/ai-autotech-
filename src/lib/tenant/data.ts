@@ -1,4 +1,5 @@
-import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { findAuthUserIdByEmail, listAuthEmails } from "@/server/workers/with-org";
 import { EDUCATION_BLUEPRINT, BLUEPRINTS } from "@/lib/tenant/blueprints";
 import { slugify } from "@/lib/tenant/access";
 import { missingOrgColumn, missingTenantTable, toWorkspace, type OrganizationRow } from "@/lib/tenant/rows";
@@ -6,16 +7,14 @@ import type { ClientMetric, MembershipRole, WorkspaceBlueprint, WorkspaceSummary
 import { AGENCY_SLUG, emptyChannels, emptyShopify, type ShopifyStoreRecord } from "@/lib/tenant/types";
 
 const ORG_COLUMNS =
-  "id, name, slug, org_type, parent_id, legal_name, location, industry, logo_url, primary_color, accent_color, domain, form_key, settings";
+  "id, name, slug, org_type, parent_id, legal_name, location, industry, logo_url, primary_color, accent_color, domain, form_key, settings, sending_enabled, sender_name, timezone, currency";
 
-function admin() {
-  const client = createSupabaseAdminClient();
-  if (!client) throw new Error("Supabase service role is not configured.");
-  return client;
+async function db() {
+  return createSupabaseServerClient();
 }
 
 export async function findOrgBySlug(slug: string) {
-  const { data, error } = await admin().from("organizations").select(ORG_COLUMNS).eq("slug", slug).maybeSingle();
+  const { data, error } = await (await db()).from("organizations").select(ORG_COLUMNS).eq("slug", slug).maybeSingle();
   if (error) {
     if (missingTenantTable(error)) return null;
     throw new Error(error.message);
@@ -24,7 +23,7 @@ export async function findOrgBySlug(slug: string) {
 }
 
 export async function findOrgByFormKey(formKey: string) {
-  const { data, error } = await admin().from("organizations").select(ORG_COLUMNS).eq("form_key", formKey).maybeSingle();
+  const { data, error } = await (await db()).from("organizations").select(ORG_COLUMNS).eq("form_key", formKey).maybeSingle();
   if (error) {
     if (missingTenantTable(error)) return null;
     throw new Error(error.message);
@@ -38,7 +37,7 @@ export async function agencyOrgId() {
 }
 
 async function countLeads(orgId: string) {
-  const { data, error } = await admin().from("crm_leads").select("stage").eq("org_id", orgId);
+  const { data, error } = await (await db()).from("crm_leads").select("stage").eq("org_id", orgId);
   if (error) {
     if (missingOrgColumn(error) || missingTenantTable(error)) return { total: 0, won: 0 };
     throw new Error(error.message);
@@ -49,7 +48,7 @@ async function countLeads(orgId: string) {
 }
 
 async function pipelineValue(orgId: string) {
-  const invoices = await admin().from("crm_invoices").select("amount, status").eq("org_id", orgId);
+  const invoices = await (await db()).from("crm_invoices").select("amount, status").eq("org_id", orgId);
   let invoiceTotal = 0;
   if (!invoices.error) {
     invoiceTotal = (invoices.data ?? [])
@@ -59,7 +58,7 @@ async function pipelineValue(orgId: string) {
     throw new Error(invoices.error.message);
   }
 
-  const deals = await admin().from("workspace_deals").select("amount_cents, status").eq("org_id", orgId);
+  const deals = await (await db()).from("workspace_deals").select("amount_cents, status").eq("org_id", orgId);
   let dealTotal = 0;
   if (!deals.error) {
     dealTotal = (deals.data ?? [])
@@ -74,9 +73,9 @@ async function pipelineValue(orgId: string) {
 }
 
 async function shopifyFigures(orgId: string) {
-  const orders = await admin().from("workspace_shopify_orders").select("total_cents, counts_as_revenue").eq("org_id", orgId);
-  const carts = await admin().from("workspace_shopify_checkouts").select("total_cents, abandoned").eq("org_id", orgId);
-  const stores = await admin().from("workspace_shopify_stores").select("id", { count: "exact", head: true }).eq("org_id", orgId);
+  const orders = await (await db()).from("workspace_shopify_orders").select("total_cents, counts_as_revenue").eq("org_id", orgId);
+  const carts = await (await db()).from("workspace_shopify_checkouts").select("total_cents, abandoned").eq("org_id", orgId);
+  const stores = await (await db()).from("workspace_shopify_stores").select("id", { count: "exact", head: true }).eq("org_id", orgId);
   if (orders.error && !missingTenantTable(orders.error) && !missingOrgColumn(orders.error)) throw new Error(orders.error.message);
   if (carts.error && !missingTenantTable(carts.error) && !missingOrgColumn(carts.error)) throw new Error(carts.error.message);
   const revenue = (orders.data ?? [])
@@ -89,7 +88,7 @@ async function shopifyFigures(orgId: string) {
 }
 
 export async function listStages(orgId: string) {
-  const { data, error } = await admin()
+  const { data, error } = await (await db())
     .from("workspace_pipeline_stages")
     .select("name, position")
     .eq("org_id", orgId)
@@ -127,20 +126,13 @@ export async function clientMetrics(clients: WorkspaceSummary[]): Promise<Client
 }
 
 export async function listMembers(orgId: string) {
-  const { data, error } = await admin().from("memberships").select("user_id, role, created_at").eq("org_id", orgId);
+  const { data, error } = await (await db()).from("memberships").select("user_id, role, created_at").eq("org_id", orgId);
   if (error) {
     if (missingTenantTable(error)) return [];
     throw new Error(error.message);
   }
   const rows = data ?? [];
-  const emails = new Map<string, string>();
-  const authAdmin = admin().auth.admin;
-  if (rows.length && authAdmin) {
-    const listed = await authAdmin.listUsers({ page: 1, perPage: 200 });
-    for (const user of listed.data?.users ?? []) {
-      if (user.email) emails.set(user.id, user.email);
-    }
-  }
+  const emails = rows.length ? await listAuthEmails() : new Map<string, string>();
   return rows.map((row) => ({
     userId: String(row.user_id),
     email: emails.get(String(row.user_id)) ?? "User",
@@ -149,7 +141,7 @@ export async function listMembers(orgId: string) {
 }
 
 async function cloneBlueprint(orgId: string, blueprint: WorkspaceBlueprint) {
-  const supabase = admin();
+  const supabase = (await db());
   const pipeline = await supabase
     .from("workspace_pipelines")
     .insert({ org_id: orgId, name: blueprint.pipelineName, is_default: true })
@@ -207,7 +199,7 @@ export async function createClientWorkspace(input: {
   blueprintKey: "agency" | "education" | "ecommerce";
   parentId: string;
 }) {
-  const supabase = admin();
+  const supabase = (await db());
   const base = slugify(input.slug || input.name);
   let slug = base;
   for (let attempt = 1; attempt < 20; attempt += 1) {
@@ -229,6 +221,8 @@ export async function createClientWorkspace(input: {
       industry: blueprint.key === "education" ? "Education" : blueprint.key === "ecommerce" ? "Ecommerce" : "",
       domain: input.domain?.trim() || "",
       form_key: slug,
+      sending_enabled: false,
+      sender_name: input.name.trim(),
       primary_color: blueprint.key === "ecommerce" ? "#111827" : blueprint.key === "education" ? "#0F3D4C" : "#0B1F3A",
       accent_color: blueprint.key === "ecommerce" ? "#16A34A" : blueprint.key === "education" ? "#C4A35A" : "#2563EB",
       settings: { channels: emptyChannels(), shopify: emptyShopify() },
@@ -243,7 +237,7 @@ export async function createClientWorkspace(input: {
 }
 
 export async function listShopifyStores(orgId: string): Promise<ShopifyStoreRecord[]> {
-  const { data, error } = await admin()
+  const { data, error } = await (await db())
     .from("workspace_shopify_stores")
     .select("niche, name, myshopify_domain, public_domain, plan_status")
     .eq("org_id", orgId)
@@ -262,25 +256,22 @@ export async function listShopifyStores(orgId: string): Promise<ShopifyStoreReco
 }
 
 export async function setShopifyPlanStatus(orgId: string, planStatus: "not_connected" | "credentials_saved") {
-  const { error } = await admin().from("workspace_shopify_stores").update({ plan_status: planStatus }).eq("org_id", orgId);
+  const { error } = await (await db()).from("workspace_shopify_stores").update({ plan_status: planStatus }).eq("org_id", orgId);
   if (error && !missingTenantTable(error)) throw new Error(error.message);
 }
 
 export async function updateWorkspace(orgId: string, patch: Record<string, unknown>) {
-  const { error } = await admin().from("organizations").update({ ...patch, updated_at: new Date().toISOString() }).eq("id", orgId);
+  const { error } = await (await db()).from("organizations").update({ ...patch, updated_at: new Date().toISOString() }).eq("id", orgId);
   if (error) throw new Error(error.message);
 }
 
 export async function addMembership(orgId: string, email: string, role: MembershipRole) {
-  const supabase = admin();
-  const listed = await supabase.auth.admin.listUsers({ page: 1, perPage: 200 });
-  if (listed.error) throw new Error(listed.error.message);
-  const user = listed.data.users.find((item) => item.email?.toLowerCase() === email.toLowerCase());
-  if (!user) {
+  const userId = await findAuthUserIdByEmail(email);
+  if (!userId) {
     throw new Error("No Supabase Auth user with that email yet. Create the user under Authentication → Users, then add them here.");
   }
-  const { error } = await supabase.from("memberships").upsert(
-    { user_id: user.id, org_id: orgId, role },
+  const { error } = await (await db()).from("memberships").upsert(
+    { user_id: userId, org_id: orgId, role },
     { onConflict: "user_id,org_id" },
   );
   if (error) throw new Error(error.message);

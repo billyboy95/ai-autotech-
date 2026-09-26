@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { enrollLead } from "@/lib/automation/service";
 import { createPublicLead } from "@/lib/crm-store";
 
 const ALLOWED_ORIGINS = new Set([
@@ -67,6 +68,18 @@ export async function POST(request: Request) {
 
   try {
     const id = await createPublicLead({ name, email, phone, company, message });
+    const enrolled = await enrollLead({
+      id,
+      name: name || "Website lead",
+      email,
+      phone,
+      company,
+      notes: [email, message].filter(Boolean).join("\n"),
+      source: "public_form",
+      utmSource: String(body.utm_source ?? "").slice(0, 120),
+      campaign: String(body.utm_campaign ?? body.campaign ?? "").slice(0, 120),
+    });
+    if (!enrolled.ok) console.error("public lead automation skipped", enrolled.error);
     return json({ ok: true, id }, 200, origin);
   } catch (error) {
     return json(

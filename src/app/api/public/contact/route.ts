@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { enrollLead } from "@/lib/automation/service";
 import { nid } from "@/lib/crm-store";
 
 export const runtime = "nodejs";
@@ -228,6 +229,22 @@ export async function POST(request: Request) {
     if (lead.error) {
       // Contact row is saved; CRM mirror failure should not lose the lead.
       console.error("crm_leads mirror failed", lead.error.message);
+    }
+
+    const enrolled = await enrollLead({
+      id: crmLeadId,
+      name: input.name,
+      company,
+      phone: input.phone,
+      email: input.email,
+      notes,
+      source: "website_contact",
+      utmSource: input.utm_source,
+      campaign: input.utm_campaign,
+      contactLeadId: data.id,
+    });
+    if (!enrolled.ok) {
+      console.error("contact automation skipped", enrolled.error);
     }
   }
 

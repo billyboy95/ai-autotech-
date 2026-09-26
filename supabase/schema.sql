@@ -543,3 +543,7 @@ create policy "tenant appointments" on appointments for all
 -- supabase/migrations/20260903000000_company_crm.sql
 -- (crm_leads, crm_clients, crm_jobs, crm_invoices).
 -- Existing leads/clients/invoices above belong to the classic Command Centre OS.
+-- Automated pipeline, outbox, templates, and handover tables:
+-- supabase/migrations/20260926160000_crm_automation.sql
+-- SMS, social queue, clicks, and outbound campaigns:
+-- supabase/migrations/20260926183000_outbound_channels.sql

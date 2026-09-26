@@ -29,6 +29,8 @@ export type DailyReport = {
   stuck: StuckLead[];
   outboxQueued: number;
   outboxApproved: number;
+  socialQueued: number;
+  attribution: Array<{ source: string; campaign: string; leads: number }>;
   sendingEnabled: boolean;
 };
 
@@ -88,10 +90,29 @@ export function buildReport(state: AutomationState, now: Date, sendingEnabled = 
       .filter((lead) => WON.includes(lead.stage))
       .reduce((sum, lead) => sum + (lead.valueZar || 0), 0),
     stuck: stuckLeads(state, now),
-    outboxQueued: state.outbox.filter((message) => message.status === "queued").length,
-    outboxApproved: state.outbox.filter((message) => message.status === "approved").length,
+    outboxQueued:
+      state.outbox.filter((message) => message.status === "queued").length +
+      (state.socialPosts || []).filter((post) => post.status === "queued").length,
+    outboxApproved:
+      state.outbox.filter((message) => message.status === "approved").length +
+      (state.socialPosts || []).filter((post) => post.status === "approved").length,
+    socialQueued: (state.socialPosts || []).filter((post) => post.status === "queued").length,
+    attribution: attributionRows(state),
     sendingEnabled,
   };
+}
+
+function attributionRows(state: AutomationState) {
+  const counts = new Map<string, { source: string; campaign: string; leads: number }>();
+  for (const lead of state.leads) {
+    const source = lead.utmSource || lead.source || "unknown";
+    const campaign = lead.campaign || "(none)";
+    const key = `${source}::${campaign}`;
+    const row = counts.get(key) || { source, campaign, leads: 0 };
+    row.leads += 1;
+    counts.set(key, row);
+  }
+  return [...counts.values()].sort((a, b) => b.leads - a.leads || a.source.localeCompare(b.source));
 }
 
 function stuckLeads(state: AutomationState, now: Date): StuckLead[] {
@@ -131,7 +152,10 @@ export function summaryLines(report: DailyReport) {
     `${report.newToday} new lead${report.newToday === 1 ? "" : "s"} today.`,
     `Pipeline value ${report.pipelineValueZar} ZAR. Won value ${report.wonValueZar} ZAR.`,
     `Conversion: ${report.conversion.contacted}% contacted, ${report.conversion.booked}% booked, ${report.conversion.won}% won.`,
-    `${report.stuck.length} stuck or overdue. ${report.outboxQueued} messages waiting in the outbox.`,
+    `${report.stuck.length} stuck or overdue. ${report.outboxQueued} messages and posts waiting in the outbox.`,
+    ...(report.attribution.length
+      ? [`Attribution: ${report.attribution.map((row) => `${row.source} / ${row.campaign}: ${row.leads}`).join("; ")}.`]
+      : []),
     report.sendingEnabled
       ? "Automatic sending is ON."
       : "Automatic sending is OFF. Messages stay in the outbox.",

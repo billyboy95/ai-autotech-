@@ -9,6 +9,8 @@ const links = [
   ["/command-centre", "Today"],
   ["/command-centre/pipeline", "Pipeline"],
   ["/command-centre/outbox", "Outbox"],
+  ["/command-centre/campaigns", "Campaigns"],
+  ["/command-centre/social", "Social"],
   ["/command-centre/templates", "Templates"],
   ["/command-centre/summary", "Summary"],
   ["/command-centre/clients", "Clients"],

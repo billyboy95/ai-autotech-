@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { nid } from "@/lib/crm-store";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { importProspectCsv, saveCampaign } from "@/lib/automation/campaigns";
 import {
   addNote,
   advanceHandovers,
@@ -14,8 +15,10 @@ import {
   updateSettings,
   updateTemplate,
 } from "@/lib/automation/engine";
+import { approveSocialPost, cancelSocialPost, queueSocialPost } from "@/lib/automation/social";
+import { newId } from "@/lib/automation/ids";
 import { enrollLead, isDemoMode, mutateWorkspace, runAutomationJob } from "@/lib/automation/service";
-import { normalizeStage, PIPELINE_STAGES, type AssignmentRule, type PipelineStage } from "@/lib/automation/types";
+import { normalizeStage, PIPELINE_STAGES, type AssignmentRule, type CampaignStep, type PipelineStage, type SocialPlatform } from "@/lib/automation/types";
 
 function refresh() {
   revalidatePath("/command-centre");
@@ -24,6 +27,8 @@ function refresh() {
   revalidatePath("/command-centre/templates");
   revalidatePath("/command-centre/summary");
   revalidatePath("/command-centre/settings");
+  revalidatePath("/command-centre/campaigns");
+  revalidatePath("/command-centre/social");
   revalidatePath("/command-centre/leads/[id]", "page");
 }
 
@@ -173,4 +178,85 @@ export async function saveAutomationSettings(formData: FormData) {
 export async function runAutomationsNow() {
   await runAutomationJob();
   refresh();
+}
+
+export async function importCampaignCsv(formData: FormData) {
+  const file = formData.get("file");
+  let csv = String(formData.get("csv") || "");
+  if (file instanceof File && file.size > 0) csv = await file.text();
+  const campaignId = String(formData.get("campaignId") || "");
+  await mutateWorkspace((state) => {
+    const imported = importProspectCsv(state, csv, new Date(), campaignId);
+    if (imported.error) throw new Error(imported.error);
+    if (!imported.count) throw new Error("Every row was already in that campaign.");
+    return imported.state;
+  });
+  refresh();
+}
+
+export async function saveCampaignForm(formData: FormData) {
+  const id = String(formData.get("id") || "") || newId("cmp");
+  const steps: CampaignStep[] = [0, 1, 2].flatMap((index) => {
+    const body = String(formData.get(`body_${index}`) || "").trim();
+    if (!body) return [];
+    const channel = String(formData.get(`channel_${index}`) || "whatsapp");
+    return [
+      {
+        id: String(formData.get(`step_${index}`) || "") || newId("stp"),
+        channel: channel === "email" || channel === "sms" ? channel : "whatsapp",
+        delayHours: Number(formData.get(`delay_${index}`) || 0),
+        subject: String(formData.get(`subject_${index}`) || ""),
+        body,
+      },
+    ];
+  });
+  const statusValue = String(formData.get("status") || "active");
+  await mutateWorkspace((state) =>
+    saveCampaign(state, {
+      id,
+      name: String(formData.get("name") || "Outbound prospects"),
+      status: statusValue === "paused" || statusValue === "draft" ? statusValue : "active",
+      steps,
+      createdAt: String(formData.get("createdAt") || "") || new Date().toISOString(),
+    }),
+  );
+  refresh();
+}
+
+export async function queueSocialPostForm(formData: FormData) {
+  const platformValue = String(formData.get("platform") || "facebook");
+  const platform: SocialPlatform = platformValue === "instagram" || platformValue === "linkedin" ? platformValue : "facebook";
+  const body = String(formData.get("body") || "").trim();
+  if (!body) throw new Error("Write the post before queueing it.");
+  await mutateWorkspace((state) =>
+    queueSocialPost(state, {
+      platform,
+      body,
+      mediaUrl: String(formData.get("mediaUrl") || ""),
+      linkUrl: String(formData.get("linkUrl") || ""),
+      scheduledFor: fromJohannesburg(String(formData.get("scheduledFor") || "")),
+      utmSource: String(formData.get("utmSource") || ""),
+      utmCampaign: String(formData.get("utmCampaign") || ""),
+    }),
+  );
+  refresh();
+}
+
+export async function approveSocial(formData: FormData) {
+  const id = String(formData.get("id") || "");
+  await mutateWorkspace((state) => approveSocialPost(state, id));
+  refresh();
+}
+
+export async function cancelSocial(formData: FormData) {
+  const id = String(formData.get("id") || "");
+  await mutateWorkspace((state) => cancelSocialPost(state, id));
+  refresh();
+}
+
+function fromJohannesburg(value: string) {
+  if (!value.trim()) return new Date().toISOString();
+  const stamp = value.length === 16 ? `${value}:00+02:00` : value;
+  const date = new Date(stamp);
+  return Number.isNaN(date.getTime()) ? new Date().toISOString() : date.toISOString();
 }

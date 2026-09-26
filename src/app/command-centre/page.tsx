@@ -39,6 +39,20 @@ export default async function CommandCentrePage() {
           <Card label="Stuck or overdue" value={String(report.stuck.length)} detail="Needs a look" />
         </section>
 
+        <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+          <h2 className="font-display text-lg font-bold text-[#0B1F3A]">Attribution</h2>
+          <ul className="mt-3 grid gap-1 text-sm">
+            {report.attribution.length === 0 ? <li className="text-slate-500">No leads yet.</li> : null}
+            {report.attribution.map((row) => (
+              <li key={`${row.source}-${row.campaign}`}>
+                <span className="font-semibold text-[#0B1F3A]">{row.source}</span>
+                <span className="text-slate-500"> / {row.campaign}</span>
+                <span className="text-slate-700"> · {row.leads}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+
         <section className="grid gap-3 sm:grid-cols-3">
           <Card label="Contacted" value={`${report.conversion.contacted}%`} detail="Share of leads past New" />
           <Card label="Audit booked" value={`${report.conversion.booked}%`} detail="Booked, proposed, or won" />

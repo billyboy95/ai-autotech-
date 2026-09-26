@@ -18,6 +18,17 @@ export function buildMailto(email: string, subject: string, body: string) {
   return `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 }
 
+export function buildSmsLink(phone: string, body: string) {
+  const digits = toWaDigits(phone);
+  if (!digits) return "";
+  return `sms:+${digits}?body=${encodeURIComponent(body)}`;
+}
+
+export function toE164(phone: string) {
+  const digits = toWaDigits(phone);
+  return digits ? `+${digits}` : "";
+}
+
 export function renderTemplate(template: string, vars: Record<string, string>) {
   return template.replace(/\{\{\s*(\w+)\s*\}\}/g, (_, key: string) => vars[key] ?? "");
 }

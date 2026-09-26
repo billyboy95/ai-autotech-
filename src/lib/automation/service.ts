@@ -5,6 +5,7 @@ import { isSendEnabled } from "@/lib/automation/channels";
 import { applyStageRules, captureLead, createInitialState, runCron } from "@/lib/automation/engine";
 import { flushOutbox } from "@/lib/automation/flush";
 import { loadSupabaseWorkspace, MIGRATION_FILE, saveSupabaseWorkspace } from "@/lib/automation/persist";
+import { publishDuePosts, recordClick } from "@/lib/automation/social";
 import type { AutomationState, CaptureInput } from "@/lib/automation/types";
 
 const DEMO_FILE = path.join(process.cwd(), "data", "automation-demo.json");
@@ -22,14 +23,14 @@ export function isDemoMode() {
 
 export async function loadWorkspace(): Promise<Workspace> {
   if (isDemoMode()) {
-    return { state: applyEnvDefaults(readDemoState()), automationReady: true, setupError: null, demo: true };
+    return { state: applyEnvDefaults(hydrateState(readDemoState())), automationReady: true, setupError: null, demo: true };
   }
   const supabase = createSupabaseAdminClient();
   if (!supabase) {
     throw new Error("CRM store requires NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.");
   }
   const loaded = await loadSupabaseWorkspace(supabase);
-  return { ...loaded, state: applyEnvDefaults(loaded.state), demo: false };
+  return { ...loaded, state: applyEnvDefaults(hydrateState(loaded.state)), demo: false };
 }
 
 function applyEnvDefaults(state: AutomationState): AutomationState {
@@ -74,6 +75,7 @@ export async function runAutomationJob() {
   const now = new Date();
   let after = runCron(workspace.state, now, process.env);
   after = await flushOutbox(after, now, process.env);
+  after = await publishDuePosts(after, now, process.env);
   if (isSendEnabled()) after = applyStageRules(after, now, process.env);
   await saveWorkspace(workspace.state, after);
   return { ok: true as const, events: describeChanges(workspace.state, after), error: undefined };
@@ -93,7 +95,34 @@ export function readDemoState(): AutomationState {
   if (!fs.existsSync(DEMO_FILE)) return createInitialState();
   const parsed = JSON.parse(fs.readFileSync(DEMO_FILE, "utf8")) as AutomationState;
   if (!parsed.settings) return createInitialState();
-  return parsed;
+  return hydrateState(parsed);
+}
+
+export function hydrateState(state: AutomationState): AutomationState {
+  const base = createInitialState();
+  return {
+    ...base,
+    ...state,
+    settings: state.settings || base.settings,
+    leads: (state.leads || []).map((lead) => ({ ...lead, utmSource: lead.utmSource || "" })),
+    outbox: (state.outbox || []).map((message) => ({ ...message, prospectId: message.prospectId ?? null })),
+    socialPosts: state.socialPosts || [],
+    campaigns: state.campaigns || [],
+    prospects: state.prospects || [],
+    clicks: state.clicks || [],
+  };
+}
+
+export async function recordTrackedClick(input: {
+  postId?: string | null;
+  utmSource: string;
+  utmCampaign: string;
+  utmMedium: string;
+  destination: string;
+}) {
+  const workspace = await loadWorkspace();
+  const after = recordClick(workspace.state, input, new Date());
+  await saveWorkspace(workspace.state, after);
 }
 
 export function writeDemoState(state: AutomationState) {

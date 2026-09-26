@@ -56,7 +56,8 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
           <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
             <Fact label="Owner" value={lead.ownerName || "Unassigned"} />
             <Fact label="Value" value={lead.valueZar ? formatZar(lead.valueZar) : "Not set"} />
-            <Fact label="Source" value={[lead.source, lead.qrSource].filter(Boolean).join(" · ") || "Manual"} />
+            <Fact label="Source" value={[lead.utmSource || lead.source, lead.qrSource].filter(Boolean).join(" · ") || "Manual"} />
+            <Fact label="Campaign" value={lead.campaign || "None"} />
             <Fact label="Team size" value={lead.companySize || "Unknown"} />
           </dl>
           {lead.scoreReasons.length ? <p className="mt-3 text-sm text-slate-600">{lead.scoreReasons.join(" · ")}</p> : null}
@@ -146,9 +147,14 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
                       {message.templateKey} · {message.channel} · {message.status}
                     </p>
                     <p className="text-slate-600">{message.body.slice(0, 180)}</p>
-                    {message.waLink ? (
+                    {message.channel === "whatsapp" && message.waLink ? (
                       <a href={message.waLink} className="font-semibold text-[#2563EB]">
                         wa.me draft
+                      </a>
+                    ) : null}
+                    {message.channel === "sms" && message.waLink ? (
+                      <a href={message.waLink} className="font-semibold text-[#2563EB]">
+                        SMS draft
                       </a>
                     ) : null}
                     {message.channel === "email" ? (

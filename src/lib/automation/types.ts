@@ -19,7 +19,15 @@ export const OPEN_STAGES: PipelineStage[] = [
   "Proposal sent",
 ];
 
-export type Channel = "whatsapp" | "email";
+export type Channel = "whatsapp" | "email" | "sms";
+
+export type SocialPlatform = "facebook" | "instagram" | "linkedin";
+
+export type SocialStatus = "queued" | "approved" | "published" | "failed" | "cancelled";
+
+export type CampaignStatus = "draft" | "active" | "paused";
+
+export type ProspectStatus = "queued" | "in_sequence" | "replied" | "booked" | "stopped";
 
 export type OutboxStatus = "queued" | "approved" | "sent" | "failed" | "cancelled";
 
@@ -68,6 +76,7 @@ export type LeadRecord = {
   source: string;
   qrSource: string;
   campaign: string;
+  utmSource: string;
   eventName: string;
   ownerName: string;
   score: number;
@@ -106,6 +115,7 @@ export type Activity = {
 export type OutboxMessage = {
   id: string;
   leadId: string;
+  prospectId: string | null;
   templateKey: string;
   channel: Channel;
   toAddress: string;
@@ -140,6 +150,77 @@ export type OnboardingTask = {
   createdAt: string;
 };
 
+export type SocialPost = {
+  id: string;
+  platform: SocialPlatform;
+  body: string;
+  mediaUrl: string;
+  linkUrl: string;
+  scheduledFor: string;
+  status: SocialStatus;
+  utmSource: string;
+  utmCampaign: string;
+  copyText: string;
+  provider: string;
+  providerId: string;
+  error: string;
+  publishedAt: string | null;
+  createdAt: string;
+};
+
+export type CampaignStep = {
+  id: string;
+  channel: Channel;
+  delayHours: number;
+  subject: string;
+  body: string;
+};
+
+export type Campaign = {
+  id: string;
+  name: string;
+  status: CampaignStatus;
+  steps: CampaignStep[];
+  createdAt: string;
+};
+
+export type ProspectTouch = {
+  at: string;
+  channel: Channel;
+  title: string;
+  body: string;
+  messageId: string;
+};
+
+export type Prospect = {
+  id: string;
+  campaignId: string;
+  name: string;
+  business: string;
+  niche: string;
+  website: string;
+  phone: string;
+  email: string;
+  openingLine: string;
+  status: ProspectStatus;
+  stepIndex: number;
+  leadId: string | null;
+  touches: ProspectTouch[];
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type TrackedClick = {
+  id: string;
+  postId: string | null;
+  utmSource: string;
+  utmCampaign: string;
+  utmMedium: string;
+  destination: string;
+  leadId: string | null;
+  createdAt: string;
+};
+
 export type QuotePlaceholder = {
   id: string;
   leadId: string;
@@ -161,6 +242,10 @@ export type AutomationState = {
   handovers: Handover[];
   tasks: OnboardingTask[];
   quotes: QuotePlaceholder[];
+  socialPosts: SocialPost[];
+  campaigns: Campaign[];
+  prospects: Prospect[];
+  clicks: TrackedClick[];
 };
 
 export type CaptureInput = {
@@ -173,6 +258,7 @@ export type CaptureInput = {
   source?: string;
   qrSource?: string;
   campaign?: string;
+  utmSource?: string;
   eventName?: string;
   website?: string;
   industry?: string;
@@ -246,6 +332,7 @@ export function emptyLead(partial: Partial<LeadRecord> & Pick<LeadRecord, "id" |
     source: "",
     qrSource: "",
     campaign: "",
+    utmSource: "",
     eventName: "",
     ownerName: "",
     score: 0,

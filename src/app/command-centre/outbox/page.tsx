@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { approveOutboxMessage, cancelOutboxMessage } from "@/app/actions/automation";
+import { approveOutboxMessage, approveSocial, cancelOutboxMessage, cancelSocial } from "@/app/actions/automation";
+import { CopyButton } from "@/components/crm/copy-button";
 import { CrmFrame } from "@/components/crm/frame";
 import { buildMailto } from "@/lib/automation/channels";
 import { formatWhen } from "@/lib/automation/ids";
@@ -19,6 +20,8 @@ export default async function OutboxPage() {
     .slice()
     .sort((a, b) => b.scheduledFor.localeCompare(a.scheduledFor));
   const names = new Map(workspace.state.leads.map((lead) => [lead.id, lead.name]));
+  const prospectNames = new Map(workspace.state.prospects.map((prospect) => [prospect.id, prospect.name]));
+  const posts = workspace.state.socialPosts.slice().sort((a, b) => b.scheduledFor.localeCompare(a.scheduledFor));
 
   return (
     <CrmFrame setupError={workspace.setupError} sendingEnabled={sendingEnabled}>
@@ -41,9 +44,13 @@ export default async function OutboxPage() {
                     {message.channel} · {message.status} · {message.provider || "outbox"}
                   </p>
                   <h2 className="font-semibold text-[#0B1F3A]">
-                    <Link href={`/command-centre/leads/${message.leadId}`} className="hover:text-[#2563EB]">
-                      {names.get(message.leadId) || message.leadId}
-                    </Link>
+                    {message.leadId ? (
+                      <Link href={`/command-centre/leads/${message.leadId}`} className="hover:text-[#2563EB]">
+                        {names.get(message.leadId) || message.leadId}
+                      </Link>
+                    ) : (
+                      <span>{prospectNames.get(message.prospectId || "") || "Prospect"}</span>
+                    )}
                     <span className="font-normal text-slate-500"> · {message.toAddress}</span>
                   </h2>
                   {message.subject ? <p className="text-sm text-slate-600">{message.subject}</p> : null}
@@ -52,9 +59,14 @@ export default async function OutboxPage() {
               </div>
               <p className="mt-3 whitespace-pre-wrap text-sm text-slate-700">{message.body}</p>
               <div className="mt-3 flex flex-wrap gap-2">
-                {message.waLink ? (
+                {message.channel === "whatsapp" && message.waLink ? (
                   <a href={message.waLink} className="inline-flex h-9 items-center rounded-md border border-slate-200 px-3 text-sm font-semibold text-[#0B1F3A]">
                     Open wa.me
+                  </a>
+                ) : null}
+                {message.channel === "sms" && message.waLink ? (
+                  <a href={message.waLink} className="inline-flex h-9 items-center rounded-md border border-slate-200 px-3 text-sm font-semibold text-[#0B1F3A]">
+                    Open SMS draft
                   </a>
                 ) : null}
                 {message.channel === "email" ? (
@@ -81,6 +93,33 @@ export default async function OutboxPage() {
             </article>
           ))}
         </div>
+        <section className="grid gap-3">
+          <h2 className="font-display text-lg font-bold text-[#0B1F3A]">Social queue</h2>
+          {posts.length === 0 ? <p className="text-sm text-slate-500">No social posts queued.</p> : null}
+          {posts.map((post) => (
+            <article key={post.id} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                {post.platform} · {post.status} · {post.utmSource || post.platform} / {post.utmCampaign || "social"}
+              </p>
+              <p className="mt-2 whitespace-pre-wrap text-sm text-slate-700">{post.body}</p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <CopyButton text={post.copyText || post.body} label="Copy & post" />
+                {post.status === "queued" || post.status === "failed" ? (
+                  <form action={approveSocial}>
+                    <input type="hidden" name="id" value={post.id} />
+                    <button className="h-9 rounded-md bg-[#2563EB] px-3 text-sm font-semibold text-white">Approve</button>
+                  </form>
+                ) : null}
+                {post.status !== "published" && post.status !== "cancelled" ? (
+                  <form action={cancelSocial}>
+                    <input type="hidden" name="id" value={post.id} />
+                    <button className="h-9 rounded-md border border-slate-200 px-3 text-sm font-semibold text-slate-600">Cancel</button>
+                  </form>
+                ) : null}
+              </div>
+            </article>
+          ))}
+        </section>
       </div>
     </CrmFrame>
   );

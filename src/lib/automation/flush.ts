@@ -1,5 +1,5 @@
 import { deliverMessage } from "@/lib/automation/send";
-import { buildWaLink, isSendEnabled, type EnvLike } from "@/lib/automation/channels";
+import { buildSmsLink, buildWaLink, isSendEnabled, type EnvLike } from "@/lib/automation/channels";
 import { newId } from "@/lib/automation/ids";
 import type { AutomationState } from "@/lib/automation/types";
 
@@ -13,8 +13,13 @@ export async function flushOutbox(
     return {
       ...state,
       outbox: state.outbox.map((message) => {
-        if (message.channel !== "whatsapp") return message;
-        return { ...message, waLink: message.waLink || buildWaLink(message.toAddress, message.body), provider: message.provider || "outbox" };
+        if (message.channel === "whatsapp") {
+          return { ...message, waLink: message.waLink || buildWaLink(message.toAddress, message.body), provider: message.provider || "outbox" };
+        }
+        if (message.channel === "sms") {
+          return { ...message, waLink: message.waLink || buildSmsLink(message.toAddress, message.body), provider: message.provider || "outbox" };
+        }
+        return message;
       }),
     };
   }
@@ -43,7 +48,7 @@ export async function flushOutbox(
           : item,
       ),
       activities:
-        result.status === "sent"
+        result.status === "sent" && message.leadId
           ? [
               ...next.activities,
               {
@@ -51,8 +56,8 @@ export async function flushOutbox(
                 leadId: message.leadId,
                 kind: "message_sent",
                 title: `Sent via ${result.provider}`,
-                body: message.templateKey,
-                metadata: { messageId: message.id, provider: result.provider },
+                body: `${message.channel} · ${message.templateKey}`,
+                metadata: { messageId: message.id, provider: result.provider, channel: message.channel },
                 createdAt: now.toISOString(),
               },
             ]

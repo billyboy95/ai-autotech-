@@ -1,6 +1,8 @@
 import { assignOwner } from "@/lib/automation/assign";
-import { buildWaLink, isSendEnabled, renderTemplate, type EnvLike } from "@/lib/automation/channels";
+import { ensureProspectInPipeline, queueDueCampaignSteps } from "@/lib/automation/campaigns";
+import { buildSmsLink, buildWaLink, isSendEnabled, renderTemplate, type EnvLike } from "@/lib/automation/channels";
 import { firstName, formatWhen, newId } from "@/lib/automation/ids";
+import { claimClick } from "@/lib/automation/social";
 import { readCompanySize, scoreLead } from "@/lib/automation/score";
 import { DEFAULT_TEMPLATES, STEP_INDEX, STEP_TEMPLATES, type SequenceStep } from "@/lib/automation/templates";
 import {
@@ -37,6 +39,10 @@ export function createInitialState(partial?: Partial<AutomationState>): Automati
     handovers: [],
     tasks: [],
     quotes: [],
+    socialPosts: [],
+    campaigns: [],
+    prospects: [],
+    clicks: [],
     ...partial,
   };
 }
@@ -76,6 +82,7 @@ export function captureLead(state: AutomationState, input: CaptureInput, now: Da
     source: input.source || existing?.source || "",
     qrSource: input.qrSource || existing?.qrSource || "",
     campaign: input.campaign || existing?.campaign || "",
+    utmSource: input.utmSource || existing?.utmSource || "",
     eventName: input.eventName || existing?.eventName || "",
     website: input.website || existing?.website || "",
     industry: input.industry || existing?.industry || "",
@@ -94,6 +101,7 @@ export function captureLead(state: AutomationState, input: CaptureInput, now: Da
     ord: existing?.ord ?? -Math.floor(now.getTime() / 1000),
   });
 
+  const claimed = claimClick(state, lead.id, lead.utmSource, lead.campaign);
   const activities: Activity[] = [
     activity(lead.id, "assigned", `Assigned to ${assigned.owner}`, assigned.reason, now, { owner: assigned.owner }),
     activity(lead.id, "scored", `Score ${scored.score}`, scored.reasons.join(" · "), now, {
@@ -101,9 +109,23 @@ export function captureLead(state: AutomationState, input: CaptureInput, now: Da
       reasons: scored.reasons,
     }),
   ];
+  if (lead.utmSource || lead.campaign || claimed.click) {
+    const source = lead.utmSource || lead.source || "unknown";
+    const campaign = lead.campaign || "none";
+    activities.push(
+      activity(
+        lead.id,
+        "attribution",
+        claimed.click ? "Social click became this lead" : "Attribution",
+        `source ${source} · campaign ${campaign}`,
+        now,
+        { source, campaign, clickId: claimed.click?.id || "", channel: claimed.click ? "social" : "" },
+      ),
+    );
+  }
 
   let next = upsertLead(
-    { ...state, settings: assigned.settings },
+    { ...claimed.state, settings: assigned.settings },
     lead,
     activities,
   );
@@ -130,6 +152,7 @@ export function backfillOwners(state: AutomationState, now: Date): AutomationSta
 export function runCron(state: AutomationState, now: Date, env: EnvLike = process.env): AutomationState {
   let next = backfillOwners(state, now);
   next = queueDueFollowUps(next, now);
+  next = queueDueCampaignSteps(next, now);
   next = applyStageRules(next, now, env);
   next = advanceHandovers(next, now);
   return next;
@@ -221,12 +244,13 @@ export function queueDueFollowUps(state: AutomationState, now: Date): Automation
 }
 
 export function applyInbound(state: AutomationState, event: InboundEvent, now: Date): AutomationState {
-  const lead = findInboundLead(state, event);
-  if (!lead) return state;
+  const prepared = ensureProspectInPipeline(state, event, now);
+  const lead = findInboundLead(prepared, event);
+  if (!lead) return prepared;
 
   if (event.type === "booking.created") {
     const startsAt = event.startsAt || now.toISOString();
-    let next = cancelQueued(state, lead.id, NUDGE_KEYS, now, "Follow-up nudges stopped because an audit was booked.");
+    let next = cancelQueued(prepared, lead.id, NUDGE_KEYS, now, "Follow-up nudges stopped because an audit was booked.");
     next = patchLead(
       next,
       lead.id,
@@ -245,7 +269,7 @@ export function applyInbound(state: AutomationState, event: InboundEvent, now: D
   }
 
   if (event.type === "reply.received") {
-    const next = cancelQueued(state, lead.id, NUDGE_KEYS, now, "Follow-up nudges stopped because they replied.");
+    const next = cancelQueued(prepared, lead.id, NUDGE_KEYS, now, "Follow-up nudges stopped because they replied.");
     const patch: Partial<LeadRecord> = {
       repliedAt: now.toISOString(),
       updatedAt: now.toISOString(),
@@ -260,17 +284,17 @@ export function applyInbound(state: AutomationState, event: InboundEvent, now: D
   }
 
   if (event.type === "audit.completed") {
-    return moveStage(state, lead.id, "Audit done", now, "Audit marked done from the booking webhook.");
+    return moveStage(prepared, lead.id, "Audit done", now, "Audit marked done from the booking webhook.");
   }
 
   if (event.type === "proposal.sent") {
-    return moveStage(state, lead.id, "Proposal sent", now, event.whatSold || "Proposal sent.", {
+    return moveStage(prepared, lead.id, "Proposal sent", now, event.whatSold || "Proposal sent.", {
       valueZar: event.valueZar ?? lead.valueZar,
       proposalSentAt: now.toISOString(),
     });
   }
 
-  return state;
+  return prepared;
 }
 
 export function setStage(
@@ -418,17 +442,19 @@ export function approveMessage(state: AutomationState, messageId: string, now: D
   return {
     ...state,
     outbox: state.outbox.map((item) => (item.id === messageId ? { ...item, status: "approved", error: "" } : item)),
-    activities: [
-      ...state.activities,
-      activity(
-        message.leadId,
-        "message_approved",
-        "Outbox message approved",
-        "Sending is off, so this stays in the outbox until a provider is switched on.",
-        now,
-        { messageId },
-      ),
-    ],
+    activities: message.leadId
+      ? [
+          ...state.activities,
+          activity(
+            message.leadId,
+            "message_approved",
+            "Outbox message approved",
+            "Sending is off, so this stays in the outbox until a provider is switched on.",
+            now,
+            { messageId, channel: message.channel },
+          ),
+        ]
+      : state.activities,
   };
 }
 
@@ -438,10 +464,15 @@ export function cancelMessage(state: AutomationState, messageId: string, now: Da
   return {
     ...state,
     outbox: state.outbox.map((item) => (item.id === messageId ? { ...item, status: "cancelled" } : item)),
-    activities: [
-      ...state.activities,
-      activity(message.leadId, "message_cancelled", "Outbox message cancelled", message.templateKey, now, { messageId }),
-    ],
+    activities: message.leadId
+      ? [
+          ...state.activities,
+          activity(message.leadId, "message_cancelled", "Outbox message cancelled", message.templateKey, now, {
+            messageId,
+            channel: message.channel,
+          }),
+        ]
+      : state.activities,
   };
 }
 
@@ -479,6 +510,7 @@ function queueStep(state: AutomationState, leadId: string, step: SequenceStep, s
     const message: OutboxMessage = {
       id: newId("msg"),
       leadId,
+      prospectId: null,
       templateKey: key,
       channel: template.channel,
       toAddress,
@@ -490,7 +522,12 @@ function queueStep(state: AutomationState, leadId: string, step: SequenceStep, s
       provider: "outbox",
       providerId: "",
       error: "",
-      waLink: template.channel === "whatsapp" ? buildWaLink(toAddress, body) : "",
+      waLink:
+        template.channel === "whatsapp"
+          ? buildWaLink(toAddress, body)
+          : template.channel === "sms"
+            ? buildSmsLink(toAddress, body)
+            : "",
       createdAt: scheduledFor.toISOString(),
     };
     messages.push(message);

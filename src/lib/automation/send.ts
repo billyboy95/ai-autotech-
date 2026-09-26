@@ -1,15 +1,21 @@
 import net from "node:net";
 import tls from "node:tls";
-import { buildWaLink, isSendEnabled, type DeliveryRequest, type DeliveryResult, type EnvLike } from "@/lib/automation/channels";
+import { buildSmsLink, buildWaLink, isSendEnabled, toE164, type DeliveryRequest, type DeliveryResult, type EnvLike } from "@/lib/automation/channels";
 
 function queued(message: DeliveryRequest, provider: string): DeliveryResult {
   return {
     status: "queued",
     provider,
     providerId: "",
-    waLink: message.channel === "whatsapp" ? buildWaLink(message.to, message.body) : "",
+    waLink: manualLink(message),
     error: "",
   };
+}
+
+function manualLink(message: DeliveryRequest) {
+  if (message.channel === "whatsapp") return buildWaLink(message.to, message.body);
+  if (message.channel === "sms") return buildSmsLink(message.to, message.body);
+  return "";
 }
 
 /**
@@ -35,11 +41,123 @@ export async function deliverMessage(
     };
   }
 
+  if (message.channel === "sms") return sendSms(message, env, fetchImpl);
+
   if (env.WHATSAPP_TOKEN && env.WHATSAPP_PHONE_NUMBER_ID) {
     return sendWhatsAppCloud(message, env, fetchImpl);
   }
 
   return queued(message, "wa.me");
+}
+
+async function sendSms(message: DeliveryRequest, env: EnvLike, fetchImpl: typeof fetch): Promise<DeliveryResult> {
+  const link = buildSmsLink(message.to, message.body);
+  const to = toE164(message.to);
+  if (!to) {
+    return { status: "failed", provider: "sms", providerId: "", waLink: "", error: "SMS needs a phone number." };
+  }
+
+  if (env.BULKSMS_TOKEN_ID && env.BULKSMS_TOKEN_SECRET) {
+    return postBulkSms(message, to, link, env.BULKSMS_TOKEN_ID, env.BULKSMS_TOKEN_SECRET, fetchImpl);
+  }
+  if (env.BULKSMS_USERNAME && env.BULKSMS_PASSWORD) {
+    return postBulkSms(message, to, link, env.BULKSMS_USERNAME, env.BULKSMS_PASSWORD, fetchImpl);
+  }
+  if (env.CLICKATELL_API_KEY) return postClickatell(message, to, link, env.CLICKATELL_API_KEY, fetchImpl);
+  if (env.TWILIO_ACCOUNT_SID && env.TWILIO_AUTH_TOKEN && env.TWILIO_FROM_NUMBER) {
+    return postTwilio(message, to, link, env, fetchImpl);
+  }
+
+  return {
+    status: "failed",
+    provider: "sms",
+    providerId: "",
+    waLink: link,
+    error: "No SMS provider configured. Set BULKSMS_TOKEN_ID and BULKSMS_TOKEN_SECRET, or CLICKATELL_API_KEY, or TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN and TWILIO_FROM_NUMBER.",
+  };
+}
+
+async function postBulkSms(
+  message: DeliveryRequest,
+  to: string,
+  link: string,
+  user: string,
+  secret: string,
+  fetchImpl: typeof fetch,
+): Promise<DeliveryResult> {
+  const response = await fetchImpl("https://api.bulksms.com/v1/messages", {
+    method: "POST",
+    headers: {
+      Authorization: `Basic ${Buffer.from(`${user}:${secret}`).toString("base64")}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify([{ to, body: message.body }]),
+  });
+  const payload = (await response.json().catch(() => ({}))) as { id?: string; detail?: string; title?: string } | Array<{ id?: string }>;
+  if (!response.ok) {
+    const detail = Array.isArray(payload) ? "" : payload.detail || payload.title || "";
+    return { status: "failed", provider: "bulksms", providerId: "", waLink: link, error: detail || `BulkSMS returned ${response.status}` };
+  }
+  const id = Array.isArray(payload) ? payload[0]?.id || "" : payload.id || "";
+  return { status: "sent", provider: "bulksms", providerId: id, waLink: link, error: "" };
+}
+
+async function postClickatell(
+  message: DeliveryRequest,
+  to: string,
+  link: string,
+  apiKey: string,
+  fetchImpl: typeof fetch,
+): Promise<DeliveryResult> {
+  const response = await fetchImpl("https://platform.clickatell.com/messages", {
+    method: "POST",
+    headers: {
+      Authorization: apiKey,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      messages: [{ channel: "sms", to: to.replace(/\D/g, ""), content: message.body }],
+    }),
+  });
+  const payload = (await response.json().catch(() => ({}))) as {
+    messages?: Array<{ apiMessageId?: string }>;
+    error?: { description?: string };
+  };
+  if (!response.ok) {
+    return {
+      status: "failed",
+      provider: "clickatell",
+      providerId: "",
+      waLink: link,
+      error: payload.error?.description || `Clickatell returned ${response.status}`,
+    };
+  }
+  return { status: "sent", provider: "clickatell", providerId: payload.messages?.[0]?.apiMessageId || "", waLink: link, error: "" };
+}
+
+async function postTwilio(
+  message: DeliveryRequest,
+  to: string,
+  link: string,
+  env: EnvLike,
+  fetchImpl: typeof fetch,
+): Promise<DeliveryResult> {
+  const sid = env.TWILIO_ACCOUNT_SID || "";
+  const token = env.TWILIO_AUTH_TOKEN || "";
+  const body = new URLSearchParams({ To: to, From: env.TWILIO_FROM_NUMBER || "", Body: message.body });
+  const response = await fetchImpl(`https://api.twilio.com/2010-04-01/Accounts/${sid}/Messages.json`, {
+    method: "POST",
+    headers: {
+      Authorization: `Basic ${Buffer.from(`${sid}:${token}`).toString("base64")}`,
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body,
+  });
+  const payload = (await response.json().catch(() => ({}))) as { sid?: string; message?: string };
+  if (!response.ok) {
+    return { status: "failed", provider: "twilio", providerId: "", waLink: link, error: payload.message || `Twilio returned ${response.status}` };
+  }
+  return { status: "sent", provider: "twilio", providerId: payload.sid || "", waLink: link, error: "" };
 }
 
 async function sendResend(

@@ -30,6 +30,15 @@ export default async function SummaryPage() {
             </p>
           ))}
           <p className="mt-4 text-sm text-slate-700">Pipeline value {formatZar(report.pipelineValueZar)}.</p>
+          {report.attribution.length ? (
+            <ul className="mt-3 grid gap-1 text-sm text-slate-700">
+              {report.attribution.map((row) => (
+                <li key={`${row.source}-${row.campaign}`}>
+                  {row.source} / {row.campaign}: {row.leads}
+                </li>
+              ))}
+            </ul>
+          ) : null}
         </article>
         <article className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
           <h2 className="font-display text-lg font-bold text-[#0B1F3A]">By stage</h2>

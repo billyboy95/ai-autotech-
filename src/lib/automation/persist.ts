@@ -8,6 +8,8 @@ import {
   type AssignmentRule,
   type AutomationSettings,
   type AutomationState,
+  type Campaign,
+  type CampaignStatus,
   type Channel,
   type Handover,
   type LeadRecord,
@@ -15,13 +17,20 @@ import {
   type OnboardingTask,
   type OutboxMessage,
   type OutboxStatus,
+  type Prospect,
+  type ProspectStatus,
   type QuotePlaceholder,
+  type SocialPlatform,
+  type SocialPost,
+  type SocialStatus,
+  type TrackedClick,
 } from "@/lib/automation/types";
 
 export const MIGRATION_FILE = "supabase/migrations/20260926160000_crm_automation.sql";
+export const OUTBOUND_MIGRATION_FILE = "supabase/migrations/20260926183000_outbound_channels.sql";
 
 export function migrationHint(detail: string) {
-  return `${detail} Apply ${MIGRATION_FILE} in the Supabase SQL editor. Existing leads are not deleted.`;
+  return `${detail} Apply ${MIGRATION_FILE} then ${OUTBOUND_MIGRATION_FILE} in the Supabase SQL editor. Existing leads are not deleted.`;
 }
 
 export async function loadSupabaseWorkspace(supabase: SupabaseClient): Promise<{
@@ -34,7 +43,7 @@ export async function loadSupabaseWorkspace(supabase: SupabaseClient): Promise<{
     throw new Error(`Could not read crm_leads: ${leads.error.message}`);
   }
 
-  const [activities, outbox, templates, settings, handovers, tasks, quotes] = await Promise.all([
+  const [activities, outbox, templates, settings, handovers, tasks, quotes, social, campaigns, prospects, clicks] = await Promise.all([
     supabase.from("crm_lead_activity").select("*").order("created_at", { ascending: true }),
     supabase.from("crm_outbox").select("*").order("scheduled_for", { ascending: true }),
     supabase.from("crm_message_templates").select("*"),
@@ -42,9 +51,13 @@ export async function loadSupabaseWorkspace(supabase: SupabaseClient): Promise<{
     supabase.from("crm_handovers").select("*"),
     supabase.from("crm_onboarding_tasks").select("*").order("ord", { ascending: true }),
     supabase.from("crm_quote_placeholders").select("*"),
+    supabase.from("crm_social_posts").select("*").order("scheduled_for", { ascending: true }),
+    supabase.from("crm_campaigns").select("*").order("created_at", { ascending: false }),
+    supabase.from("crm_prospects").select("*").order("created_at", { ascending: false }),
+    supabase.from("crm_social_clicks").select("*").order("created_at", { ascending: true }),
   ]);
 
-  const setupError =
+  const coreError =
     activities.error?.message ||
     outbox.error?.message ||
     templates.error?.message ||
@@ -53,22 +66,33 @@ export async function loadSupabaseWorkspace(supabase: SupabaseClient): Promise<{
     tasks.error?.message ||
     quotes.error?.message ||
     null;
+  const outboundError =
+    social.error?.message || campaigns.error?.message || prospects.error?.message || clicks.error?.message || null;
+  const setupError = coreError
+    ? migrationHint(coreError)
+    : outboundError
+      ? `${outboundError} Apply ${OUTBOUND_MIGRATION_FILE} in the Supabase SQL editor. The pipeline still runs. Existing leads are not deleted.`
+      : null;
 
   const templateRows = (templates.data ?? []) as Record<string, unknown>[];
   const settingsRow = settings.data as Record<string, unknown> | null;
 
   return {
-    automationReady: !setupError,
-    setupError: setupError ? migrationHint(setupError) : null,
+    automationReady: !coreError,
+    setupError,
     state: {
       leads: ((leads.data ?? []) as Record<string, unknown>[]).map(mapLead),
-      activities: setupError ? [] : ((activities.data ?? []) as Record<string, unknown>[]).map(mapActivity),
-      outbox: setupError ? [] : ((outbox.data ?? []) as Record<string, unknown>[]).map(mapOutbox),
+      activities: coreError ? [] : ((activities.data ?? []) as Record<string, unknown>[]).map(mapActivity),
+      outbox: coreError ? [] : ((outbox.data ?? []) as Record<string, unknown>[]).map(mapOutbox),
       templates: templateRows.length ? templateRows.map(mapTemplate) : DEFAULT_TEMPLATES.map((template) => ({ ...template })),
       settings: settingsRow ? mapSettings(settingsRow) : structuredClone(DEFAULT_SETTINGS),
-      handovers: setupError ? [] : ((handovers.data ?? []) as Record<string, unknown>[]).map(mapHandover),
-      tasks: setupError ? [] : ((tasks.data ?? []) as Record<string, unknown>[]).map(mapTask),
-      quotes: setupError ? [] : ((quotes.data ?? []) as Record<string, unknown>[]).map(mapQuote),
+      handovers: coreError ? [] : ((handovers.data ?? []) as Record<string, unknown>[]).map(mapHandover),
+      tasks: coreError ? [] : ((tasks.data ?? []) as Record<string, unknown>[]).map(mapTask),
+      quotes: coreError ? [] : ((quotes.data ?? []) as Record<string, unknown>[]).map(mapQuote),
+      socialPosts: outboundError || coreError ? [] : ((social.data ?? []) as Record<string, unknown>[]).map(mapSocial),
+      campaigns: outboundError || coreError ? [] : ((campaigns.data ?? []) as Record<string, unknown>[]).map(mapCampaign),
+      prospects: outboundError || coreError ? [] : ((prospects.data ?? []) as Record<string, unknown>[]).map(mapProspect),
+      clicks: outboundError || coreError ? [] : ((clicks.data ?? []) as Record<string, unknown>[]).map(mapClick),
     },
   };
 }
@@ -79,19 +103,27 @@ export async function saveSupabaseWorkspace(
   after: AutomationState,
 ) {
   if (after.leads.length) {
-    const savedLeads = await supabase.from("crm_leads").upsert(after.leads.map(leadToRow));
+    const leadRows = after.leads.map(leadToRow);
+    let savedLeads = await supabase.from("crm_leads").upsert(leadRows);
+    if (savedLeads.error && /utm_source/i.test(savedLeads.error.message)) {
+      savedLeads = await supabase.from("crm_leads").upsert(leadRows.map((row) => omitKey(row, "utm_source")));
+    }
     if (savedLeads.error) throw new Error(migrationHint(savedLeads.error.message));
   }
 
   const knownActivities = new Set(before.activities.map((item) => item.id));
-  const freshActivities = after.activities.filter((item) => !knownActivities.has(item.id));
+  const freshActivities = after.activities.filter((item) => !knownActivities.has(item.id) && item.leadId);
   if (freshActivities.length) {
     const saved = await supabase.from("crm_lead_activity").insert(freshActivities.map(activityToRow));
     if (saved.error) throw new Error(migrationHint(saved.error.message));
   }
 
   if (after.outbox.length) {
-    const saved = await supabase.from("crm_outbox").upsert(after.outbox.map(outboxToRow));
+    const rows = after.outbox.map(outboxToRow);
+    let saved = await supabase.from("crm_outbox").upsert(rows);
+    if (saved.error && /prospect_id/i.test(saved.error.message)) {
+      saved = await supabase.from("crm_outbox").upsert(rows.map((row) => omitKey(row, "prospect_id")));
+    }
     if (saved.error) throw new Error(migrationHint(saved.error.message));
   }
 
@@ -123,6 +155,22 @@ export async function saveSupabaseWorkspace(
   }
   if (after.quotes.length) {
     const saved = await supabase.from("crm_quote_placeholders").upsert(after.quotes.map(quoteToRow));
+    if (saved.error) throw new Error(migrationHint(saved.error.message));
+  }
+  if (after.socialPosts.length) {
+    const saved = await supabase.from("crm_social_posts").upsert(after.socialPosts.map(socialToRow));
+    if (saved.error) throw new Error(migrationHint(saved.error.message));
+  }
+  if (after.campaigns.length) {
+    const saved = await supabase.from("crm_campaigns").upsert(after.campaigns.map(campaignToRow));
+    if (saved.error) throw new Error(migrationHint(saved.error.message));
+  }
+  if (after.prospects.length) {
+    const saved = await supabase.from("crm_prospects").upsert(after.prospects.map(prospectToRow));
+    if (saved.error) throw new Error(migrationHint(saved.error.message));
+  }
+  if (after.clicks.length) {
+    const saved = await supabase.from("crm_social_clicks").upsert(after.clicks.map(clickToRow));
     if (saved.error) throw new Error(migrationHint(saved.error.message));
   }
 
@@ -173,6 +221,7 @@ function mapLead(row: Record<string, unknown>): LeadRecord {
     source: text(row.source),
     qrSource: text(row.qr_source),
     campaign: text(row.campaign),
+    utmSource: text(row.utm_source),
     eventName: text(row.event_name),
     ownerName: text(row.owner_name),
     score: num(row.score),
@@ -212,6 +261,7 @@ function leadToRow(lead: LeadRecord) {
     source: lead.source,
     qr_source: lead.qrSource,
     campaign: lead.campaign,
+    utm_source: lead.utmSource || "",
     event_name: lead.eventName,
     owner_name: lead.ownerName,
     score: lead.score,
@@ -265,8 +315,9 @@ function mapOutbox(row: Record<string, unknown>): OutboxMessage {
   return {
     id: text(row.id),
     leadId: text(row.lead_id),
+    prospectId: text(row.prospect_id) || null,
     templateKey: text(row.template_key),
-    channel: text(row.channel) === "email" ? "email" : "whatsapp",
+    channel: asChannel(text(row.channel)),
     toAddress: text(row.to_address),
     subject: text(row.subject),
     body: text(row.body),
@@ -284,7 +335,8 @@ function mapOutbox(row: Record<string, unknown>): OutboxMessage {
 function outboxToRow(item: OutboxMessage) {
   return {
     id: item.id,
-    lead_id: item.leadId,
+    lead_id: item.leadId || null,
+    prospect_id: item.prospectId,
     template_key: item.templateKey,
     channel: item.channel,
     to_address: item.toAddress,
@@ -436,9 +488,188 @@ function rules(value: unknown): AssignmentRule[] {
     .filter((rule) => rule.matchSource || rule.matchQrSource);
 }
 
+function mapSocial(row: Record<string, unknown>): SocialPost {
+  return {
+    id: text(row.id),
+    platform: asPlatform(text(row.platform)),
+    body: text(row.body),
+    mediaUrl: text(row.media_url),
+    linkUrl: text(row.link_url),
+    scheduledFor: text(row.scheduled_for) || new Date().toISOString(),
+    status: asSocialStatus(text(row.status)),
+    utmSource: text(row.utm_source),
+    utmCampaign: text(row.utm_campaign),
+    copyText: text(row.copy_text),
+    provider: text(row.provider),
+    providerId: text(row.provider_id),
+    error: text(row.error),
+    publishedAt: text(row.published_at) || null,
+    createdAt: text(row.created_at) || new Date().toISOString(),
+  };
+}
+
+function socialToRow(item: SocialPost) {
+  return {
+    id: item.id,
+    platform: item.platform,
+    body: item.body,
+    media_url: item.mediaUrl,
+    link_url: item.linkUrl,
+    scheduled_for: item.scheduledFor,
+    status: item.status,
+    utm_source: item.utmSource,
+    utm_campaign: item.utmCampaign,
+    copy_text: item.copyText,
+    provider: item.provider,
+    provider_id: item.providerId,
+    error: item.error,
+    published_at: item.publishedAt,
+    created_at: item.createdAt,
+  };
+}
+
+function mapCampaign(row: Record<string, unknown>): Campaign {
+  return {
+    id: text(row.id),
+    name: text(row.name) || "Outbound prospects",
+    status: asCampaignStatus(text(row.status)),
+    steps: Array.isArray(row.steps) ? row.steps.map(mapStep).filter((step) => step.body) : [],
+    createdAt: text(row.created_at) || new Date().toISOString(),
+  };
+}
+
+function campaignToRow(item: Campaign) {
+  return {
+    id: item.id,
+    name: item.name,
+    status: item.status,
+    steps: item.steps,
+    created_at: item.createdAt,
+  };
+}
+
+function mapProspect(row: Record<string, unknown>): Prospect {
+  return {
+    id: text(row.id),
+    campaignId: text(row.campaign_id),
+    name: text(row.name),
+    business: text(row.business),
+    niche: text(row.niche),
+    website: text(row.website),
+    phone: text(row.phone),
+    email: text(row.email),
+    openingLine: text(row.opening_line),
+    status: asProspectStatus(text(row.status)),
+    stepIndex: num(row.step_index),
+    leadId: text(row.lead_id) || null,
+    touches: Array.isArray(row.touches) ? row.touches.map(mapTouch) : [],
+    createdAt: text(row.created_at) || new Date().toISOString(),
+    updatedAt: text(row.updated_at) || new Date().toISOString(),
+  };
+}
+
+function prospectToRow(item: Prospect) {
+  return {
+    id: item.id,
+    campaign_id: item.campaignId,
+    name: item.name,
+    business: item.business,
+    niche: item.niche,
+    website: item.website,
+    phone: item.phone,
+    email: item.email,
+    opening_line: item.openingLine,
+    status: item.status,
+    step_index: item.stepIndex,
+    lead_id: item.leadId,
+    touches: item.touches,
+    created_at: item.createdAt,
+    updated_at: item.updatedAt,
+  };
+}
+
+function mapClick(row: Record<string, unknown>): TrackedClick {
+  return {
+    id: text(row.id),
+    postId: text(row.post_id) || null,
+    utmSource: text(row.utm_source),
+    utmCampaign: text(row.utm_campaign),
+    utmMedium: text(row.utm_medium),
+    destination: text(row.destination),
+    leadId: text(row.lead_id) || null,
+    createdAt: text(row.created_at) || new Date().toISOString(),
+  };
+}
+
+function clickToRow(item: TrackedClick) {
+  return {
+    id: item.id,
+    post_id: item.postId,
+    utm_source: item.utmSource,
+    utm_campaign: item.utmCampaign,
+    utm_medium: item.utmMedium,
+    destination: item.destination,
+    lead_id: item.leadId,
+    created_at: item.createdAt,
+  };
+}
+
+function mapStep(value: unknown) {
+  const row = record(value);
+  return {
+    id: text(row.id) || crypto.randomUUID(),
+    channel: asChannel(text(row.channel)),
+    delayHours: num(row.delayHours ?? row.delay_hours),
+    subject: text(row.subject),
+    body: text(row.body),
+  };
+}
+
+function mapTouch(value: unknown) {
+  const row = record(value);
+  return {
+    at: text(row.at) || new Date().toISOString(),
+    channel: asChannel(text(row.channel)),
+    title: text(row.title),
+    body: text(row.body),
+    messageId: text(row.messageId ?? row.message_id),
+  };
+}
+
+function asChannel(value: string): Channel {
+  if (value === "email" || value === "sms") return value;
+  return "whatsapp";
+}
+
+function asPlatform(value: string): SocialPlatform {
+  if (value === "instagram" || value === "linkedin") return value;
+  return "facebook";
+}
+
+function asSocialStatus(value: string): SocialStatus {
+  if (value === "approved" || value === "published" || value === "failed" || value === "cancelled") return value;
+  return "queued";
+}
+
+function asCampaignStatus(value: string): CampaignStatus {
+  if (value === "draft" || value === "paused") return value;
+  return "active";
+}
+
+function asProspectStatus(value: string): ProspectStatus {
+  if (value === "queued" || value === "replied" || value === "booked" || value === "stopped") return value;
+  return "in_sequence";
+}
+
 function outboxStatus(value: string): OutboxStatus {
   if (value === "approved" || value === "sent" || value === "failed" || value === "cancelled") return value;
   return "queued";
+}
+
+function omitKey<T extends Record<string, unknown>>(row: T, key: string) {
+  const copy = { ...row };
+  delete copy[key];
+  return copy;
 }
 
 function text(value: unknown) {

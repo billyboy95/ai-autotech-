@@ -239,6 +239,8 @@ export async function POST(request: Request) {
       email: input.email,
       notes,
       source: "website_contact",
+      utmSource: input.utm_source,
+      campaign: input.utm_campaign,
       contactLeadId: data.id,
     });
     if (!enrolled.ok) {

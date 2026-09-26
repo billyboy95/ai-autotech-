@@ -440,7 +440,7 @@ values (
   'ai-autotech',
   jsonb_build_object(
     'channels', jsonb_build_object(
-      'whatsapp', jsonb_build_object('phoneNumberId', '', 'displayPhone', '27715994283'),
+      'whatsapp', jsonb_build_object('phoneNumberId', '', 'displayPhone', '27646863803'),
       'email', jsonb_build_object('fromAddress', '', 'provider', ''),
       'sms', jsonb_build_object('senderId', '')
     )

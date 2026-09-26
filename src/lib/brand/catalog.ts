@@ -12,7 +12,7 @@ export const AGENCY_DECK_COLORS = {
 
 export const AGENCY_TAGLINE = "Automate · Innovate · Elevate";
 export const AGENCY_PROMISE = "convert, capture and scale";
-export const AGENCY_WHATSAPP_E164 = "27715994283";
+export const AGENCY_WHATSAPP_E164 = "27646863803";
 
 export const UPGRADE_PATH = ["Digital Foundation", "CRM + Automation", "Full AI Ecosystem"] as const;
 

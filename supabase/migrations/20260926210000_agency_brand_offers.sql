@@ -20,11 +20,11 @@ update organizations
 set settings = jsonb_set(
   coalesce(settings, '{}'::jsonb),
   '{channels,whatsapp,displayPhone}',
-  to_jsonb('27715994283'::text),
+  to_jsonb('27646863803'::text),
   true
 )
 where slug = 'ai-autotech'
-  and coalesce(settings #>> '{channels,whatsapp,displayPhone}', '') = '';
+  and coalesce(settings #>> '{channels,whatsapp,displayPhone}', '') in ('', '27715994283');
 
 do $job_kinds$
 declare

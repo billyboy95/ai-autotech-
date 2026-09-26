@@ -25,7 +25,7 @@ export default async function IntakePage({ params }: { params: Promise<{ formKey
           This form feeds only the {name} workspace.
         </p>
         {org || known ? (
-          <IntakeForm formKey={org?.formKey ?? formKey} />
+          <IntakeForm formKey={org?.formKey ?? formKey} senderName={org?.senderName || name} />
         ) : (
           <p className="mt-4 text-sm text-rose-700">This form key is not active yet.</p>
         )}

@@ -4,7 +4,10 @@ import { revalidatePath } from "next/cache";
 import { nid } from "@/lib/crm-store";
 import { agencyOrgId, insertForOrg } from "@/server/workers/with-org";
 import { openServiceDatabase } from "@/server/workers/service-db";
-import { importProspectCsv, saveCampaign } from "@/lib/automation/campaigns";
+import { saveCampaign } from "@/lib/automation/campaigns";
+import { importConsentCampaign } from "@/lib/compliance/campaign-import";
+import { assertDraftOrg, loadDraftProspectCampaign, readBundledProspectsCsv } from "@/lib/compliance/draft-campaign";
+import { safeResolveWorkspace } from "@/lib/tenant/context";
 import {
   addNote,
   advanceHandovers,
@@ -209,10 +212,25 @@ export async function importCampaignCsv(formData: FormData) {
   if (file instanceof File && file.size > 0) csv = await file.text();
   const campaignId = String(formData.get("campaignId") || "");
   await mutateWorkspace((state) => {
-    const imported = importProspectCsv(state, csv, new Date(), campaignId);
+    const imported = importConsentCampaign(state, csv, new Date(), campaignId);
     if (imported.error) throw new Error(imported.error);
-    if (!imported.count) throw new Error("Every row was already in that campaign.");
+    if (!imported.count && !imported.blocked) throw new Error("Every row was already in that campaign.");
+    if (imported.blocked && !imported.requested && !imported.count) {
+      throw new Error("POPIA s69(2): a second consent request to this contact is blocked.");
+    }
     return imported.state;
+  });
+  refresh();
+}
+
+export async function loadDraftProspects() {
+  const tenant = await safeResolveWorkspace();
+  assertDraftOrg(tenant.active.slug);
+  const csv = readBundledProspectsCsv();
+  await mutateWorkspace((state) => {
+    const loaded = loadDraftProspectCampaign(state, csv, new Date());
+    if (loaded.error) throw new Error(loaded.error);
+    return loaded.state;
   });
   refresh();
 }

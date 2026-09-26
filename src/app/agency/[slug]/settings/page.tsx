@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { ChannelConnectForm, type ChannelConnectionView } from "@/components/channel-connect-form";
 import { WorkspaceSettingsForm } from "@/components/workspace-settings-form";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { zentrixStores } from "@/lib/shopify/catalog";
 import { blueprintForSlug } from "@/lib/tenant/blueprints";
 import { previewWorkspaces } from "@/lib/tenant/blueprints";
@@ -34,6 +36,7 @@ export default async function WorkspaceSettingsPage({ params }: { params: Promis
             Preview only. Settings save after Supabase Auth and the tenancy migration are in place.
           </p>
           <WorkspaceSettingsForm workspace={org} stages={stages} members={[]} stores={stores} canEdit={false} canToggleSending={false} />
+          <ChannelConnectForm slug={org.slug} canEdit={false} connections={[]} />
         </div>
       </main>
     );
@@ -69,7 +72,29 @@ export default async function WorkspaceSettingsPage({ params }: { params: Promis
           canEdit={canEdit}
           canToggleSending={workspace.role === "agency_owner"}
         />
+        <ChannelConnectForm slug={org.slug} canEdit={canEdit} connections={await listConnections(org.id)} />
       </div>
     </main>
   );
+}
+
+async function listConnections(orgId: string): Promise<ChannelConnectionView[]> {
+  try {
+    const supabase = await createSupabaseServerClient();
+    const listed = await supabase
+      .from("channel_connections")
+      .select("id, channel, provider, identifier, display_name, status")
+      .eq("org_id", orgId);
+    if (listed.error) return [];
+    return (listed.data ?? []).map((row) => ({
+      id: String(row.id),
+      channel: String(row.channel),
+      provider: String(row.provider),
+      identifier: String(row.identifier),
+      displayName: String(row.display_name || ""),
+      status: String(row.status || ""),
+    }));
+  } catch {
+    return [];
+  }
 }

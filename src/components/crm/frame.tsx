@@ -24,6 +24,7 @@ const links = [
   ["/command-centre/pipeline", "Pipeline"],
   ["/command-centre/outbox", "Outbox"],
   ["/command-centre/campaigns", "Campaigns"],
+  ["/command-centre/contacts", "Contacts"],
   ["/command-centre/social", "Social"],
   ["/command-centre/templates", "Templates"],
   ["/command-centre/summary", "Summary"],

@@ -9,6 +9,8 @@ export const leadSchema = z.object({
   service_interest: z.string().trim().min(2, "Select a service interest"),
   message: z.string().trim().min(8, "Please add a short message"),
   source_page: z.string().trim().default("website"),
+  consent_service: z.string().optional(),
+  consent_marketing: z.string().optional(),
 });
 
 export type LeadInput = z.infer<typeof leadSchema>;

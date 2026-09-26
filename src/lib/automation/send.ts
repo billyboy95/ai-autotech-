@@ -64,7 +64,18 @@ export async function deliverMessage(
   if (category === "marketing" && prepared.marketingConsent !== true) {
     return quoteOnto(blocked(prepared, "POPIA: marketing needs recorded opt-in consent before this can send."), prepared, env);
   }
-  if (!isSendEnabled(env)) return quoteOnto(queued(prepared, "outbox"), prepared, env);
+  if (!isSendEnabled(env)) {
+    return quoteOnto(
+      { ...queued(prepared, prepared.connection ? "dry_run" : "outbox"), connectionId: prepared.connection?.connectionId },
+      prepared,
+      env,
+    );
+  }
+
+  if (prepared.connection) {
+    const sent = await deliverViaConnection(prepared, fetchImpl);
+    return quoteOnto({ ...sent, connectionId: prepared.connection.connectionId }, prepared, env);
+  }
 
   if (prepared.channel === "email") {
     if (env.RESEND_API_KEY) return quoteOnto(await sendResend(prepared, env, fetchImpl), prepared, env);
@@ -89,6 +100,96 @@ export async function deliverMessage(
   }
 
   return quoteOnto(queued(prepared, "wa.me"), prepared, env);
+}
+
+async function deliverViaConnection(message: DeliveryRequest, fetchImpl: typeof fetch): Promise<DeliveryResult> {
+  const connection = message.connection;
+  if (!connection) {
+    return { status: "failed", provider: "connection", providerId: "", waLink: "", error: "No channel connection was selected." };
+  }
+  if (connection.provider === "meta_cloud") return sendWhatsAppCloud(message, connectionEnv(connection), fetchImpl);
+  if (connection.provider === "smsportal") return postSmsPortal(message, fetchImpl, connection);
+  if (connection.provider === "bulksms") {
+    return postBulkSms(message, toE164(message.to), buildSmsLink(message.to, message.body), connection.clientId || connection.apiKey || "", connection.apiSecret || connection.token || "", fetchImpl);
+  }
+  if (connection.provider === "clickatell") {
+    return postClickatell(message, toE164(message.to), buildSmsLink(message.to, message.body), connection.apiKey || connection.token || "", fetchImpl);
+  }
+  if (connection.provider === "resend") return sendResend(message, connectionEnv(connection), fetchImpl);
+  if (connection.provider === "smtp") return sendSmtp(message, connectionEnv(connection));
+  if (connection.provider === "meta") return postMetaMessage(message, fetchImpl, connection);
+  return {
+    status: "failed",
+    provider: connection.provider,
+    providerId: "",
+    waLink: manualLink(message),
+    error: "This connection provider is not supported.",
+    connectionId: connection.connectionId,
+  };
+}
+
+function connectionEnv(connection: NonNullable<DeliveryRequest["connection"]>): EnvLike {
+  return {
+    WHATSAPP_TOKEN: connection.token || connection.apiKey || "",
+    WHATSAPP_PHONE_NUMBER_ID: connection.identifier,
+    WHATSAPP_GRAPH_VERSION: connection.graphVersion || "v21.0",
+    RESEND_API_KEY: connection.apiKey || connection.token || "",
+    RESEND_FROM: connection.from || connection.identifier,
+    SMTP_HOST: connection.host || "",
+    SMTP_PORT: connection.port || "587",
+    SMTP_USER: connection.user || "",
+    SMTP_PASS: connection.password || connection.apiSecret || "",
+    SMTP_FROM: connection.from || connection.identifier,
+  };
+}
+
+async function postSmsPortal(
+  message: DeliveryRequest,
+  fetchImpl: typeof fetch,
+  connection: NonNullable<DeliveryRequest["connection"]>,
+): Promise<DeliveryResult> {
+  const link = buildSmsLink(message.to, message.body);
+  const to = toE164(message.to);
+  const clientId = connection.clientId || connection.apiKey || "";
+  const secret = connection.apiSecret || connection.token || "";
+  if (!to || !clientId || !secret) {
+    return { status: "failed", provider: "smsportal", providerId: "", waLink: link, error: "SMSPortal needs a client id and API secret on this connection.", connectionId: connection.connectionId };
+  }
+  const response = await fetchImpl("https://rest.smsportal.com/v3/BulkMessages", {
+    method: "POST",
+    headers: {
+      Authorization: `Basic ${Buffer.from(`${clientId}:${secret}`).toString("base64")}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ messages: [{ content: message.body, destination: to.replace(/\D/g, "") }] }),
+  });
+  const payload = (await response.json().catch(() => ({}))) as { eventId?: number | string; id?: string; error?: string };
+  if (!response.ok) {
+    return { status: "failed", provider: "smsportal", providerId: "", waLink: link, error: payload.error || `SMSPortal returned ${response.status}`, connectionId: connection.connectionId };
+  }
+  return { status: "sent", provider: "smsportal", providerId: String(payload.eventId || payload.id || ""), waLink: link, error: "", connectionId: connection.connectionId };
+}
+
+async function postMetaMessage(
+  message: DeliveryRequest,
+  fetchImpl: typeof fetch,
+  connection: NonNullable<DeliveryRequest["connection"]>,
+): Promise<DeliveryResult> {
+  const token = connection.token || connection.apiKey || "";
+  const version = connection.graphVersion || "v21.0";
+  if (!token || !connection.identifier) {
+    return { status: "failed", provider: "meta", providerId: "", waLink: "", error: "Facebook or Instagram needs a page token on this connection.", connectionId: connection.connectionId };
+  }
+  const response = await fetchImpl(`https://graph.facebook.com/${version}/${connection.identifier}/messages`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ recipient: { id: message.to }, message: { text: message.body } }),
+  });
+  const payload = (await response.json().catch(() => ({}))) as { message_id?: string; error?: { message?: string } };
+  if (!response.ok) {
+    return { status: "failed", provider: "meta", providerId: "", waLink: "", error: payload.error?.message || `Meta returned ${response.status}`, connectionId: connection.connectionId };
+  }
+  return { status: "sent", provider: "meta", providerId: payload.message_id || "", waLink: "", error: "", connectionId: connection.connectionId };
 }
 
 async function sendSms(message: DeliveryRequest, env: EnvLike, fetchImpl: typeof fetch): Promise<DeliveryResult> {

@@ -158,7 +158,7 @@ export async function saveSupabaseWorkspace(
     supabase,
     "crm_prospects",
     changedBy(before.prospects, after.prospects, (item) => item.id).map(prospectToRow),
-    ["marketing_consent"],
+    ["marketing_consent", "consent_basis", "consent_requested", "area", "source_url", "outreach_status"],
   );
   await upsertRows(supabase, "crm_social_clicks", changedBy(before.clicks, after.clicks, (item) => item.id).map(clickToRow));
 
@@ -196,7 +196,16 @@ async function upsertOutbox(supabase: SupabaseClient, rows: Record<string, unkno
   let payload = rows;
   let saved = await supabase.from("crm_outbox").upsert(payload);
   if (saved.error && /check constraint/i.test(saved.error.message) && /status/i.test(saved.error.message)) {
-    payload = payload.map((row) => (row.status === "blocked" ? { ...row, status: "failed", error: row.error || "Blocked" } : row));
+    payload = payload.map((row) =>
+      row.status === "blocked" || row.status === "blocked_consent" || row.status === "held"
+        ? { ...row, status: "failed", error: row.error || "Blocked" }
+        : row,
+    );
+    saved = await supabase.from("crm_outbox").upsert(payload);
+  }
+  for (const key of ["purpose", "channel_connection_id", "contact_id", "cost_cents", "message_category", "cost_usd", "cost_zar", "cost_category"]) {
+    if (!saved.error || !new RegExp(key, "i").test(saved.error.message)) continue;
+    payload = payload.map((row) => omitKey(row, key));
     saved = await supabase.from("crm_outbox").upsert(payload);
   }
   for (const key of ["prospect_id", "cost_usd", "cost_zar", "cost_category", "message_category"]) {
@@ -364,6 +373,10 @@ function mapOutbox(row: Record<string, unknown>): OutboxMessage {
     costUsd: nullableNum(row.cost_usd),
     costZar: nullableNum(row.cost_zar),
     costCategory: text(row.cost_category),
+    purpose: asPurpose(text(row.purpose)),
+    connectionId: text(row.channel_connection_id) || null,
+    contactId: text(row.contact_id) || null,
+    costCents: nullableNum(row.cost_cents),
     createdAt: text(row.created_at) || new Date().toISOString(),
   };
 }
@@ -389,6 +402,10 @@ function outboxToRow(item: OutboxMessage) {
     cost_usd: item.costUsd,
     cost_zar: item.costZar,
     cost_category: item.costCategory || "",
+    purpose: item.purpose || "marketing",
+    channel_connection_id: item.connectionId || null,
+    contact_id: item.contactId || null,
+    cost_cents: item.costCents ?? null,
     created_at: item.createdAt,
   };
 }
@@ -600,6 +617,11 @@ function mapProspect(row: Record<string, unknown>): Prospect {
     email: text(row.email),
     openingLine: text(row.opening_line),
     marketingConsent: row.marketing_consent === true,
+    consentBasis: asBasis(text(row.consent_basis)),
+    consentRequested: row.consent_requested === true,
+    area: text(row.area),
+    sourceUrl: text(row.source_url),
+    outreachStatus: text(row.outreach_status),
     status: asProspectStatus(text(row.status)),
     stepIndex: num(row.step_index),
     leadId: text(row.lead_id) || null,
@@ -621,6 +643,11 @@ function prospectToRow(item: Prospect) {
     email: item.email,
     opening_line: item.openingLine,
     marketing_consent: item.marketingConsent === true,
+    consent_basis: item.consentBasis || "",
+    consent_requested: item.consentRequested === true,
+    area: item.area || "",
+    source_url: item.sourceUrl || "",
+    outreach_status: item.outreachStatus || "",
     status: item.status,
     step_index: item.stepIndex,
     lead_id: item.leadId,
@@ -699,7 +726,7 @@ function asCampaignStatus(value: string): CampaignStatus {
 }
 
 function asProspectStatus(value: string): ProspectStatus {
-  if (value === "queued" || value === "replied" || value === "booked" || value === "stopped") return value;
+  if (value === "queued" || value === "replied" || value === "booked" || value === "stopped" || value === "not_contacted") return value;
   return "in_sequence";
 }
 
@@ -724,13 +751,33 @@ function suppressionToRow(item: Suppression) {
   };
 }
 
+function asPurpose(value: string): OutboxMessage["purpose"] {
+  if (value === "service" || value === "transactional" || value === "consent_request") return value;
+  return "marketing";
+}
+
+function asBasis(value: string): Prospect["consentBasis"] {
+  if (value === "consent" || value === "existing_customer") return value;
+  return "";
+}
+
 function asCategory(value: string, templateKey: string): MessageCategory {
   if (value === "service" || value === "marketing") return value;
   return messageCategory(templateKey);
 }
 
 function outboxStatus(value: string): OutboxStatus {
-  if (value === "approved" || value === "sent" || value === "failed" || value === "cancelled" || value === "blocked") return value;
+  if (
+    value === "approved"
+    || value === "sent"
+    || value === "failed"
+    || value === "cancelled"
+    || value === "blocked"
+    || value === "blocked_consent"
+    || value === "held"
+  ) {
+    return value;
+  }
   return "queued";
 }
 

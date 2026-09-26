@@ -33,6 +33,23 @@ export function renderTemplate(template: string, vars: Record<string, string>) {
   return template.replace(/\{\{\s*(\w+)\s*\}\}/g, (_, key: string) => vars[key] ?? "");
 }
 
+export type ChannelConnectionCredentials = {
+  connectionId: string;
+  provider: "resend" | "smtp" | "meta_cloud" | "smsportal" | "bulksms" | "clickatell" | "meta";
+  identifier: string;
+  token?: string;
+  apiKey?: string;
+  apiSecret?: string;
+  clientId?: string;
+  webhookSecret?: string;
+  from?: string;
+  host?: string;
+  port?: string;
+  user?: string;
+  password?: string;
+  graphVersion?: string;
+};
+
 export type DeliveryRequest = {
   channel: Channel;
   to: string;
@@ -44,6 +61,8 @@ export type DeliveryRequest = {
   serviceSendsThisMonth?: number;
   sentAt?: string;
   owner?: string;
+  /** When set, this connection is the only credential source. Env keys are ignored. */
+  connection?: ChannelConnectionCredentials | null;
 };
 
 export type DeliveryResult = {
@@ -56,4 +75,5 @@ export type DeliveryResult = {
   costUsd?: number | null;
   costZar?: number | null;
   costCategory?: string;
+  connectionId?: string;
 };

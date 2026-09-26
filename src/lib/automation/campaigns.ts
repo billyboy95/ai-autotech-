@@ -89,7 +89,13 @@ export function parseProspectCsv(csv: string): { rows: Array<Omit<Prospect, "id"
   return { rows, error: "" };
 }
 
-export function importProspectCsv(state: AutomationState, csv: string, now: Date, campaignId = ""): { state: AutomationState; error: string; count: number } {
+export function importProspectCsv(
+  state: AutomationState,
+  csv: string,
+  now: Date,
+  campaignId = "",
+  options?: { consentBasis?: Array<"" | "consent" | "existing_customer"> },
+): { state: AutomationState; error: string; count: number } {
   const parsed = parseProspectCsv(csv);
   if (parsed.error) return { state, error: parsed.error, count: 0 };
 
@@ -110,15 +116,18 @@ export function importProspectCsv(state: AutomationState, csv: string, now: Date
   const existingEmails = new Set(
     next.prospects.filter((item) => item.campaignId === campaign.id && item.email).map((item) => item.email.toLowerCase()),
   );
-  const created = parsed.rows.flatMap((row) => {
+  const created = parsed.rows.flatMap((row, index) => {
     if (row.email && existingEmails.has(row.email)) return [];
     if (row.email) existingEmails.add(row.email);
+    const basis = options?.consentBasis ? options.consentBasis[index] ?? "" : undefined;
     const prospect: Prospect = {
       id: newId("prs"),
       campaignId: campaign.id,
       ...row,
-      marketingConsent: false,
-      status: "in_sequence",
+      marketingConsent: basis === "consent",
+      consentBasis: basis ?? "",
+      consentRequested: false,
+      status: basis === "" ? "not_contacted" : "in_sequence",
       stepIndex: 0,
       leadId: null,
       touches: [],
@@ -154,7 +163,13 @@ export function queueDueCampaignSteps(state: AutomationState, now: Date): Automa
       const prospect = next.prospects.find((item) => item.id === original.id);
       const campaign = prospect ? next.campaigns.find((item) => item.id === prospect.campaignId) : undefined;
       if (!prospect || !campaign || campaign.status !== "active") break;
-      if (prospect.leadId || prospect.status === "replied" || prospect.status === "booked" || prospect.status === "stopped") break;
+      if (
+        prospect.leadId
+        || prospect.status === "replied"
+        || prospect.status === "booked"
+        || prospect.status === "stopped"
+        || prospect.status === "not_contacted"
+      ) break;
       const step = campaign.steps[prospect.stepIndex];
       if (!step) break;
       const dueAt = new Date(prospect.createdAt).getTime() + Math.max(0, step.delayHours) * 36e5;

@@ -549,3 +549,5 @@ create policy "tenant appointments" on appointments for all
 -- supabase/migrations/20260926183000_outbound_channels.sql
 -- Marketing consent, suppressions, and per-send cost:
 -- supabase/migrations/20260926200000_send_compliance.sql
+-- Agency / client workspaces (parent AI AutoTech, child EASTC, org_id, RLS):
+-- supabase/migrations/20260926160000_agency_tenancy.sql

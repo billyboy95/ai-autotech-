@@ -3,6 +3,7 @@ import { z } from "zod";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { enrollLead } from "@/lib/automation/service";
 import { nid } from "@/lib/crm-store";
+import { insertPreferringOrg, lookupAgencyOrgId } from "@/lib/tenant/writes";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -194,40 +195,37 @@ export async function POST(request: Request) {
   const crmLeadId = nid();
   const userAgent = (request.headers.get("user-agent") ?? "").slice(0, 400);
 
-  const { data, error } = await supabase
-    .from("crm_audit_leads")
-    .insert({
-      reference,
-      first_name: input.firstName,
-      last_name: input.lastName,
-      company: input.company,
-      email: input.email,
-      phone: input.phone,
-      whatsapp: input.phone,
-      role: input.role,
-      website: input.website,
-      industry: input.industry,
-      answers: input.answers,
-      score: input.score,
-      recommendations: input.recommendations,
-      recommended_agents: input.recommendedAgents,
-      source: t.source ?? "",
-      campaign: t.campaign ?? "",
-      event: t.event ?? "",
-      qr_source: t.qr_source ?? "",
-      utm_source: t.utm_source ?? "",
-      utm_medium: t.utm_medium ?? "",
-      utm_campaign: t.utm_campaign ?? "",
-      utm_term: t.utm_term ?? "",
-      utm_content: t.utm_content ?? "",
-      referrer: t.referrer ?? "",
-      user_agent: userAgent,
-      consent: true,
-      consent_text: input.consentText,
-      crm_lead_id: crmLeadId,
-    })
-    .select("id")
-    .single();
+  const orgId = await lookupAgencyOrgId(supabase);
+  const { data, error } = await insertPreferringOrg(supabase, "crm_audit_leads", {
+    reference,
+    first_name: input.firstName,
+    last_name: input.lastName,
+    company: input.company,
+    email: input.email,
+    phone: input.phone,
+    whatsapp: input.phone,
+    role: input.role,
+    website: input.website,
+    industry: input.industry,
+    answers: input.answers,
+    score: input.score,
+    recommendations: input.recommendations,
+    recommended_agents: input.recommendedAgents,
+    source: t.source ?? "",
+    campaign: t.campaign ?? "",
+    event: t.event ?? "",
+    qr_source: t.qr_source ?? "",
+    utm_source: t.utm_source ?? "",
+    utm_medium: t.utm_medium ?? "",
+    utm_campaign: t.utm_campaign ?? "",
+    utm_term: t.utm_term ?? "",
+    utm_content: t.utm_content ?? "",
+    referrer: t.referrer ?? "",
+    user_agent: userAgent,
+    consent: true,
+    consent_text: input.consentText,
+    crm_lead_id: crmLeadId,
+  }, orgId);
 
   if (error || !data) {
     console.error("audit insert failed", error?.message);
@@ -250,7 +248,7 @@ export async function POST(request: Request) {
     .filter(Boolean)
     .join("\n");
 
-  const lead = await supabase.from("crm_leads").insert({
+  const lead = await insertPreferringOrg(supabase, "crm_leads", {
     id: crmLeadId,
     name: `${input.firstName} ${input.lastName}`.trim(),
     company: input.company,
@@ -258,7 +256,7 @@ export async function POST(request: Request) {
     stage: "New",
     notes,
     ord: -Math.floor(Date.now() / 1000),
-  });
+  }, orgId);
   if (lead.error) {
     // Audit row is saved; CRM mirror failure should not lose the lead.
     console.error("crm_leads mirror failed", lead.error.message);

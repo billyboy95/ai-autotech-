@@ -26,7 +26,16 @@ export async function signIn(
     return { ok: false, message: error.message };
   }
 
-  redirect("/command-centre");
+  const next = String(formData.get("next") ?? "");
+  if (next.startsWith("/") && !next.startsWith("//")) {
+    redirect(next);
+  }
+
+  const memberships = await supabase.from("memberships").select("role");
+  const agency = (memberships.data ?? []).some(
+    (row) => row.role === "agency_owner" || row.role === "agency_staff",
+  );
+  redirect(agency ? "/agency" : "/command-centre");
 }
 
 export async function signOut() {

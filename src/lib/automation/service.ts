@@ -3,6 +3,7 @@ import path from "node:path";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { isSendEnabled } from "@/lib/automation/channels";
 import { applyStageRules, captureLead, createInitialState, runCron } from "@/lib/automation/engine";
+import { messageCategory } from "@/lib/automation/compliance";
 import { flushOutbox } from "@/lib/automation/flush";
 import { loadSupabaseWorkspace, MIGRATION_FILE, saveSupabaseWorkspace } from "@/lib/automation/persist";
 import { publishDuePosts, recordClick } from "@/lib/automation/social";
@@ -104,12 +105,20 @@ export function hydrateState(state: AutomationState): AutomationState {
     ...base,
     ...state,
     settings: state.settings || base.settings,
-    leads: (state.leads || []).map((lead) => ({ ...lead, utmSource: lead.utmSource || "" })),
-    outbox: (state.outbox || []).map((message) => ({ ...message, prospectId: message.prospectId ?? null })),
+    leads: (state.leads || []).map((lead) => ({ ...lead, utmSource: lead.utmSource || "", marketingConsent: lead.marketingConsent === true })),
+    outbox: (state.outbox || []).map((message) => ({
+      ...message,
+      prospectId: message.prospectId ?? null,
+      category: message.category === "service" || message.category === "marketing" ? message.category : messageCategory(message.templateKey || ""),
+      costUsd: message.costUsd ?? null,
+      costZar: message.costZar ?? null,
+      costCategory: message.costCategory || "",
+    })),
     socialPosts: state.socialPosts || [],
     campaigns: state.campaigns || [],
-    prospects: state.prospects || [],
+    prospects: (state.prospects || []).map((prospect) => ({ ...prospect, marketingConsent: prospect.marketingConsent === true })),
     clicks: state.clicks || [],
+    suppressions: state.suppressions || [],
   };
 }
 
@@ -146,7 +155,7 @@ export function describeChanges(before: AutomationState, after: AutomationState)
   const knownActivity = new Set(before.activities.map((item) => item.id));
   for (const item of after.activities) {
     if (knownActivity.has(item.id)) continue;
-    if (item.kind === "reply" || item.kind === "booking" || item.kind === "sequence_stopped") {
+    if (item.kind === "reply" || item.kind === "booking" || item.kind === "sequence_stopped" || item.kind === "opt_out") {
       events.push(`${item.title}. ${item.body}`.trim());
     }
   }

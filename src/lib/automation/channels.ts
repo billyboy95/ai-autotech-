@@ -1,5 +1,5 @@
 import { toWaDigits } from "@/lib/automation/ids";
-import type { Channel } from "@/lib/automation/types";
+import type { Channel, MessageCategory } from "@/lib/automation/types";
 
 export type EnvLike = Record<string, string | undefined>;
 
@@ -38,12 +38,22 @@ export type DeliveryRequest = {
   to: string;
   subject: string;
   body: string;
+  category?: MessageCategory;
+  marketingConsent?: boolean;
+  suppressed?: boolean;
+  serviceSendsThisMonth?: number;
+  sentAt?: string;
+  owner?: string;
 };
 
 export type DeliveryResult = {
-  status: "queued" | "sent" | "failed";
+  status: "queued" | "sent" | "failed" | "blocked";
   provider: string;
   providerId: string;
   waLink: string;
   error: string;
+  body?: string;
+  costUsd?: number | null;
+  costZar?: number | null;
+  costCategory?: string;
 };

@@ -21,6 +21,8 @@ export const OPEN_STAGES: PipelineStage[] = [
 
 export type Channel = "whatsapp" | "email" | "sms";
 
+export type MessageCategory = "marketing" | "service";
+
 export type SocialPlatform = "facebook" | "instagram" | "linkedin";
 
 export type SocialStatus = "queued" | "approved" | "published" | "failed" | "cancelled";
@@ -29,7 +31,7 @@ export type CampaignStatus = "draft" | "active" | "paused";
 
 export type ProspectStatus = "queued" | "in_sequence" | "replied" | "booked" | "stopped";
 
-export type OutboxStatus = "queued" | "approved" | "sent" | "failed" | "cancelled";
+export type OutboxStatus = "queued" | "approved" | "sent" | "failed" | "cancelled" | "blocked";
 
 export type AssignmentStrategy = "fixed" | "round_robin";
 
@@ -97,6 +99,7 @@ export type LeadRecord = {
   wonAt: string | null;
   repliedAt: string | null;
   enrolled: boolean;
+  marketingConsent: boolean;
   auditLeadId: string | null;
   contactLeadId: string | null;
   ord: number;
@@ -128,6 +131,10 @@ export type OutboxMessage = {
   providerId: string;
   error: string;
   waLink: string;
+  category: MessageCategory;
+  costUsd: number | null;
+  costZar: number | null;
+  costCategory: string;
   createdAt: string;
 };
 
@@ -202,6 +209,7 @@ export type Prospect = {
   phone: string;
   email: string;
   openingLine: string;
+  marketingConsent: boolean;
   status: ProspectStatus;
   stepIndex: number;
   leadId: string | null;
@@ -218,6 +226,14 @@ export type TrackedClick = {
   utmMedium: string;
   destination: string;
   leadId: string | null;
+  createdAt: string;
+};
+
+export type Suppression = {
+  id: string;
+  address: string;
+  channel: Channel | "";
+  reason: string;
   createdAt: string;
 };
 
@@ -246,6 +262,7 @@ export type AutomationState = {
   campaigns: Campaign[];
   prospects: Prospect[];
   clicks: TrackedClick[];
+  suppressions: Suppression[];
 };
 
 export type CaptureInput = {
@@ -268,6 +285,7 @@ export type CaptureInput = {
   valueZar?: number;
   auditLeadId?: string | null;
   contactLeadId?: string | null;
+  marketingConsent?: boolean;
   createdAt?: string;
 };
 
@@ -352,6 +370,7 @@ export function emptyLead(partial: Partial<LeadRecord> & Pick<LeadRecord, "id" |
     wonAt: null,
     repliedAt: null,
     enrolled: false,
+    marketingConsent: false,
     auditLeadId: null,
     contactLeadId: null,
     ord: 0,

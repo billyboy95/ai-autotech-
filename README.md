@@ -133,7 +133,11 @@ Then run:
 
 `supabase/migrations/20260926183000_outbound_channels.sql`
 
-Both only add columns and tables. The first remaps existing `Talking` leads to `Contacted` and `Quoted` leads to `Proposal sent`. Neither deletes rows. Run the first before expecting stage changes or the outbox to save. Run the second before SMS, social posts, tracked clicks, or campaign prospects will save. Until the first file is applied, the board still lists current leads and shows a setup note.
+Then run:
+
+`supabase/migrations/20260926200000_send_compliance.sql`
+
+All three only add columns and tables. The first remaps existing `Talking` leads to `Contacted` and `Quoted` leads to `Proposal sent`. None of them delete rows. Run the first before expecting stage changes or the outbox to save. Run the second before SMS, social posts, tracked clicks, or campaign prospects will save. Run the third before opt-outs, marketing consent, and per-send cost will save. Until the first file is applied, the board still lists current leads and shows a setup note. Saves upsert the rows that changed. They do not delete a lead, client, job, or invoice that was written by another request.
 
 ### What runs without extra keys
 
@@ -162,8 +166,13 @@ Both only add columns and tables. The first remaps existing `Talking` leads to `
 | Publish an Instagram post | `AUTOMATION_SEND_ENABLED=true` plus `META_IG_USER_ID`, `META_PAGE_ACCESS_TOKEN`, and an image URL on the post |
 | Publish a LinkedIn post | `AUTOMATION_SEND_ENABLED=true` plus `LINKEDIN_ACCESS_TOKEN` and `LINKEDIN_AUTHOR_URN` |
 | Lock the summary API | `AUTOMATION_SUMMARY_TOKEN` |
+| Rand amount on a WhatsApp send | `WHATSAPP_USDZAR`. Without it, the outbox stores the USD card rate only |
+| Override the WhatsApp card | `WHATSAPP_MARKETING_USD` (default `0.0379`) and `WHATSAPP_SERVICE_USD` (default `0.0095`) |
+| Cost of one SMS or email | `SMS_COST_ZAR` and `EMAIL_COST_ZAR`. Unset means that send has no amount |
 
 `AUTOMATION_SEND_ENABLED` defaults off. Do not turn it on until you intend to message real leads. Approving a draft does not send while the switch is off.
+
+Marketing messages (nudges, proposal follow-ups, and campaign steps) need a recorded opt-in. Acknowledgements and audit reminders do not. Every marketing body includes AI AutoTech and “Reply STOP to opt out”. A reply of STOP, UNSUBSCRIBE, or OPT OUT suppresses that address and cancels what is still queued. From 1 October 2026, each WhatsApp number’s first 1,000 service sends in a Johannesburg calendar month are stored at USD 0. The next Cloud API service send is stored at USD 0.0095. Marketing Cloud API sends are stored at USD 0.0379. A `wa.me` link is USD 0. A CSV import is not consent.
 
 Local proof, with no Supabase:
 

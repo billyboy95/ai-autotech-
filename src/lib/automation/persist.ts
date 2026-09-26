@@ -1,4 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { messageCategory } from "@/lib/automation/compliance";
+import { changedBy } from "@/lib/automation/diff";
 import { DEFAULT_TEMPLATES } from "@/lib/automation/templates";
 import {
   DEFAULT_SETTINGS,
@@ -13,6 +15,7 @@ import {
   type Channel,
   type Handover,
   type LeadRecord,
+  type MessageCategory,
   type MessageTemplate,
   type OnboardingTask,
   type OutboxMessage,
@@ -23,14 +26,16 @@ import {
   type SocialPlatform,
   type SocialPost,
   type SocialStatus,
+  type Suppression,
   type TrackedClick,
 } from "@/lib/automation/types";
 
 export const MIGRATION_FILE = "supabase/migrations/20260926160000_crm_automation.sql";
 export const OUTBOUND_MIGRATION_FILE = "supabase/migrations/20260926183000_outbound_channels.sql";
+export const COMPLIANCE_MIGRATION_FILE = "supabase/migrations/20260926200000_send_compliance.sql";
 
 export function migrationHint(detail: string) {
-  return `${detail} Apply ${MIGRATION_FILE} then ${OUTBOUND_MIGRATION_FILE} in the Supabase SQL editor. Existing leads are not deleted.`;
+  return `${detail} Apply ${MIGRATION_FILE}, then ${OUTBOUND_MIGRATION_FILE}, then ${COMPLIANCE_MIGRATION_FILE} in the Supabase SQL editor. Existing leads are not deleted.`;
 }
 
 export async function loadSupabaseWorkspace(supabase: SupabaseClient): Promise<{
@@ -43,7 +48,7 @@ export async function loadSupabaseWorkspace(supabase: SupabaseClient): Promise<{
     throw new Error(`Could not read crm_leads: ${leads.error.message}`);
   }
 
-  const [activities, outbox, templates, settings, handovers, tasks, quotes, social, campaigns, prospects, clicks] = await Promise.all([
+  const [activities, outbox, templates, settings, handovers, tasks, quotes, social, campaigns, prospects, clicks, suppressions] = await Promise.all([
     supabase.from("crm_lead_activity").select("*").order("created_at", { ascending: true }),
     supabase.from("crm_outbox").select("*").order("scheduled_for", { ascending: true }),
     supabase.from("crm_message_templates").select("*"),
@@ -55,6 +60,7 @@ export async function loadSupabaseWorkspace(supabase: SupabaseClient): Promise<{
     supabase.from("crm_campaigns").select("*").order("created_at", { ascending: false }),
     supabase.from("crm_prospects").select("*").order("created_at", { ascending: false }),
     supabase.from("crm_social_clicks").select("*").order("created_at", { ascending: true }),
+    supabase.from("crm_suppressions").select("*").order("created_at", { ascending: true }),
   ]);
 
   const coreError =
@@ -68,11 +74,14 @@ export async function loadSupabaseWorkspace(supabase: SupabaseClient): Promise<{
     null;
   const outboundError =
     social.error?.message || campaigns.error?.message || prospects.error?.message || clicks.error?.message || null;
+  const complianceError = suppressions.error?.message || null;
   const setupError = coreError
     ? migrationHint(coreError)
     : outboundError
       ? `${outboundError} Apply ${OUTBOUND_MIGRATION_FILE} in the Supabase SQL editor. The pipeline still runs. Existing leads are not deleted.`
-      : null;
+      : complianceError
+        ? `${complianceError} Apply ${COMPLIANCE_MIGRATION_FILE} in the Supabase SQL editor. The pipeline still runs. Existing leads are not deleted.`
+        : null;
 
   const templateRows = (templates.data ?? []) as Record<string, unknown>[];
   const settingsRow = settings.data as Record<string, unknown> | null;
@@ -93,6 +102,7 @@ export async function loadSupabaseWorkspace(supabase: SupabaseClient): Promise<{
       campaigns: outboundError || coreError ? [] : ((campaigns.data ?? []) as Record<string, unknown>[]).map(mapCampaign),
       prospects: outboundError || coreError ? [] : ((prospects.data ?? []) as Record<string, unknown>[]).map(mapProspect),
       clicks: outboundError || coreError ? [] : ((clicks.data ?? []) as Record<string, unknown>[]).map(mapClick),
+      suppressions: complianceError || coreError ? [] : ((suppressions.data ?? []) as Record<string, unknown>[]).map(mapSuppression),
     },
   };
 }
@@ -102,14 +112,12 @@ export async function saveSupabaseWorkspace(
   before: AutomationState,
   after: AutomationState,
 ) {
-  if (after.leads.length) {
-    const leadRows = after.leads.map(leadToRow);
-    let savedLeads = await supabase.from("crm_leads").upsert(leadRows);
-    if (savedLeads.error && /utm_source/i.test(savedLeads.error.message)) {
-      savedLeads = await supabase.from("crm_leads").upsert(leadRows.map((row) => omitKey(row, "utm_source")));
-    }
-    if (savedLeads.error) throw new Error(migrationHint(savedLeads.error.message));
-  }
+  await upsertRows(
+    supabase,
+    "crm_leads",
+    changedBy(before.leads, after.leads, (item) => item.id).map(leadToRow),
+    ["utm_source", "marketing_consent"],
+  );
 
   const knownActivities = new Set(before.activities.map((item) => item.id));
   const freshActivities = after.activities.filter((item) => !knownActivities.has(item.id) && item.leadId);
@@ -118,18 +126,12 @@ export async function saveSupabaseWorkspace(
     if (saved.error) throw new Error(migrationHint(saved.error.message));
   }
 
-  if (after.outbox.length) {
-    const rows = after.outbox.map(outboxToRow);
-    let saved = await supabase.from("crm_outbox").upsert(rows);
-    if (saved.error && /prospect_id/i.test(saved.error.message)) {
-      saved = await supabase.from("crm_outbox").upsert(rows.map((row) => omitKey(row, "prospect_id")));
-    }
-    if (saved.error) throw new Error(migrationHint(saved.error.message));
-  }
+  await upsertOutbox(supabase, changedBy(before.outbox, after.outbox, (item) => item.id).map(outboxToRow));
 
-  if (after.templates.length) {
+  const changedTemplates = changedBy(before.templates, after.templates, (item) => item.key);
+  if (changedTemplates.length) {
     const saved = await supabase.from("crm_message_templates").upsert(
-      after.templates.map((template) => ({
+      changedTemplates.map((template) => ({
         key: template.key,
         channel: template.channel,
         name: template.name,
@@ -142,39 +144,67 @@ export async function saveSupabaseWorkspace(
     if (saved.error) throw new Error(migrationHint(saved.error.message));
   }
 
-  const savedSettings = await supabase.from("crm_automation_settings").upsert(settingsToRow(after.settings));
-  if (savedSettings.error) throw new Error(migrationHint(savedSettings.error.message));
+  if (JSON.stringify(before.settings) !== JSON.stringify(after.settings)) {
+    const savedSettings = await supabase.from("crm_automation_settings").upsert(settingsToRow(after.settings));
+    if (savedSettings.error) throw new Error(migrationHint(savedSettings.error.message));
+  }
 
-  if (after.handovers.length) {
-    const saved = await supabase.from("crm_handovers").upsert(after.handovers.map(handoverToRow));
-    if (saved.error) throw new Error(migrationHint(saved.error.message));
-  }
-  if (after.tasks.length) {
-    const saved = await supabase.from("crm_onboarding_tasks").upsert(after.tasks.map(taskToRow));
-    if (saved.error) throw new Error(migrationHint(saved.error.message));
-  }
-  if (after.quotes.length) {
-    const saved = await supabase.from("crm_quote_placeholders").upsert(after.quotes.map(quoteToRow));
-    if (saved.error) throw new Error(migrationHint(saved.error.message));
-  }
-  if (after.socialPosts.length) {
-    const saved = await supabase.from("crm_social_posts").upsert(after.socialPosts.map(socialToRow));
-    if (saved.error) throw new Error(migrationHint(saved.error.message));
-  }
-  if (after.campaigns.length) {
-    const saved = await supabase.from("crm_campaigns").upsert(after.campaigns.map(campaignToRow));
-    if (saved.error) throw new Error(migrationHint(saved.error.message));
-  }
-  if (after.prospects.length) {
-    const saved = await supabase.from("crm_prospects").upsert(after.prospects.map(prospectToRow));
-    if (saved.error) throw new Error(migrationHint(saved.error.message));
-  }
-  if (after.clicks.length) {
-    const saved = await supabase.from("crm_social_clicks").upsert(after.clicks.map(clickToRow));
-    if (saved.error) throw new Error(migrationHint(saved.error.message));
+  await upsertRows(supabase, "crm_handovers", changedBy(before.handovers, after.handovers, (item) => item.id).map(handoverToRow));
+  await upsertRows(supabase, "crm_onboarding_tasks", changedBy(before.tasks, after.tasks, (item) => item.id).map(taskToRow));
+  await upsertRows(supabase, "crm_quote_placeholders", changedBy(before.quotes, after.quotes, (item) => item.id).map(quoteToRow));
+  await upsertRows(supabase, "crm_social_posts", changedBy(before.socialPosts, after.socialPosts, (item) => item.id).map(socialToRow));
+  await upsertRows(supabase, "crm_campaigns", changedBy(before.campaigns, after.campaigns, (item) => item.id).map(campaignToRow));
+  await upsertRows(
+    supabase,
+    "crm_prospects",
+    changedBy(before.prospects, after.prospects, (item) => item.id).map(prospectToRow),
+    ["marketing_consent"],
+  );
+  await upsertRows(supabase, "crm_social_clicks", changedBy(before.clicks, after.clicks, (item) => item.id).map(clickToRow));
+
+  const knownSuppressions = new Set((before.suppressions || []).map((item) => item.id));
+  const freshSuppressions = (after.suppressions || []).filter((item) => !knownSuppressions.has(item.id));
+  if (freshSuppressions.length) {
+    const saved = await supabase.from("crm_suppressions").insert(freshSuppressions.map(suppressionToRow));
+    if (saved.error) {
+      throw new Error(`${saved.error.message} Apply ${COMPLIANCE_MIGRATION_FILE} in the Supabase SQL editor. Existing leads are not deleted.`);
+    }
   }
 
   await syncSourceStatus(supabase, before, after);
+}
+
+async function upsertRows(
+  supabase: SupabaseClient,
+  table: string,
+  rows: Record<string, unknown>[],
+  optionalKeys: string[] = [],
+) {
+  if (!rows.length) return;
+  let payload = rows;
+  let saved = await supabase.from(table).upsert(payload);
+  for (const key of optionalKeys) {
+    if (!saved.error || !new RegExp(key, "i").test(saved.error.message)) continue;
+    payload = payload.map((row) => omitKey(row, key));
+    saved = await supabase.from(table).upsert(payload);
+  }
+  if (saved.error) throw new Error(migrationHint(saved.error.message));
+}
+
+async function upsertOutbox(supabase: SupabaseClient, rows: Record<string, unknown>[]) {
+  if (!rows.length) return;
+  let payload = rows;
+  let saved = await supabase.from("crm_outbox").upsert(payload);
+  if (saved.error && /check constraint/i.test(saved.error.message) && /status/i.test(saved.error.message)) {
+    payload = payload.map((row) => (row.status === "blocked" ? { ...row, status: "failed", error: row.error || "Blocked" } : row));
+    saved = await supabase.from("crm_outbox").upsert(payload);
+  }
+  for (const key of ["prospect_id", "cost_usd", "cost_zar", "cost_category", "message_category"]) {
+    if (!saved.error || !new RegExp(key, "i").test(saved.error.message)) continue;
+    payload = payload.map((row) => omitKey(row, key));
+    saved = await supabase.from("crm_outbox").upsert(payload);
+  }
+  if (saved.error) throw new Error(migrationHint(saved.error.message));
 }
 
 async function syncSourceStatus(supabase: SupabaseClient, before: AutomationState, after: AutomationState) {
@@ -242,6 +272,7 @@ function mapLead(row: Record<string, unknown>): LeadRecord {
     wonAt: text(row.won_at) || null,
     repliedAt: text(row.replied_at) || null,
     enrolled: Boolean(row.enrolled),
+    marketingConsent: row.marketing_consent === true,
     auditLeadId: text(row.audit_lead_id) || null,
     contactLeadId: text(row.contact_lead_id) || null,
     ord: num(row.ord),
@@ -280,6 +311,7 @@ function leadToRow(lead: LeadRecord) {
     won_at: lead.wonAt,
     replied_at: lead.repliedAt,
     enrolled: lead.enrolled,
+    marketing_consent: lead.marketingConsent === true,
     audit_lead_id: lead.auditLeadId,
     contact_lead_id: lead.contactLeadId,
     ord: lead.ord,
@@ -328,6 +360,10 @@ function mapOutbox(row: Record<string, unknown>): OutboxMessage {
     providerId: text(row.provider_id),
     error: text(row.error),
     waLink: text(row.wa_link),
+    category: asCategory(text(row.message_category), text(row.template_key)),
+    costUsd: nullableNum(row.cost_usd),
+    costZar: nullableNum(row.cost_zar),
+    costCategory: text(row.cost_category),
     createdAt: text(row.created_at) || new Date().toISOString(),
   };
 }
@@ -349,6 +385,10 @@ function outboxToRow(item: OutboxMessage) {
     provider_id: item.providerId,
     error: item.error,
     wa_link: item.waLink,
+    message_category: item.category || "",
+    cost_usd: item.costUsd,
+    cost_zar: item.costZar,
+    cost_category: item.costCategory || "",
     created_at: item.createdAt,
   };
 }
@@ -559,6 +599,7 @@ function mapProspect(row: Record<string, unknown>): Prospect {
     phone: text(row.phone),
     email: text(row.email),
     openingLine: text(row.opening_line),
+    marketingConsent: row.marketing_consent === true,
     status: asProspectStatus(text(row.status)),
     stepIndex: num(row.step_index),
     leadId: text(row.lead_id) || null,
@@ -579,6 +620,7 @@ function prospectToRow(item: Prospect) {
     phone: item.phone,
     email: item.email,
     opening_line: item.openingLine,
+    marketing_consent: item.marketingConsent === true,
     status: item.status,
     step_index: item.stepIndex,
     lead_id: item.leadId,
@@ -661,8 +703,34 @@ function asProspectStatus(value: string): ProspectStatus {
   return "in_sequence";
 }
 
+function mapSuppression(row: Record<string, unknown>): Suppression {
+  const channel = text(row.channel);
+  return {
+    id: text(row.id),
+    address: text(row.address),
+    channel: channel === "email" || channel === "sms" || channel === "whatsapp" ? channel : "",
+    reason: text(row.reason),
+    createdAt: text(row.created_at) || new Date().toISOString(),
+  };
+}
+
+function suppressionToRow(item: Suppression) {
+  return {
+    id: item.id,
+    address: item.address,
+    channel: item.channel,
+    reason: item.reason,
+    created_at: item.createdAt,
+  };
+}
+
+function asCategory(value: string, templateKey: string): MessageCategory {
+  if (value === "service" || value === "marketing") return value;
+  return messageCategory(templateKey);
+}
+
 function outboxStatus(value: string): OutboxStatus {
-  if (value === "approved" || value === "sent" || value === "failed" || value === "cancelled") return value;
+  if (value === "approved" || value === "sent" || value === "failed" || value === "cancelled" || value === "blocked") return value;
   return "queued";
 }
 
@@ -679,6 +747,12 @@ function text(value: unknown) {
 function num(value: unknown) {
   const parsed = Number(value ?? 0);
   return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function nullableNum(value: unknown) {
+  if (value == null || value === "") return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
 }
 
 function record(value: unknown): Record<string, unknown> {

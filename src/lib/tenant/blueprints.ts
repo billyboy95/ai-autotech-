@@ -1,3 +1,4 @@
+import { AGENCY_DECK_COLORS, AGENCY_WHATSAPP_E164 } from "@/lib/brand/catalog";
 import { emptyChannels, emptyShopify, type WorkspaceBlueprint, type WorkspaceSummary } from "./types";
 
 export const AGENCY_BLUEPRINT: WorkspaceBlueprint = {
@@ -117,11 +118,14 @@ export function previewWorkspaces(): WorkspaceSummary[] {
     location: "South Africa",
     industry: "AI automation",
     logoUrl: "",
-    primaryColor: "#0B1F3A",
-    accentColor: "#2563EB",
+    primaryColor: AGENCY_DECK_COLORS.navy,
+    accentColor: AGENCY_DECK_COLORS.blue,
     domain: "aiautotech.co.za",
     formKey: "ai-autotech",
-    settings: { channels: emptyChannels(), shopify: emptyShopify() },
+    settings: {
+      channels: { ...emptyChannels(), whatsapp: { phoneNumberId: "", displayPhone: AGENCY_WHATSAPP_E164 } },
+      shopify: emptyShopify(),
+    },
     sendingEnabled: false,
     senderName: "AI AutoTech Pty Ltd",
     timezone: "Africa/Johannesburg",

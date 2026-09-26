@@ -1,3 +1,4 @@
+import { type JobKind } from "@/lib/brand/catalog";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { missingOrgColumn, missingTenantTable } from "@/lib/tenant/rows";
 import { AGENCY_SLUG } from "@/lib/tenant/types";
@@ -34,7 +35,7 @@ export type Job = {
   id: string;
   client: string;
   title: string;
-  kind: "Website" | "WhatsApp" | "AI Employee" | "Other";
+  kind: JobKind;
   status: "Open" | "Doing" | "Done";
 };
 

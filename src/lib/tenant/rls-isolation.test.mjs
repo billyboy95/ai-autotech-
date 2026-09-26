@@ -13,6 +13,7 @@ async function applyMigrations(db) {
   const tenancy = readFileSync(new URL("../../../supabase/migrations/20260926160000_agency_tenancy.sql", import.meta.url), "utf8");
   const zentrix = readFileSync(new URL("../../../supabase/migrations/20260926180000_zentrix_shopify.sql", import.meta.url), "utf8");
   const phase2a = readFileSync(new URL("../../../supabase/migrations/20260926200000_phase2a_access.sql", import.meta.url), "utf8");
+  const brand = readFileSync(new URL("../../../supabase/migrations/20260926210000_agency_brand_offers.sql", import.meta.url), "utf8");
   const phase1 = readFileSync(new URL("../../../supabase/migrations/20261015120000_org_scope_phase1_tables.sql", import.meta.url), "utf8");
   await db.exec(`
     do $$
@@ -30,6 +31,7 @@ async function applyMigrations(db) {
   await db.exec(tenancy);
   await db.exec(zentrix);
   await db.exec(phase2a);
+  await db.exec(brand);
   await db.exec(phase1);
 }
 

@@ -14,7 +14,8 @@ In the Supabase SQL editor, run these files in order if they are not already app
 4. `supabase/migrations/20260926160000_agency_tenancy.sql`
 5. `supabase/migrations/20260926180000_zentrix_shopify.sql` (Zentrix Online, 10 stores, Shopify tables)
 6. `supabase/migrations/20260926200000_phase2a_access.sql` (send switch default off, POPIA tables, staff limits, legacy Admin bypass closed)
-7. `supabase/migrations/20261015120000_org_scope_phase1_tables.sql` (no-op until the pipeline engine tables exist, then it adds `org_id` and RLS)
+7. `supabase/migrations/20260926210000_agency_brand_offers.sql` (agency colours from the deck, sourced service and package names on jobs)
+8. `supabase/migrations/20261015120000_org_scope_phase1_tables.sql` (no-op until the pipeline engine tables exist, then it adds `org_id` and RLS)
 
 ## 2. Environment variables
 

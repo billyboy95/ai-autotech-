@@ -1,6 +1,7 @@
 "use client";
 
 import { addClient, addInvoice, addJob, markInvoicePaid, setJobStatus } from "@/app/actions/crm";
+import { LEGACY_JOB_KINDS, OFFER_PACKAGES, OFFER_SERVICES } from "@/lib/brand/catalog";
 import type { CrmData } from "@/lib/crm-store";
 
 const jobStatuses = ["Open", "Doing", "Done"] as const;
@@ -57,11 +58,22 @@ export function CompanySection({ data, section }: { data: CrmData; section: "cli
           <Field name="title" label="What are we doing" placeholder="WhatsApp inbox" />
           <label className="grid gap-1 text-xs font-semibold text-slate-600">
             Type
-            <select name="kind" className="h-10 rounded-md border border-slate-200 px-3 text-sm">
-              <option>Website</option>
-              <option>WhatsApp</option>
-              <option>AI Employee</option>
-              <option>Other</option>
+            <select name="kind" className="h-10 rounded-md border border-slate-200 px-3 text-sm" defaultValue="Professional Websites">
+              <optgroup label="Services">
+                {OFFER_SERVICES.map((item) => (
+                  <option key={item.name}>{item.name}</option>
+                ))}
+              </optgroup>
+              <optgroup label="Packages">
+                {OFFER_PACKAGES.map((item) => (
+                  <option key={item.name}>{item.name}</option>
+                ))}
+              </optgroup>
+              <optgroup label="Earlier labels">
+                {LEGACY_JOB_KINDS.map((item) => (
+                  <option key={item}>{item}</option>
+                ))}
+              </optgroup>
             </select>
           </label>
           <button className="h-10 rounded-md bg-[#2563EB] text-sm font-semibold text-white">Save job</button>

@@ -9,11 +9,11 @@ import {
 } from "lucide-react";
 import { BrandLogo } from "@/components/brand-logo";
 import { LeadForm } from "@/components/lead-form";
+import { AGENCY_PROMISE, AGENCY_TAGLINE, OFFER_SERVICES, UPGRADE_PATH } from "@/lib/brand/catalog";
 import {
   databaseTables,
   publicPages,
   roleMatrix,
-  services,
 } from "@/lib/platform-data";
 
 const modules = [
@@ -79,8 +79,9 @@ export default function Home() {
             <h1 className="font-display text-4xl font-extrabold leading-tight text-[#0B1F3A] md:text-6xl">
               AI AutoTech
             </h1>
+            <p className="mt-3 text-sm font-semibold uppercase tracking-[0.16em] text-[#1B3A5C]">{AGENCY_TAGLINE}</p>
             <p className="mt-5 max-w-2xl text-lg leading-8 text-slate-600">
-              A scalable operating system for automation, AI, software delivery, CRM, proposals, invoices, client portals, and future SaaS products for South African SMEs.
+              Digital systems that {AGENCY_PROMISE}. The path is {UPGRADE_PATH.join(" → ")}.
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <Link
@@ -99,10 +100,9 @@ export default function Home() {
               </Link>
             </div>
             <div className="mt-8 grid gap-3 sm:grid-cols-3">
-              {["Automation", "AI", "Software"].map((item) => (
+              {UPGRADE_PATH.map((item) => (
                 <div key={item} className="rounded-md border border-slate-200 bg-white p-3">
-                  <p className="font-display text-lg font-bold text-[#0B1F3A]">{item}</p>
-                  <p className="text-sm text-slate-500">Digital transformation layer</p>
+                  <p className="font-display text-lg font-bold text-[#1B3A5C]">{item}</p>
                 </div>
               ))}
             </div>
@@ -168,12 +168,11 @@ export default function Home() {
       </section>
 
       <section className="mx-auto max-w-7xl px-4 py-14 lg:px-6">
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          {services.map((service) => (
-            <article key={service.title} className="rounded-md border border-slate-200 bg-white p-5 shadow-sm">
-              <service.icon className="mb-4 text-[#2563EB]" size={24} />
-              <h2 className="font-display text-lg font-bold text-[#0B1F3A]">{service.title}</h2>
-              <p className="mt-2 text-sm leading-6 text-slate-600">{service.text}</p>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {OFFER_SERVICES.filter((service) => service.detail).map((service) => (
+            <article key={service.name} className="rounded-md border border-slate-200 bg-white p-5 shadow-sm">
+              <h2 className="font-display text-lg font-bold text-[#1B3A5C]">{service.name}</h2>
+              <p className="mt-2 text-sm leading-6 text-slate-600">{service.detail}</p>
             </article>
           ))}
         </div>

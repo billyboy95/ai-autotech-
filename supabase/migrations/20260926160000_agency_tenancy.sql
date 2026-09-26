@@ -434,13 +434,13 @@ values (
   'AI AutoTech Pty Ltd',
   'South Africa',
   'AI automation',
-  '#0B1F3A',
-  '#2563EB',
+  '#1B3A5C',
+  '#4A9EDB',
   'aiautotech.co.za',
   'ai-autotech',
   jsonb_build_object(
     'channels', jsonb_build_object(
-      'whatsapp', jsonb_build_object('phoneNumberId', '', 'displayPhone', ''),
+      'whatsapp', jsonb_build_object('phoneNumberId', '', 'displayPhone', '27715994283'),
       'email', jsonb_build_object('fromAddress', '', 'provider', ''),
       'sms', jsonb_build_object('senderId', '')
     )

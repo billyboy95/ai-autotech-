@@ -1,3 +1,4 @@
+import { AGENCY_DECK_COLORS } from "@/lib/brand/catalog";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { findAuthUserIdByEmail, listAuthEmails } from "@/server/workers/with-org";
 import { EDUCATION_BLUEPRINT, BLUEPRINTS } from "@/lib/tenant/blueprints";
@@ -223,8 +224,8 @@ export async function createClientWorkspace(input: {
       form_key: slug,
       sending_enabled: false,
       sender_name: input.name.trim(),
-      primary_color: blueprint.key === "ecommerce" ? "#111827" : blueprint.key === "education" ? "#0F3D4C" : "#0B1F3A",
-      accent_color: blueprint.key === "ecommerce" ? "#16A34A" : blueprint.key === "education" ? "#C4A35A" : "#2563EB",
+      primary_color: blueprint.key === "ecommerce" ? "#111827" : blueprint.key === "education" ? "#0F3D4C" : AGENCY_DECK_COLORS.navy,
+      accent_color: blueprint.key === "ecommerce" ? "#16A34A" : blueprint.key === "education" ? "#C4A35A" : AGENCY_DECK_COLORS.blue,
       settings: { channels: emptyChannels(), shopify: emptyShopify() },
     })
     .select(ORG_COLUMNS)

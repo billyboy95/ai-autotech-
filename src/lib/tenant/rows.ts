@@ -1,3 +1,4 @@
+import { AGENCY_DECK_COLORS } from "@/lib/brand/catalog";
 import { emptyChannels, emptyShopify, type ChannelPlaceholders, type MembershipRole, type OrgType, type ShopifyCredentials, type WorkspaceSettings, type WorkspaceSummary } from "./types";
 
 export type OrganizationRow = {
@@ -72,8 +73,8 @@ export function toWorkspace(row: OrganizationRow): WorkspaceSummary | null {
     location: row.location ?? "",
     industry: row.industry ?? "",
     logoUrl: row.logo_url ?? "",
-    primaryColor: row.primary_color || "#0B1F3A",
-    accentColor: row.accent_color || "#2563EB",
+    primaryColor: row.primary_color || AGENCY_DECK_COLORS.navy,
+    accentColor: row.accent_color || AGENCY_DECK_COLORS.blue,
     domain: row.domain ?? "",
     formKey: row.form_key || row.slug,
     settings: parseSettings(row.settings),

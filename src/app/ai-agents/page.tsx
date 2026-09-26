@@ -1,19 +1,13 @@
 import { PublicPageShell } from "@/components/public-page-shell";
+import { AGENT_DEPARTMENTS } from "@/lib/brand/catalog";
 
 export default function AiAgentsPage() {
   return (
     <PublicPageShell
       title="AI Agents"
-      description="Role-specific agents for sales, support, operations, marketing, finance, and executive reporting."
+      description="The planned workforce is Executive, Sales, Voice, Research, Website, Automation, Client Success, Finance, Content, and Admin. Voice routes sales to Sales, strategy to Executive, automation to Automation, website to Website, and content to Content."
       sourcePage="ai-agents"
-      items={[
-        "Sales Agent",
-        "Support Agent",
-        "Operations Agent",
-        "Marketing Agent",
-        "Finance Agent",
-        "Executive Agent",
-      ]}
+      items={AGENT_DEPARTMENTS.map((name) => ({ title: name }))}
     />
   );
 }

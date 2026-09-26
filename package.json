@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "node scripts/check-service-role.mjs && tsx --test src/lib/automation/engine.test.ts src/lib/automation/outbound.test.ts src/lib/automation/compliance.test.ts src/lib/crm-store.test.ts src/lib/tenant/access.test.ts src/lib/shopify/classify.test.ts src/lib/compliance/send-gate.test.ts && node --test src/lib/tenant/rls-isolation.test.mjs",
+    "test": "node scripts/check-service-role.mjs && tsx --test src/lib/automation/engine.test.ts src/lib/automation/outbound.test.ts src/lib/automation/compliance.test.ts src/lib/crm-store.test.ts src/lib/tenant/access.test.ts src/lib/shopify/classify.test.ts src/lib/compliance/send-gate.test.ts src/lib/brand/catalog.test.ts && node --test src/lib/tenant/rls-isolation.test.mjs",
     "demo:automation": "tsx scripts/demo-automation.ts"
   },
   "dependencies": {

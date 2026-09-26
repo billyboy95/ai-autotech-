@@ -45,7 +45,12 @@ begin
     'crm_automation_settings',
     'crm_handovers',
     'crm_onboarding_tasks',
-    'crm_quote_placeholders'
+    'crm_quote_placeholders',
+    'crm_social_posts',
+    'crm_social_clicks',
+    'crm_campaigns',
+    'crm_prospects',
+    'crm_suppressions'
   ]
   loop
     if to_regclass('public.' || rel) is null then

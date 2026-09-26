@@ -12,10 +12,15 @@ In the Supabase SQL editor, run these files in order if they are not already app
 2. `supabase/migrations/20260925000000_audit_leads.sql`
 3. `supabase/migrations/20260925120000_contact_leads.sql`
 4. `supabase/migrations/20260926160000_agency_tenancy.sql`
-5. `supabase/migrations/20260926180000_zentrix_shopify.sql` (Zentrix Online, 10 stores, Shopify tables)
-6. `supabase/migrations/20260926200000_phase2a_access.sql` (send switch default off, POPIA tables, staff limits, legacy Admin bypass closed)
-7. `supabase/migrations/20260926210000_agency_brand_offers.sql` (agency colours from the deck, sourced service and package names on jobs)
-8. `supabase/migrations/20261015120000_org_scope_phase1_tables.sql` (no-op until the pipeline engine tables exist, then it adds `org_id` and RLS)
+5. `supabase/migrations/20260926160000_crm_automation.sql` (pipeline, outbox, handover)
+6. `supabase/migrations/20260926180000_zentrix_shopify.sql` (Zentrix Online, 10 stores, Shopify tables)
+7. `supabase/migrations/20260926183000_outbound_channels.sql` (SMS, social queue, campaigns)
+8. `supabase/migrations/20260926200000_phase2a_access.sql` (send switch default off, POPIA tables, staff limits, legacy Admin bypass closed)
+9. `supabase/migrations/20260926200000_send_compliance.sql` (marketing opt-in, suppressions, per-send cost)
+10. `supabase/migrations/20260926210000_agency_brand_offers.sql` (agency colours from the deck, sourced service and package names on jobs)
+11. `supabase/migrations/20261015120000_org_scope_phase1_tables.sql` (adds `org_id` and RLS to pipeline tables that already exist; skips any that do not)
+
+The command centre still opens if the agency migrations are not applied yet. It reads the existing CRM as one agency book and does not crash when `organizations` or `org_id` is missing. Client workspaces appear after `20260926160000_agency_tenancy.sql` is applied.
 
 ## 2. Environment variables
 

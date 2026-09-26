@@ -26,6 +26,9 @@ export function AgencyView({
             <Link href="/command-centre" className="h-10 rounded-md border border-slate-200 px-3 text-sm font-semibold leading-10 text-[#0B1F3A]">
               Open CRM
             </Link>
+            <Link href="/agency/snapshots" className="h-10 rounded-md border border-slate-200 px-3 text-sm font-semibold leading-10 text-[#0B1F3A]">
+              Snapshots
+            </Link>
             <Link href="/agency/new" className="h-10 rounded-md bg-[#2563EB] px-3 text-sm font-semibold leading-10 text-white">
               Create client workspace
             </Link>

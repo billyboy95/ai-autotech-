@@ -27,6 +27,8 @@ PR #3 is merged. Its files are on `main` and are still unapplied. Run them after
 6. `supabase/migrations/20260926200000_phase2a_access.sql`
 7. `supabase/migrations/20260926210000_agency_brand_offers.sql`
 8. `supabase/migrations/20261015120000_org_scope_phase1_tables.sql`
+9. `supabase/migrations/20261015140000_phase2b_channels_popia.sql`
+10. `supabase/migrations/20261016120000_phase2c_snapshots.sql`
 
 Why this order:
 
@@ -36,7 +38,9 @@ Why this order:
 - `zentrix_shopify` inserts the Zentrix organisation and calls `attach_org_tenancy` on the Shopify tables. It requires `agency_tenancy`. It does not require phase 2a.
 - `phase2a_access` adds `organizations.branding`, `sending_enabled` (default false), and the other workspace columns. It requires `organizations` from `agency_tenancy`.
 - `agency_brand_offers` writes `organizations.branding` and the deck colours. It requires phase 2a. It also widens the `crm_jobs.kind` check. `crm_jobs` is already live.
-- `org_scope_phase1_tables` calls `attach_org_tenancy` on the automation tables (`crm_lead_activity`, `crm_outbox`, `crm_prospects`, `crm_suppressions`, and the rest of that list). It no-ops for any table that is not there yet, and it returns without changes if `attach_org_tenancy` is missing. Run it last so those tables already exist.
+- `org_scope_phase1_tables` calls `attach_org_tenancy` on the automation tables (`crm_lead_activity`, `crm_outbox`, `crm_prospects`, `crm_suppressions`, and the rest of that list). It no-ops for any table that is not there yet, and it returns without changes if `attach_org_tenancy` is missing. Run it before phase 2b and phase 2c so those tables already exist.
+- `phase2b_channels_popia` adds channel connections, the vault secret RPCs, POPIA contacts, rate cards, and the usage ledger. It alters `crm_outbox` when that table exists, so it follows the automation and compliance files. It does not turn sending on and it does not put provider secrets in the migration.
+- `phase2c_snapshots` adds pipelines, pipeline stages, message templates, sequences, custom fields, and workspace snapshots. It adds `crm_leads.stage_id` only where the stage name matches exactly one stage in that organisation, and it adds `asset_key` on the phase 1 sequence tables. It follows phase 2b. Snapshot payloads do not include contacts, messages, or secrets. Applying a snapshot does not turn sending on.
 
 ## Shared timestamps
 
@@ -51,4 +55,4 @@ Filename sort also places `20260926180000_zentrix_shopify.sql` before `outbound_
 
 ## Not part of this apply
 
-`supabase/owner-bootstrap.sql` is not a migration. Run it only after these eight files, and only after the agency owner exists in Supabase Auth. `supabase/schema.sql` is the classic Command Centre baseline, not one of these pending files.
+`supabase/owner-bootstrap.sql` is not a migration. Run it only after these files, and only after the agency owner exists in Supabase Auth. `supabase/schema.sql` is the classic Command Centre baseline, not one of these pending files. Do not apply this list until `SUPABASE_DB_URL` is available, and do not turn sending on while applying it.

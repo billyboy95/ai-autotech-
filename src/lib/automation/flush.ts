@@ -37,7 +37,10 @@ export async function flushOutbox(
         subject: message.subject,
         body: message.body,
         category: message.category || messageCategory(message.templateKey),
-        marketingConsent: marketingConsentFor(next, message),
+        marketingConsent:
+          message.purpose === "consent_request" || message.templateKey === "consent_request"
+            ? true
+            : marketingConsentFor(next, message),
         suppressed: Boolean(matchingSuppression(next.suppressions || [], message.channel, message.toAddress)),
         serviceSendsThisMonth: countCloudServiceSends(next.outbox, now),
         sentAt: now.toISOString(),

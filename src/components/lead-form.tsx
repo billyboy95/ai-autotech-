@@ -5,6 +5,7 @@ import { useFormStatus } from "react-dom";
 import { Send } from "lucide-react";
 import { createLead, type LeadActionState } from "@/app/actions/leads";
 import { OFFER_PACKAGES, OFFER_SERVICES } from "@/lib/brand/catalog";
+import { marketingConsentText, serviceConsentText } from "@/lib/compliance/consent-copy";
 
 const initialState: LeadActionState = {
   ok: false,
@@ -112,6 +113,14 @@ export function LeadForm({ sourcePage = "website" }: { sourcePage?: string }) {
           className="resize-none rounded-md border border-slate-200 bg-white px-3 py-3 outline-none transition focus:border-[#2563EB] focus:ring-4 focus:ring-blue-100"
           placeholder="Tell us what you want to automate or build."
         />
+      </label>
+      <label className="flex items-start gap-2 text-sm text-slate-600">
+        <input name="consent_service" type="checkbox" className="mt-1" />
+        {serviceConsentText("AI AutoTech Pty Ltd")}
+      </label>
+      <label className="flex items-start gap-2 text-sm text-slate-600">
+        <input name="consent_marketing" type="checkbox" className="mt-1" />
+        {marketingConsentText("AI AutoTech Pty Ltd")}
       </label>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <SubmitButton />

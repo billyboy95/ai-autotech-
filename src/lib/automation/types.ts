@@ -29,9 +29,11 @@ export type SocialStatus = "queued" | "approved" | "published" | "failed" | "can
 
 export type CampaignStatus = "draft" | "active" | "paused";
 
-export type ProspectStatus = "queued" | "in_sequence" | "replied" | "booked" | "stopped";
+export type ProspectStatus = "queued" | "in_sequence" | "replied" | "booked" | "stopped" | "not_contacted";
 
-export type OutboxStatus = "queued" | "approved" | "sent" | "failed" | "cancelled" | "blocked";
+export type OutboxStatus = "queued" | "approved" | "sent" | "failed" | "cancelled" | "blocked" | "blocked_consent" | "held";
+
+export type OutboxPurpose = "marketing" | "service" | "transactional" | "consent_request";
 
 export type AssignmentStrategy = "fixed" | "round_robin";
 
@@ -135,6 +137,10 @@ export type OutboxMessage = {
   costUsd: number | null;
   costZar: number | null;
   costCategory: string;
+  purpose?: OutboxPurpose;
+  connectionId?: string | null;
+  contactId?: string | null;
+  costCents?: number | null;
   createdAt: string;
 };
 
@@ -210,6 +216,11 @@ export type Prospect = {
   email: string;
   openingLine: string;
   marketingConsent: boolean;
+  consentBasis?: "" | "consent" | "existing_customer";
+  consentRequested?: boolean;
+  area?: string;
+  sourceUrl?: string;
+  outreachStatus?: string;
   status: ProspectStatus;
   stepIndex: number;
   leadId: string | null;

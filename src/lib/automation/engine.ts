@@ -2,6 +2,7 @@ import { assignOwner } from "@/lib/automation/assign";
 import { ensureProspectInPipeline, queueDueCampaignSteps } from "@/lib/automation/campaigns";
 import { buildSmsLink, buildWaLink, isSendEnabled, renderTemplate, type EnvLike } from "@/lib/automation/channels";
 import { addSuppression, ensureMarketingFooter, isOptOutText, messageCategory, normalizeAddress, optOutAddresses } from "@/lib/automation/compliance";
+import { optOutAck } from "@/lib/compliance/stop";
 import { firstName, formatWhen, newId } from "@/lib/automation/ids";
 import { claimClick } from "@/lib/automation/social";
 import { readCompanySize, scoreLead } from "@/lib/automation/score";
@@ -741,10 +742,37 @@ function applyOptOut(state: AutomationState, event: InboundEvent, now: Date): Au
   const activities = leads.map((lead) =>
     activity(lead.id, "opt_out", "Opted out", event.text || "STOP", now, { email, phone }),
   );
+  const ackTo = phone || email;
+  const ackChannel: Channel = phone ? "whatsapp" : "email";
+  const ack: OutboxMessage | null = ackTo
+    ? {
+        id: newId("msg"),
+        leadId: leads[0]?.id || "",
+        prospectId: prospects[0]?.id || null,
+        templateKey: "opt_out_ack",
+        channel: ackChannel,
+        toAddress: ackTo,
+        subject: "",
+        body: optOutAck(state.settings.defaultOwner || "AI AutoTech"),
+        category: "service",
+        purpose: "service",
+        status: "queued",
+        scheduledFor: now.toISOString(),
+        sentAt: null,
+        provider: "outbox",
+        providerId: "",
+        error: "",
+        costUsd: null,
+        costZar: null,
+        costCategory: "",
+        waLink: "",
+        createdAt: now.toISOString(),
+      }
+    : null;
   return {
     ...state,
     suppressions,
-    outbox,
+    outbox: ack ? [...outbox, ack] : outbox,
     prospects: state.prospects.map((prospect) =>
       prospectIds.has(prospect.id) ? { ...prospect, status: "stopped", updatedAt: now.toISOString() } : prospect,
     ),

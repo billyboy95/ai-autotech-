@@ -172,5 +172,8 @@ test("STOP suppresses the address and does not create a pipeline lead", () => {
   assert.equal(stopped.prospects[0]?.status, "stopped");
   assert.ok(stopped.suppressions.some((item) => item.address === "thabo@ndlovu.example"));
   assert.ok(stopped.suppressions.some((item) => item.address === "27825550101"));
-  assert.ok(stopped.outbox.every((message) => message.status === "cancelled"));
+  const ack = stopped.outbox.find((message) => message.templateKey === "opt_out_ack");
+  assert.equal(ack?.status, "queued");
+  assert.match(ack?.body || "", /opted out/i);
+  assert.ok(stopped.outbox.filter((message) => message.templateKey !== "opt_out_ack").every((message) => message.status === "cancelled"));
 });

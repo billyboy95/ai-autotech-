@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { marketingConsentText, serviceConsentText } from "@/lib/compliance/consent-copy";
 import { enrollLead } from "@/lib/automation/service";
+import { recordConsent } from "@/server/webhooks/compliance";
 import { nid } from "@/lib/crm-store";
 import { agencyOrgId, insertForOrg, serviceConfigured } from "@/server/workers/with-org";
 
@@ -86,6 +88,8 @@ const schema = z.object({
   elapsedMs: z.coerce.number().int().min(0).max(7 * 24 * 60 * 60 * 1000).optional(),
   _honey: z.string().max(200).optional(),
   hp: z.string().max(200).optional(),
+  consentService: z.union([z.boolean(), z.string()]).optional(),
+  consentMarketing: z.union([z.boolean(), z.string()]).optional(),
 });
 
 /** QA submissions (name starts with TEST and an @aiautotech.co.za address) are stored as status='test'
@@ -244,5 +248,38 @@ export async function POST(request: Request) {
     }
   }
 
+  if (orgId) {
+    const sender = "AI AutoTech Pty Ltd";
+    const evidence = { user_agent: (request.headers.get("user-agent") ?? "").slice(0, 400), form_version: "2b" };
+    if (flagOn(input.consentService)) {
+      await recordConsent({
+        orgId,
+        channel: "email",
+        purpose: "service",
+        status: "opted_in",
+        basis: "consent",
+        address: input.email,
+        source: "website_contact",
+        evidence: { ...evidence, consent_text: serviceConsentText(sender) },
+      });
+    }
+    if (flagOn(input.consentMarketing)) {
+      await recordConsent({
+        orgId,
+        channel: "email",
+        purpose: "marketing",
+        status: "opted_in",
+        basis: "consent",
+        address: input.email,
+        source: "website_contact",
+        evidence: { ...evidence, consent_text: marketingConsentText(sender) },
+      });
+    }
+  }
+
   return json({ ok: true, id: data.id }, 200, origin);
+}
+
+function flagOn(value: boolean | string | undefined) {
+  return value === true || value === "on" || value === "true";
 }

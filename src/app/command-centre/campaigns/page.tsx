@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { importCampaignCsv, saveCampaignForm, setProspectConsent } from "@/app/actions/automation";
+import { importCampaignCsv, loadDraftProspects, saveCampaignForm, setProspectConsent } from "@/app/actions/automation";
 import { CommandShell } from "@/components/crm/command-shell";
 import { defaultCampaignSteps } from "@/lib/automation/campaigns";
 import { formatWhen } from "@/lib/automation/ids";
 import { loadCommandData } from "@/lib/automation/page-data";
+import { safeResolveWorkspace } from "@/lib/tenant/context";
+import { AGENCY_SLUG } from "@/lib/tenant/types";
 
 export const dynamic = "force-dynamic";
 
@@ -15,6 +17,7 @@ export const metadata: Metadata = {
 
 export default async function CampaignsPage() {
   const { workspace, sendingEnabled } = await loadCommandData();
+  const tenant = await safeResolveWorkspace();
   const campaigns = workspace.state.campaigns;
   const steps = defaultCampaignSteps();
 
@@ -30,7 +33,9 @@ export default async function CampaignsPage() {
 
         <form action={importCampaignCsv} className="grid min-w-0 gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
           <h2 className="font-display text-lg font-bold text-[#0B1F3A]">Import prospects</h2>
-          <p className="text-sm text-slate-600">Columns: name, business, niche, website, phone, email, opening line.</p>
+          <p className="text-sm text-slate-600">
+            Columns: name, business, niche, website, phone, email, opening line, consent_basis. A blank consent_basis gets one consent request. A second request is blocked.
+          </p>
           <label className="grid gap-1 text-xs font-semibold text-slate-600">
             Add to campaign
             <select name="campaignId" className="h-10 w-full min-w-0 max-w-full rounded-md border border-slate-200 px-2 text-sm font-normal">
@@ -46,7 +51,7 @@ export default async function CampaignsPage() {
             name="csv"
             rows={5}
             className="rounded-md border border-slate-200 px-3 py-2 font-mono text-xs"
-            placeholder={"name,business,niche,website,phone,email,opening line\nThabo,Ndlovu Dental,dental,https://example.co.za,0825550101,thabo@example.co.za,Your front desk is still copying WhatsApp into a notebook."}
+            placeholder={"name,business,niche,website,phone,email,opening line,consent_basis\nThabo,Ndlovu Dental,dental,https://example.co.za,0825550101,thabo@example.co.za,Your front desk is still copying WhatsApp into a notebook.,"}
           />
           <label className="text-xs font-semibold text-slate-600">
             Or upload a CSV
@@ -54,6 +59,16 @@ export default async function CampaignsPage() {
           </label>
           <button className="h-10 w-fit rounded-md bg-[#0B1F3A] px-4 text-sm font-semibold text-white">Import and queue</button>
         </form>
+
+        {tenant.active.slug === AGENCY_SLUG ? (
+          <form action={loadDraftProspects} className="grid gap-2 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+            <h2 className="font-display text-lg font-bold text-[#0B1F3A]">East Rand draft</h2>
+            <p className="text-sm text-slate-600">
+              Loads the bundled prospect list into the AI AutoTech workspace as a draft. Status stays not contacted. Sending stays off. Nothing is queued.
+            </p>
+            <button className="h-10 w-fit rounded-md border border-slate-200 px-4 text-sm font-semibold text-[#0B1F3A]">Load held draft</button>
+          </form>
+        ) : null}
 
         <form action={saveCampaignForm} className="grid min-w-0 grid-cols-1 gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
           <h2 className="font-display text-lg font-bold text-[#0B1F3A]">Sequence</h2>

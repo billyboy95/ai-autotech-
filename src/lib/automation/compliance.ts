@@ -1,6 +1,6 @@
 import type { EnvLike } from "@/lib/automation/channels";
 import { johannesburgDateKey, newId, toWaDigits } from "@/lib/automation/ids";
-import type { Channel, MessageCategory, OutboxMessage, Suppression } from "@/lib/automation/types";
+import type { Channel, MessageCategory, OutboxMessage, Prospect, Suppression } from "@/lib/automation/types";
 
 /** South Africa per-message card. Service matches utility. ZAR is not implied. */
 export const WHATSAPP_MARKETING_USD = 0.0379;
@@ -8,7 +8,7 @@ export const WHATSAPP_SERVICE_USD = 0.0095;
 export const WHATSAPP_FREE_SERVICE_PER_MONTH = 1000;
 export const WHATSAPP_SERVICE_PRICING_START = "2026-10-01";
 
-const OPT_OUT = /\b(stop|unsubscribe|optout|opt-out|opt\s+out)\b/i;
+const OPT_OUT = /\b(stopall|unsubscribe|optout|opt-out|opt\s+out|stop)\b/i;
 
 export function messageCategory(templateKey: string): MessageCategory {
   if (templateKey.startsWith("ack_") || templateKey.startsWith("audit_reminder")) return "service";
@@ -60,7 +60,7 @@ export function ensureMarketingFooter(body: string, owner: string) {
 export function marketingConsentFor(
   state: {
     leads: Array<{ id: string; marketingConsent?: boolean }>;
-    prospects: Array<{ id: string; marketingConsent?: boolean }>;
+    prospects: Array<Pick<Prospect, "id" | "marketingConsent"> & Partial<Pick<Prospect, "consentBasis" | "status">>>;
   },
   message: { leadId: string; prospectId: string | null },
 ) {
@@ -70,7 +70,10 @@ export function marketingConsentFor(
   }
   if (message.prospectId) {
     const prospect = state.prospects.find((item) => item.id === message.prospectId);
-    if (prospect) return prospect.marketingConsent === true;
+    if (prospect) {
+      if (prospect.marketingConsent === true) return true;
+      if (prospect.consentBasis === "existing_customer" && prospect.status !== "stopped") return true;
+    }
   }
   return false;
 }

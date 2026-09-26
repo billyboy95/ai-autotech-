@@ -12,7 +12,7 @@ export type SendDecision = {
 function footer(channel: OutboundChannel, senderName: string) {
   const sender = senderName.trim() || "This business";
   if (channel === "email") {
-    return `\n\n${sender}. To opt out, use the unsubscribe link or reply STOP.`;
+    return `\n\n${sender}. To opt out, use the unsubscribe link (/unsubscribe) or reply STOP.`;
   }
   if (channel === "voice") return "";
   return `\n${sender}: reply STOP to opt out`;

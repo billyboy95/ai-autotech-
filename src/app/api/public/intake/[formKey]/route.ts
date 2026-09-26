@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { nid } from "@/lib/crm-store";
+import { marketingConsentText, serviceConsentText } from "@/lib/compliance/consent-copy";
 import { recordConsent } from "@/server/webhooks/compliance";
 import { insertForOrg, lookupRow, serviceConfigured } from "@/server/workers/with-org";
 
@@ -25,10 +26,10 @@ const schema = z.object({
   company: z.string().trim().max(160).default(""),
   message: z.string().trim().max(4000).default(""),
   consent: z.boolean().optional(),
+  consentService: z.boolean().optional(),
+  consentMarketing: z.boolean().optional(),
   hp: z.string().max(200).optional(),
 });
-
-const CONSENT_TEXT = "I agree that this workspace may contact me about this enquiry, and I can opt out later.";
 
 async function workspaceForKey(formKey: string) {
   const found = await lookupRow("organizations", "form_key", formKey, "id, slug, domain, form_key, name, sender_name");
@@ -40,6 +41,7 @@ async function workspaceForKey(formKey: string) {
     domain: row.domain ?? "",
     formKey: row.form_key || row.slug,
     name: row.name,
+    senderName: row.sender_name || row.name,
   };
 }
 
@@ -156,18 +158,43 @@ export async function POST(request: Request, context: { params: Promise<{ formKe
     ord: -Math.floor(Date.now() / 1000),
   });
 
-  if (parsed.data.consent && (parsed.data.email || parsed.data.phone)) {
-    const address = parsed.data.email || parsed.data.phone;
+  const serviceYes = parsed.data.consentService === true || parsed.data.consent === true;
+  const marketingYes = parsed.data.consentMarketing === true;
+  const sender = org.senderName || org.name;
+  const evidenceBase = {
+    ip,
+    user_agent: (request.headers.get("user-agent") ?? "").slice(0, 400),
+    form_version: "2b",
+  };
+  if (serviceYes && (parsed.data.email || parsed.data.phone)) {
     await recordConsent({
       orgId: org.id,
       channel: parsed.data.email ? "email" : "sms",
       purpose: "service",
       status: "opted_in",
       basis: "consent",
-      address,
+      address: parsed.data.email || parsed.data.phone,
       source: `/intake/${org.formKey}`,
-      evidence: { consent_text: CONSENT_TEXT },
+      evidence: { ...evidenceBase, consent_text: serviceConsentText(sender) },
     });
+  }
+  if (marketingYes && (parsed.data.email || parsed.data.phone)) {
+    const channels = [
+      parsed.data.email ? "email" : "",
+      parsed.data.phone ? "whatsapp" : "",
+    ].filter(Boolean) as Array<"email" | "whatsapp">;
+    for (const channel of channels) {
+      await recordConsent({
+        orgId: org.id,
+        channel,
+        purpose: "marketing",
+        status: "opted_in",
+        basis: "consent",
+        address: channel === "email" ? parsed.data.email || "" : parsed.data.phone,
+        source: `/intake/${org.formKey}`,
+        evidence: { ...evidenceBase, consent_text: marketingConsentText(sender) },
+      });
+    }
   }
 
   return json({ ok: true, id: saved.data.id, workspace: org.slug }, 200);

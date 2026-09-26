@@ -19,8 +19,29 @@ In the Supabase SQL editor, run these files in order if they are not already app
 9. `supabase/migrations/20260926200000_send_compliance.sql` (marketing opt-in, suppressions, per-send cost)
 10. `supabase/migrations/20260926210000_agency_brand_offers.sql` (agency colours from the deck, sourced service and package names on jobs)
 11. `supabase/migrations/20261015120000_org_scope_phase1_tables.sql` (adds `org_id` and RLS to pipeline tables that already exist; skips any that do not)
+12. `supabase/migrations/20261015140000_phase2b_channels_popia.sql` (channel connections, vault secret RPCs, POPIA contacts, rate cards, usage ledger)
 
 The command centre still opens if the agency migrations are not applied yet. It reads the existing CRM as one agency book and does not crash when `organizations` or `org_id` is missing. Client workspaces appear after `20260926160000_agency_tenancy.sql` is applied.
+
+## 1b. Phase 2b channels and POPIA
+
+After migration 12:
+
+- Workspace settings (`/agency/<slug>/settings`) can connect WhatsApp, SMS, email, Facebook, and Instagram. Secrets are stored by `store_channel_secret` (Vault when the extension is present). `read_channel_secret` is executable by the service role only.
+- Send test queues a held dry-run outbox row and a `usage_ledger` cost. It does not call a provider.
+- Inbound provider posts go to `/api/webhooks/{provider}/{connection_id}`. STOP, UNSUBSCRIBE, OPT OUT, and STOPALL write a suppression and an opted-out consent, then queue an acknowledgement. Nothing is delivered while `sending_enabled` is false.
+- CSV campaign import needs a `consent_basis` column. A row without consent gets at most one consent request.
+- `/command-centre/campaigns` on the AI AutoTech workspace can load `data/campaigns/ai-autotech-east-rand-prospects.csv` as a draft. Prospects stay `not contacted`. No outbox rows are created.
+- Contacts support Download my data (JSON) and Erase (anonymise plus suppress). Public intake and the website lead form store the consent checkbox text.
+
+When provider keys exist in the environment, run `node scripts/migrate-channel-credentials.mjs`. It writes AI AutoTech connection rows only, prints identifiers, and does not turn sending on.
+
+Still needed from Billy before any live send:
+
+- `SUPABASE_DB_URL` so the unapplied migrations, including phase 2b, can be run on the project.
+- Provider API keys (Meta Cloud, SMSPortal or BulkSMS or Clickatell, Resend or SMTP, Facebook/Instagram) entered in Settings or present in the environment for the migration script.
+- `CRON_SECRET` so `/api/cron/automation` can run the outbox worker.
+- Leave `sending_enabled` false until a workspace has its own connection and a consent check has been reviewed.
 
 ## 2. Environment variables
 

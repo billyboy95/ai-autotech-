@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { resolveWorkspace } from "@/lib/tenant/context";
-import { addMembership, createClientWorkspace, findOrgBySlug, updateWorkspace } from "@/lib/tenant/data";
+import { addMembership, createClientWorkspace, findOrgBySlug, setShopifyPlanStatus, updateWorkspace } from "@/lib/tenant/data";
 import { parseSettings } from "@/lib/tenant/rows";
 import { MEMBERSHIP_ROLES, WORKSPACE_COOKIE, type MembershipRole } from "@/lib/tenant/types";
 
@@ -41,7 +41,8 @@ export async function createWorkspace(
   }
   const name = String(formData.get("name") ?? "").trim();
   if (name.length < 2) return { ok: false, message: "Give the workspace a name." };
-  const blueprintKey = String(formData.get("blueprint") ?? "agency") === "education" ? "education" : "agency";
+  const requested = String(formData.get("blueprint") ?? "agency");
+  const blueprintKey = requested === "education" || requested === "ecommerce" ? requested : "agency";
   const agency = workspace.workspaces.find((item) => item.orgType === "agency");
   const parent = agency ? await findOrgBySlug(agency.slug) : workspace.active.orgType === "agency" ? workspace.active : null;
   if (!parent) return { ok: false, message: "The AI AutoTech agency workspace is not available yet." };
@@ -93,6 +94,11 @@ export async function saveWorkspaceSettings(
         senderId: String(formData.get("smsSenderId") ?? current.channels.sms.senderId),
       },
     },
+    shopify: {
+      adminAccessToken: String(formData.get("shopifyAdminAccessToken") ?? current.shopify.adminAccessToken),
+      webhookSecret: String(formData.get("shopifyWebhookSecret") ?? current.shopify.webhookSecret),
+      apiVersion: String(formData.get("shopifyApiVersion") ?? current.shopify.apiVersion) || "2025-01",
+    },
   };
 
   try {
@@ -106,6 +112,8 @@ export async function saveWorkspaceSettings(
       accent_color: String(formData.get("accentColor") ?? workspace.active.accentColor),
       settings,
     });
+    const hasShopify = Boolean(settings.shopify.adminAccessToken.trim() || settings.shopify.webhookSecret.trim());
+    await setShopifyPlanStatus(workspace.active.id, hasShopify ? "credentials_saved" : "not_connected");
   } catch (error) {
     return { ok: false, message: error instanceof Error ? error.message : "Could not save settings." };
   }

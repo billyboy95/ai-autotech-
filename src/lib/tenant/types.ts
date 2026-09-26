@@ -1,5 +1,6 @@
 export const AGENCY_SLUG = "ai-autotech";
 export const EASTC_SLUG = "eastc";
+export const ZENTRIX_SLUG = "zentrix";
 export const WORKSPACE_COOKIE = "aat_workspace";
 
 export const MEMBERSHIP_ROLES = ["agency_owner", "agency_staff", "client_admin", "client_user"] as const;
@@ -30,8 +31,15 @@ export type ChannelPlaceholders = {
   sms: { senderId: string };
 };
 
+export type ShopifyCredentials = {
+  adminAccessToken: string;
+  webhookSecret: string;
+  apiVersion: string;
+};
+
 export type WorkspaceSettings = {
   channels: ChannelPlaceholders;
+  shopify: ShopifyCredentials;
 };
 
 export type Membership = {
@@ -62,6 +70,8 @@ export type ClientMetric = {
   workspace: WorkspaceSummary;
   leads: number;
   pipelineValue: number;
+  revenue: number;
+  stores: number;
   conversions: number;
   won: number;
   stages: string[];
@@ -88,7 +98,7 @@ export type SequenceStep = {
 };
 
 export type WorkspaceBlueprint = {
-  key: "agency" | "education";
+  key: "agency" | "education" | "ecommerce";
   label: string;
   pipelineName: string;
   stages: PipelineStage[];
@@ -97,12 +107,24 @@ export type WorkspaceBlueprint = {
   steps: SequenceStep[];
 };
 
+export type ShopifyStoreRecord = {
+  niche: string;
+  name: string;
+  myshopifyDomain: string;
+  publicDomain: string;
+  planStatus: string;
+};
+
 export function emptyChannels(): ChannelPlaceholders {
   return {
     whatsapp: { phoneNumberId: "", displayPhone: "" },
     email: { fromAddress: "", provider: "" },
     sms: { senderId: "" },
   };
+}
+
+export function emptyShopify(): ShopifyCredentials {
+  return { adminAccessToken: "", webhookSecret: "", apiVersion: "2025-01" };
 }
 
 export function isAgencyRole(role: MembershipRole | null) {

@@ -2,7 +2,7 @@
 
 import { useActionState } from "react";
 import { addWorkspaceMember, saveWorkspaceSettings, type TenantActionState } from "@/app/actions/tenant";
-import type { WorkspaceSummary } from "@/lib/tenant/types";
+import type { ShopifyStoreRecord, WorkspaceSummary } from "@/lib/tenant/types";
 
 const initial: TenantActionState = { ok: false, message: "" };
 
@@ -10,11 +10,13 @@ export function WorkspaceSettingsForm({
   workspace,
   stages,
   members,
+  stores,
   canEdit,
 }: {
   workspace: WorkspaceSummary;
   stages: string[];
   members: { email: string; role: string }[];
+  stores: ShopifyStoreRecord[];
   canEdit: boolean;
 }) {
   const [saved, save, saving] = useActionState(saveWorkspaceSettings, initial);
@@ -44,11 +46,48 @@ export function WorkspaceSettingsForm({
           <Field name="emailProvider" label="Email provider" defaultValue={workspace.settings.channels.email.provider} />
           <Field name="smsSenderId" label="SMS sender id" defaultValue={workspace.settings.channels.sms.senderId} />
         </div>
+        <h2 className="mt-2 font-display text-lg font-bold text-[#0B1F3A]">Shopify</h2>
+        <p className="text-sm text-slate-500">
+          Placeholders only. Saving these does not call Shopify. When the webhook secret is set, orders, customers, and checkouts posted to /api/shopify/webhook land in this workspace.
+        </p>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Field name="shopifyAdminAccessToken" label="Admin API access token" defaultValue={workspace.settings.shopify.adminAccessToken} />
+          <Field name="shopifyWebhookSecret" label="Webhook secret" defaultValue={workspace.settings.shopify.webhookSecret} />
+          <Field name="shopifyApiVersion" label="API version" defaultValue={workspace.settings.shopify.apiVersion} />
+        </div>
         <button disabled={!canEdit || saving} className="h-10 rounded-md bg-[#2563EB] text-sm font-semibold text-white disabled:opacity-60">
           {saving ? "Saving…" : "Save settings"}
         </button>
         {saved.message ? <p className={`text-sm ${saved.ok ? "text-emerald-700" : "text-rose-700"}`}>{saved.message}</p> : null}
       </form>
+
+      {stores.length ? (
+        <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+          <h2 className="font-display text-lg font-bold text-[#0B1F3A]">Shopify stores</h2>
+          <div className="mt-3 overflow-x-auto">
+            <table className="w-full min-w-[640px] text-left text-sm">
+              <thead className="text-xs uppercase tracking-[0.12em] text-slate-500">
+                <tr>
+                  <th className="py-2 pr-3">Store</th>
+                  <th className="py-2 pr-3">myshopify domain</th>
+                  <th className="py-2 pr-3">Public domain</th>
+                  <th className="py-2">Plan</th>
+                </tr>
+              </thead>
+              <tbody>
+                {stores.map((store) => (
+                  <tr key={store.myshopifyDomain} className="border-t border-slate-100">
+                    <td className="py-2 pr-3 font-semibold text-[#0B1F3A]">{store.name}</td>
+                    <td className="py-2 pr-3 text-slate-600">{store.myshopifyDomain}</td>
+                    <td className="py-2 pr-3 text-slate-600">{store.publicDomain}</td>
+                    <td className="py-2 text-slate-600">{store.planStatus === "credentials_saved" ? "Credentials saved" : "Not connected"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      ) : null}
 
       <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
         <h2 className="font-display text-lg font-bold text-[#0B1F3A]">Pipeline</h2>

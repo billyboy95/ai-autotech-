@@ -1,4 +1,4 @@
-import { emptyChannels, type ChannelPlaceholders, type MembershipRole, type OrgType, type WorkspaceSettings, type WorkspaceSummary } from "./types";
+import { emptyChannels, emptyShopify, type ChannelPlaceholders, type MembershipRole, type OrgType, type ShopifyCredentials, type WorkspaceSettings, type WorkspaceSummary } from "./types";
 
 export type OrganizationRow = {
   id: string;
@@ -32,6 +32,8 @@ export function parseSettings(value: unknown): WorkspaceSettings {
   const email = asRecord(channels.email);
   const sms = asRecord(channels.sms);
   const empty = emptyChannels();
+  const shopify = asRecord(root.shopify);
+  const blankShopify = emptyShopify();
   const parsed: ChannelPlaceholders = {
     whatsapp: {
       phoneNumberId: text(whatsapp.phoneNumberId) || empty.whatsapp.phoneNumberId,
@@ -45,7 +47,12 @@ export function parseSettings(value: unknown): WorkspaceSettings {
       senderId: text(sms.senderId) || empty.sms.senderId,
     },
   };
-  return { channels: parsed };
+  const credentials: ShopifyCredentials = {
+    adminAccessToken: text(shopify.adminAccessToken),
+    webhookSecret: text(shopify.webhookSecret),
+    apiVersion: text(shopify.apiVersion) || blankShopify.apiVersion,
+  };
+  return { channels: parsed, shopify: credentials };
 }
 
 export function toWorkspace(row: OrganizationRow): WorkspaceSummary | null {

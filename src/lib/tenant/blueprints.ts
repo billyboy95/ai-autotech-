@@ -1,4 +1,4 @@
-import { emptyChannels, type WorkspaceBlueprint, type WorkspaceSummary } from "./types";
+import { emptyChannels, emptyShopify, type WorkspaceBlueprint, type WorkspaceSummary } from "./types";
 
 export const AGENCY_BLUEPRINT: WorkspaceBlueprint = {
   key: "agency",
@@ -67,7 +67,44 @@ export const EDUCATION_BLUEPRINT: WorkspaceBlueprint = {
   ],
 };
 
-export const BLUEPRINTS = [AGENCY_BLUEPRINT, EDUCATION_BLUEPRINT];
+export const ECOMMERCE_BLUEPRINT: WorkspaceBlueprint = {
+  key: "ecommerce",
+  label: "Ecommerce (visitor to repeat customer)",
+  pipelineName: "Ecommerce",
+  stages: [
+    { name: "Visitor/lead", position: 1, isWon: false, isLost: false },
+    { name: "Subscriber", position: 2, isWon: false, isLost: false },
+    { name: "Cart abandoned", position: 3, isWon: false, isLost: false },
+    { name: "Customer", position: 4, isWon: true, isLost: false },
+    { name: "Repeat customer", position: 5, isWon: true, isLost: false },
+    { name: "Lost", position: 6, isWon: false, isLost: true },
+  ],
+  templates: [
+    {
+      name: "Cart reminder",
+      channel: "email",
+      body: "Hi {{name}}, you left something in your cart. It is still waiting if you want it.",
+    },
+    {
+      name: "Welcome subscriber",
+      channel: "email",
+      body: "Hi {{name}}, welcome. We will send the useful offers, not a flood.",
+    },
+  ],
+  sequenceName: "Abandoned cart",
+  steps: [
+    { position: 1, delayHours: 1, channel: "email", templateName: "Cart reminder" },
+    { position: 2, delayHours: 24, channel: "email", templateName: "Cart reminder" },
+  ],
+};
+
+export const BLUEPRINTS = [AGENCY_BLUEPRINT, EDUCATION_BLUEPRINT, ECOMMERCE_BLUEPRINT];
+
+export function blueprintForSlug(slug: string) {
+  if (slug === "eastc") return EDUCATION_BLUEPRINT;
+  if (slug === "zentrix") return ECOMMERCE_BLUEPRINT;
+  return AGENCY_BLUEPRINT;
+}
 
 export function previewWorkspaces(): WorkspaceSummary[] {
   const agency: WorkspaceSummary = {
@@ -84,7 +121,7 @@ export function previewWorkspaces(): WorkspaceSummary[] {
     accentColor: "#2563EB",
     domain: "aiautotech.co.za",
     formKey: "ai-autotech",
-    settings: { channels: emptyChannels() },
+    settings: { channels: emptyChannels(), shopify: emptyShopify() },
   };
   const eastc: WorkspaceSummary = {
     id: "preview-eastc",
@@ -100,7 +137,23 @@ export function previewWorkspaces(): WorkspaceSummary[] {
     accentColor: "#C4A35A",
     domain: "eastech.co.za",
     formKey: "eastc",
-    settings: { channels: emptyChannels() },
+    settings: { channels: emptyChannels(), shopify: emptyShopify() },
   };
-  return [agency, eastc];
+  const zentrix: WorkspaceSummary = {
+    id: "preview-zentrix",
+    name: "Zentrix Online",
+    slug: "zentrix",
+    orgType: "client",
+    parentId: agency.id,
+    legalName: "Zentrix Online",
+    location: "South Africa",
+    industry: "Ecommerce",
+    logoUrl: "",
+    primaryColor: "#111827",
+    accentColor: "#16A34A",
+    domain: "zentrixonline.co.za",
+    formKey: "zentrix",
+    settings: { channels: emptyChannels(), shopify: emptyShopify() },
+  };
+  return [agency, eastc, zentrix];
 }

@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "tsx --test src/lib/automation/engine.test.ts src/lib/automation/outbound.test.ts src/lib/automation/compliance.test.ts src/lib/crm-store.test.ts src/lib/tenant/access.test.ts && node --test src/lib/tenant/rls-isolation.test.mjs",
+    "test": "tsx --test src/lib/automation/engine.test.ts src/lib/automation/outbound.test.ts src/lib/automation/compliance.test.ts src/lib/crm-store.test.ts src/lib/tenant/access.test.ts src/lib/shopify/classify.test.ts && node --test src/lib/tenant/rls-isolation.test.mjs",
     "demo:automation": "tsx scripts/demo-automation.ts"
   },
   "dependencies": {

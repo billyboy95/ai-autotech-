@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { AgencyView } from "@/components/agency-view";
-import { previewWorkspaces, EDUCATION_BLUEPRINT } from "@/lib/tenant/blueprints";
+import { previewWorkspaces, EDUCATION_BLUEPRINT, ECOMMERCE_BLUEPRINT } from "@/lib/tenant/blueprints";
+import { zentrixStores } from "@/lib/shopify/catalog";
 import { resolveWorkspace, loadOrganizations } from "@/lib/tenant/context";
 import { clientMetrics } from "@/lib/tenant/data";
 import { AGENCY_SLUG } from "@/lib/tenant/types";
@@ -39,7 +40,7 @@ function SignInWall() {
 export default async function AgencyPage() {
   const workspace = await resolveWorkspace();
   if (workspace.mode === "preview") {
-    const [agency, eastc] = previewWorkspaces();
+    const [agency, eastc, zentrix] = previewWorkspaces();
     return (
       <AgencyView
         agency={agency}
@@ -50,9 +51,21 @@ export default async function AgencyPage() {
             workspace: eastc,
             leads: 0,
             pipelineValue: 0,
+            revenue: 0,
+            stores: 0,
             conversions: 0,
             won: 0,
             stages: EDUCATION_BLUEPRINT.stages.map((stage) => stage.name),
+          },
+          {
+            workspace: zentrix,
+            leads: 0,
+            pipelineValue: 0,
+            revenue: 0,
+            stores: zentrixStores().length,
+            conversions: 0,
+            won: 0,
+            stages: ECOMMERCE_BLUEPRINT.stages.map((stage) => stage.name),
           },
         ]}
       />

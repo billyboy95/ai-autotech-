@@ -39,7 +39,7 @@ export function AgencyView({
             {signedInEmail ? ` Signed in as ${signedInEmail}.` : ""}
           </p>
         ) : null}
-        <section className="grid gap-3 sm:grid-cols-3">
+        <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <article className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Client workspaces</p>
             <p className="mt-2 font-display text-3xl font-bold text-[#0B1F3A]">{clients.length}</p>
@@ -56,11 +56,17 @@ export function AgencyView({
               {formatCurrency(clients.reduce((sum, client) => sum + client.pipelineValue, 0))}
             </p>
           </article>
+          <article className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Shopify revenue</p>
+            <p className="mt-2 font-display text-3xl font-bold text-[#0B1F3A]">
+              {formatCurrency(clients.reduce((sum, client) => sum + client.revenue, 0))}
+            </p>
+          </article>
         </section>
         <div className="grid gap-3">
           {clients.length === 0 ? (
             <p className="rounded-xl border border-dashed border-slate-300 bg-white p-6 text-sm text-slate-500">
-              No client workspaces yet. EASTC is created by the tenancy migration.
+              No client workspaces yet. EASTC and Zentrix Online are created by the tenancy migrations.
             </p>
           ) : (
             clients.map((client) => (
@@ -92,7 +98,7 @@ export function AgencyView({
                     </Link>
                   </div>
                 </div>
-                <dl className="mt-4 grid gap-3 sm:grid-cols-3">
+                <dl className="mt-4 grid gap-3 sm:grid-cols-4">
                   <div>
                     <dt className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Leads</dt>
                     <dd className="text-xl font-bold text-[#0B1F3A]">{client.leads}</dd>
@@ -102,10 +108,17 @@ export function AgencyView({
                     <dd className="text-xl font-bold text-[#0B1F3A]">{formatCurrency(client.pipelineValue)}</dd>
                   </div>
                   <div>
+                    <dt className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Revenue</dt>
+                    <dd className="text-xl font-bold text-[#0B1F3A]">{formatCurrency(client.revenue)}</dd>
+                  </div>
+                  <div>
                     <dt className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Conversions</dt>
                     <dd className="text-xl font-bold text-[#0B1F3A]">{client.conversions}%</dd>
                   </div>
                 </dl>
+                {client.stores ? (
+                  <p className="mt-3 text-sm text-slate-600">{client.stores} Shopify stores</p>
+                ) : null}
                 {client.stages.length ? (
                   <p className="mt-3 text-sm text-slate-600">Pipeline: {client.stages.join(" → ")}</p>
                 ) : null}

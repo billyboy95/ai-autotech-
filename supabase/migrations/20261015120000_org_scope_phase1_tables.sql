@@ -38,7 +38,14 @@ begin
     'lead_assignments',
     'activities',
     'handovers',
-    'automation_rules'
+    'automation_rules',
+    'crm_lead_activity',
+    'crm_message_templates',
+    'crm_outbox',
+    'crm_automation_settings',
+    'crm_handovers',
+    'crm_onboarding_tasks',
+    'crm_quote_placeholders'
   ]
   loop
     if to_regclass('public.' || rel) is null then

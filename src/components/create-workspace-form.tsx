@@ -31,6 +31,7 @@ export function CreateWorkspaceForm() {
         <select name="blueprint" defaultValue="education" className="h-10 rounded-md border border-slate-200 px-3 text-sm">
           <option value="agency">Agency snapshot — sales stages, follow-ups, templates</option>
           <option value="education">Education — Enquiry through Enrolled</option>
+          <option value="ecommerce">Ecommerce — visitor, cart, customer, repeat</option>
         </select>
       </label>
       <button disabled={pending} className="h-10 rounded-md bg-[#2563EB] text-sm font-semibold text-white disabled:opacity-60">

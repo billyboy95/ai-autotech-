@@ -3,7 +3,7 @@ import { EDUCATION_BLUEPRINT, BLUEPRINTS } from "@/lib/tenant/blueprints";
 import { slugify } from "@/lib/tenant/access";
 import { missingOrgColumn, missingTenantTable, toWorkspace, type OrganizationRow } from "@/lib/tenant/rows";
 import type { ClientMetric, MembershipRole, WorkspaceBlueprint, WorkspaceSummary } from "@/lib/tenant/types";
-import { AGENCY_SLUG, emptyChannels } from "@/lib/tenant/types";
+import { AGENCY_SLUG, emptyChannels, emptyShopify, type ShopifyStoreRecord } from "@/lib/tenant/types";
 
 const ORG_COLUMNS =
   "id, name, slug, org_type, parent_id, legal_name, location, industry, logo_url, primary_color, accent_color, domain, form_key, settings";
@@ -73,6 +73,21 @@ async function pipelineValue(orgId: string) {
   return { value: invoiceTotal + dealTotal, wonDeals };
 }
 
+async function shopifyFigures(orgId: string) {
+  const orders = await admin().from("workspace_shopify_orders").select("total_cents, counts_as_revenue").eq("org_id", orgId);
+  const carts = await admin().from("workspace_shopify_checkouts").select("total_cents, abandoned").eq("org_id", orgId);
+  const stores = await admin().from("workspace_shopify_stores").select("id", { count: "exact", head: true }).eq("org_id", orgId);
+  if (orders.error && !missingTenantTable(orders.error) && !missingOrgColumn(orders.error)) throw new Error(orders.error.message);
+  if (carts.error && !missingTenantTable(carts.error) && !missingOrgColumn(carts.error)) throw new Error(carts.error.message);
+  const revenue = (orders.data ?? [])
+    .filter((row) => row.counts_as_revenue)
+    .reduce((sum, row) => sum + Number(row.total_cents ?? 0), 0) / 100;
+  const abandoned = (carts.data ?? [])
+    .filter((row) => row.abandoned)
+    .reduce((sum, row) => sum + Number(row.total_cents ?? 0), 0) / 100;
+  return { revenue, abandoned, stores: stores.count ?? 0 };
+}
+
 export async function listStages(orgId: string) {
   const { data, error } = await admin()
     .from("workspace_pipeline_stages")
@@ -89,17 +104,20 @@ export async function listStages(orgId: string) {
 export async function clientMetrics(clients: WorkspaceSummary[]): Promise<ClientMetric[]> {
   return Promise.all(
     clients.map(async (workspace) => {
-      const [leads, money, stages] = await Promise.all([
+      const [leads, money, stages, shopify] = await Promise.all([
         countLeads(workspace.id),
         pipelineValue(workspace.id),
         listStages(workspace.id),
+        shopifyFigures(workspace.id),
       ]);
       const won = leads.won + money.wonDeals;
       const conversions = leads.total ? Math.round((leads.won / leads.total) * 100) : money.wonDeals ? 100 : 0;
       return {
         workspace,
         leads: leads.total,
-        pipelineValue: money.value,
+        pipelineValue: money.value + shopify.abandoned,
+        revenue: shopify.revenue,
+        stores: shopify.stores,
         conversions,
         won,
         stages,
@@ -186,7 +204,7 @@ export async function createClientWorkspace(input: {
   slug?: string;
   location?: string;
   domain?: string;
-  blueprintKey: "agency" | "education";
+  blueprintKey: "agency" | "education" | "ecommerce";
   parentId: string;
 }) {
   const supabase = admin();
@@ -208,12 +226,12 @@ export async function createClientWorkspace(input: {
       parent_id: input.parentId,
       legal_name: input.name.trim(),
       location: input.location?.trim() || "",
-      industry: blueprint.key === "education" ? "Education" : "",
+      industry: blueprint.key === "education" ? "Education" : blueprint.key === "ecommerce" ? "Ecommerce" : "",
       domain: input.domain?.trim() || "",
       form_key: slug,
-      primary_color: blueprint.key === "education" ? "#0F3D4C" : "#0B1F3A",
-      accent_color: blueprint.key === "education" ? "#C4A35A" : "#2563EB",
-      settings: { channels: emptyChannels() },
+      primary_color: blueprint.key === "ecommerce" ? "#111827" : blueprint.key === "education" ? "#0F3D4C" : "#0B1F3A",
+      accent_color: blueprint.key === "ecommerce" ? "#16A34A" : blueprint.key === "education" ? "#C4A35A" : "#2563EB",
+      settings: { channels: emptyChannels(), shopify: emptyShopify() },
     })
     .select(ORG_COLUMNS)
     .single();
@@ -222,6 +240,30 @@ export async function createClientWorkspace(input: {
   if (!workspace) throw new Error("Could not create workspace.");
   await cloneBlueprint(workspace.id, blueprint);
   return workspace;
+}
+
+export async function listShopifyStores(orgId: string): Promise<ShopifyStoreRecord[]> {
+  const { data, error } = await admin()
+    .from("workspace_shopify_stores")
+    .select("niche, name, myshopify_domain, public_domain, plan_status")
+    .eq("org_id", orgId)
+    .order("name", { ascending: true });
+  if (error) {
+    if (missingTenantTable(error)) return [];
+    throw new Error(error.message);
+  }
+  return (data ?? []).map((row) => ({
+    niche: String(row.niche),
+    name: String(row.name),
+    myshopifyDomain: String(row.myshopify_domain),
+    publicDomain: String(row.public_domain),
+    planStatus: String(row.plan_status),
+  }));
+}
+
+export async function setShopifyPlanStatus(orgId: string, planStatus: "not_connected" | "credentials_saved") {
+  const { error } = await admin().from("workspace_shopify_stores").update({ plan_status: planStatus }).eq("org_id", orgId);
+  if (error && !missingTenantTable(error)) throw new Error(error.message);
 }
 
 export async function updateWorkspace(orgId: string, patch: Record<string, unknown>) {

@@ -10,6 +10,7 @@ const OTHER_USER = "33333333-3333-4333-8333-333333333333";
 async function applyMigrations(db) {
   const company = readFileSync(new URL("../../../supabase/migrations/20260903000000_company_crm.sql", import.meta.url), "utf8");
   const tenancy = readFileSync(new URL("../../../supabase/migrations/20260926160000_agency_tenancy.sql", import.meta.url), "utf8");
+  const zentrix = readFileSync(new URL("../../../supabase/migrations/20260926180000_zentrix_shopify.sql", import.meta.url), "utf8");
   const phase1 = readFileSync(new URL("../../../supabase/migrations/20261015120000_org_scope_phase1_tables.sql", import.meta.url), "utf8");
   await db.exec(`
     do $$
@@ -25,6 +26,7 @@ async function applyMigrations(db) {
   `);
   await db.exec(company);
   await db.exec(tenancy);
+  await db.exec(zentrix);
   await db.exec(phase1);
 }
 
@@ -110,7 +112,56 @@ test("a client user cannot read another organisation's CRM rows", async () => {
     { slug: "ai-autotech", org_type: "agency", has_parent: false },
     { slug: "eastc", org_type: "client", has_parent: true },
     { slug: "other-agency", org_type: "agency", has_parent: false },
+    { slug: "zentrix", org_type: "client", has_parent: true },
   ]);
+
+  const zentrixStages = await asUser(
+    db,
+    AGENCY_USER,
+    `select s.name from workspace_pipeline_stages s
+     join organizations o on o.id = s.org_id
+     where o.slug = 'zentrix'
+     order by s.position`,
+  );
+  assert.deepEqual(zentrixStages.rows.map((row) => row.name), [
+    "Visitor/lead",
+    "Subscriber",
+    "Cart abandoned",
+    "Customer",
+    "Repeat customer",
+    "Lost",
+  ]);
+
+  const agencyStores = await asUser(
+    db,
+    AGENCY_USER,
+    "select niche, myshopify_domain, public_domain, plan_status from workspace_shopify_stores order by niche",
+  );
+  assert.equal(agencyStores.rows.length, 10);
+  assert.deepEqual(
+    agencyStores.rows.map((row) => row.niche),
+    ["Auto", "Baby", "Beauty", "Camping", "Fitness", "Holidays", "Home", "Kitchens", "Pets", "Tools"],
+  );
+  const pets = agencyStores.rows.find((row) => row.niche === "Pets");
+  assert.equal(pets.myshopify_domain, "zentrix-pets.myshopify.com");
+  assert.equal(pets.public_domain, "pets.zentrixonline.co.za");
+  assert.equal(pets.plan_status, "not_connected");
+
+  const eastcStores = await asUser(db, EASTC_USER, "select niche from workspace_shopify_stores");
+  assert.deepEqual(eastcStores.rows, []);
+
+  const eastcOrders = await asUser(db, EASTC_USER, "select shopify_id from workspace_shopify_orders");
+  assert.deepEqual(eastcOrders.rows, []);
+
+  await assert.rejects(
+    () => asUser(
+      db,
+      EASTC_USER,
+      `insert into workspace_shopify_orders (org_id, shopify_id, email, total_cents, counts_as_revenue)
+       values ('b1000000-0000-4000-8000-000000000010', 'stolen-order', 'secret@shop.test', 10000, true)`,
+    ),
+    /row-level security|permission denied|new row violates/i,
+  );
 
   await db.close();
 });

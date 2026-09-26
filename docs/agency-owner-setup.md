@@ -12,7 +12,8 @@ In the Supabase SQL editor, run these files in order if they are not already app
 2. `supabase/migrations/20260925000000_audit_leads.sql`
 3. `supabase/migrations/20260925120000_contact_leads.sql`
 4. `supabase/migrations/20260926160000_agency_tenancy.sql`
-5. `supabase/migrations/20261015120000_org_scope_phase1_tables.sql` (no-op until the pipeline engine tables exist, then it adds `org_id` and RLS)
+5. `supabase/migrations/20260926180000_zentrix_shopify.sql` (Zentrix Online, 10 stores, Shopify tables)
+6. `supabase/migrations/20261015120000_org_scope_phase1_tables.sql` (no-op until the pipeline engine tables exist, then it adds `org_id` and RLS)
 
 ## 2. Environment variables
 
@@ -34,13 +35,15 @@ That inserts one `memberships` row: your user, the AI AutoTech organisation, rol
 
 4. Open `/login` and sign in. You should land on `/agency`.
 5. EASTC is already there, with enrolment stages: Enquiry, Contacted, Campus visit booked, Application, Enrolled, Lost.
+6. Zentrix Online is the second workspace: Pets, Auto, Kitchens, Camping, Holidays, Home, Beauty, Baby, Fitness, and Tools. Its pipeline is Visitor/lead, Subscriber, Cart abandoned, Customer, Repeat customer, Lost.
+7. Shopify is not called. On `/agency/zentrix/settings`, paste the Admin API token and webhook secret when you have them. In Shopify admin, send orders, customers, and checkouts to `POST /api/shopify/webhook`. Paid orders then show as revenue on `/agency`. Until the secret is saved, the webhook refuses the request and writes nothing.
 
 ## 4. What stays open
 
 - `/command-centre` with no login shows only AI AutoTech's own CRM (the rows migrated into the agency org).
-- `/command-centre?org=eastc` sends you to `/login`.
+- `/command-centre?org=eastc` and `/command-centre?org=zentrix` send you to `/login`.
 - `/api/public/audit` still writes into the AI AutoTech workspace.
-- Each workspace has a form key. EASTC intake is `POST /api/public/intake/eastc` and the form is `/intake/eastc`.
+- Each workspace has a form key. EASTC intake is `POST /api/public/intake/eastc` and the form is `/intake/eastc`. Zentrix intake is `/intake/zentrix`.
 
 ## 5. Add a client user
 

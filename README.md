@@ -44,7 +44,7 @@ Open `http://localhost:3000`.
 
 ## Agency workspaces
 
-AI AutoTech Pty Ltd is the parent agency. Client workspaces such as EASTC are isolated by `org_id` and Row Level Security. The open CRM at `/command-centre` stays on the agency workspace. Client workspaces require a Supabase Auth login. Owner steps: `docs/agency-owner-setup.md`.
+AI AutoTech Pty Ltd is the parent agency. Client workspaces such as EASTC and Zentrix Online are isolated by `org_id` and Row Level Security. The open CRM at `/command-centre` stays on the agency workspace. Client workspaces require a Supabase Auth login. Owner steps: `docs/agency-owner-setup.md`.
 
 ## Supabase Setup
 

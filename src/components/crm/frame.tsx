@@ -27,6 +27,7 @@ const links = [
   ["/command-centre/contacts", "Contacts"],
   ["/command-centre/social", "Social"],
   ["/command-centre/templates", "Templates"],
+  ["/command-centre/workflows", "Workflows"],
   ["/command-centre/summary", "Summary"],
   ["/command-centre/clients", "Clients"],
   ["/command-centre/jobs", "Jobs"],

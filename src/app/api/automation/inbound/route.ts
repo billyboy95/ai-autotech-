@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { applyInbound } from "@/lib/automation/engine";
 import { normalizeInbound } from "@/lib/automation/inbound";
+import { applyInboundEvent } from "@/lib/workflows/inbound";
 import { describeChanges, loadWorkspace, saveWorkspace } from "@/lib/automation/service";
 
 export const runtime = "nodejs";
@@ -44,7 +44,7 @@ export async function POST(request: Request) {
     if (!workspace.automationReady) {
       return NextResponse.json({ ok: false, error: workspace.setupError }, { status: 503 });
     }
-    const after = applyInbound(workspace.state, event, new Date());
+    const after = applyInboundEvent(workspace.state, event, new Date());
     const matched = after !== workspace.state || describeChanges(workspace.state, after).length > 0;
     if (after === workspace.state) {
       return NextResponse.json({ ok: true, matched: false, error: "No lead matched that event." }, { status: 202 });

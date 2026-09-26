@@ -23,6 +23,9 @@ import {
 import { approveSocialPost, cancelSocialPost, queueSocialPost } from "@/lib/automation/social";
 import { newId } from "@/lib/automation/ids";
 import { enrollLead, isDemoMode, mutateWorkspace, runAutomationJob } from "@/lib/automation/service";
+import { isWorkflowEngineEnabled } from "@/lib/workflows/flag";
+import { phase1Workflows } from "@/lib/workflows/phase1";
+import { dispatchEvent } from "@/lib/workflows/runner";
 import { normalizeStage, PIPELINE_STAGES, type AssignmentRule, type CampaignStep, type PipelineStage, type SocialPlatform } from "@/lib/automation/types";
 
 function refresh() {
@@ -82,6 +85,18 @@ export async function setLeadStage(id: string, stage: string) {
   try {
     const now = new Date();
     await mutateWorkspace((state) => {
+      if (isWorkflowEngineEnabled()) {
+        return dispatchEvent(state, phase1Workflows(), {
+          type: "lead.stage_changed",
+          subjectId: id,
+          occurredAt: now.toISOString(),
+          id: `lead.stage_changed-${id}-${now.toISOString()}`,
+          payload: {
+            stage: nextStage,
+            lost_reason: nextStage === "Lost" ? "Marked lost by hand" : "",
+          },
+        }).state;
+      }
       const updated = setStage(state, id, nextStage as PipelineStage, now, {
         lostReason: nextStage === "Lost" ? "Marked lost by hand" : undefined,
       });
@@ -104,7 +119,16 @@ export async function markLeadWon(formData: FormData) {
   const valueZar = Number(String(formData.get("valueZar") || "0").replace(/[^\d.]/g, "")) || 0;
   const whatSold = String(formData.get("whatSold") || "").trim();
   const now = new Date();
-  await mutateWorkspace((state) => advanceHandovers(markWon(state, id, { valueZar, whatSold, deliveredBy: "Billy" }, now), now));
+  await mutateWorkspace((state) => {
+    if (!isWorkflowEngineEnabled()) return advanceHandovers(markWon(state, id, { valueZar, whatSold, deliveredBy: "Billy" }, now), now);
+    return dispatchEvent(state, phase1Workflows(), {
+      type: "lead.stage_changed",
+      subjectId: id,
+      occurredAt: now.toISOString(),
+      id: `lead.stage_changed-${id}-won-${now.toISOString()}`,
+      payload: { stage: "Won", value_zar: valueZar, what_sold: whatSold, delivered_by: "Billy" },
+    }).state;
+  });
   refresh();
 }
 

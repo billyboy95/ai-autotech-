@@ -1,5 +1,6 @@
 import { PIPELINE_STAGES } from "@/lib/automation/types";
 import { DEFAULT_TEMPLATES, STEP_TEMPLATES } from "@/lib/automation/templates";
+import { phase1SnapshotWorkflows } from "@/lib/workflows/phase1";
 import type { SnapshotPayload, SnapshotPipeline, SnapshotSequence, SnapshotTemplate } from "@/lib/snapshots/payload";
 
 export const AGENCY_DEFAULT_SNAPSHOT_ID = "a2c00000-0000-4000-8000-000000000001";
@@ -116,6 +117,7 @@ export const AGENCY_DEFAULT_PAYLOAD: SnapshotPayload = {
     { asset_key: "field:lead:industry", entity: "lead", field_key: "industry", label: "Industry", field_type: "text", options: [], required: false, position: 2 },
     { asset_key: "field:lead:website", entity: "lead", field_key: "website", label: "Website", field_type: "text", options: [], required: false, position: 3 },
   ],
+  workflows: phase1SnapshotWorkflows(),
 };
 
 export const EDUCATION_STAGES = [
@@ -195,6 +197,19 @@ export const EDUCATION_PAYLOAD: SnapshotPayload = {
     { asset_key: "field:admissions:programme", entity: "lead", field_key: "programme", label: "Programme", field_type: "text", options: [], required: false, position: 1 },
     { asset_key: "field:admissions:campus", entity: "lead", field_key: "campus", label: "Campus", field_type: "text", options: [], required: false, position: 2 },
     { asset_key: "field:admissions:intake", entity: "lead", field_key: "intake_month", label: "Intake", field_type: "text", options: [], required: false, position: 3 },
+  ],
+  workflows: [
+    {
+      asset_key: "workflow:admissions-enquiry",
+      name: "Enquiry received",
+      active: false,
+      trigger_type: "form.submitted",
+      trigger: {},
+      steps: [
+        { id: "note", title: "Tell the owner", action: { kind: "notify_user", text: "Enquiry stored. Nothing is sent." }, next: "end" },
+        { id: "end", title: "End", action: { kind: "end" } },
+      ],
+    },
   ],
 };
 

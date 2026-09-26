@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 
-export const SNAPSHOT_TOP_LEVEL_KEYS = ["version", "pipelines", "message_templates", "sequences", "custom_fields"] as const;
+export const SNAPSHOT_TOP_LEVEL_KEYS = ["version", "pipelines", "message_templates", "sequences", "custom_fields", "workflows"] as const;
 
 export const FORBIDDEN_PAYLOAD_KEYS = [
   "access_token",
@@ -94,12 +94,22 @@ export type SnapshotField = {
   position: number;
 };
 
+export type SnapshotWorkflow = {
+  asset_key: string;
+  name: string;
+  active: boolean;
+  trigger_type: string;
+  trigger: Record<string, unknown>;
+  steps: unknown[];
+};
+
 export type SnapshotPayload = {
   version: 1;
   pipelines: SnapshotPipeline[];
   message_templates: SnapshotTemplate[];
   sequences: SnapshotSequence[];
   custom_fields: SnapshotField[];
+  workflows: SnapshotWorkflow[];
 };
 
 export type PushResult = "created" | "updated" | "unchanged" | "skipped_client_edit";

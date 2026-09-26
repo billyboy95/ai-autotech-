@@ -89,7 +89,24 @@ async function shopifyFigures(orgId: string) {
 }
 
 export async function listStages(orgId: string) {
-  const { data, error } = await (await db())
+  const supabase = await db();
+  const modern = await supabase
+    .from("pipelines")
+    .select("is_default, pipeline_stages(name, position)")
+    .eq("org_id", orgId)
+    .eq("is_default", true);
+  if (!modern.error && modern.data?.length) {
+    const stages = modern.data.flatMap((row) => {
+      const nested = row.pipeline_stages as { name: string; position: number }[] | null;
+      return nested ?? [];
+    });
+    stages.sort((left, right) => left.position - right.position);
+    if (stages.length) return stages.map((stage) => String(stage.name));
+  } else if (modern.error && !/does not exist|schema cache|could not find|pipelines/i.test(modern.error.message)) {
+    throw new Error(modern.error.message);
+  }
+
+  const { data, error } = await supabase
     .from("workspace_pipeline_stages")
     .select("name, position")
     .eq("org_id", orgId)

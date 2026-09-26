@@ -52,6 +52,21 @@ test("education admissions snapshot is templates only", () => {
   }
 });
 
+test("uuid asset keys are not phone numbers", () => {
+  const uuid = "aaaaaaaa-bbbb-4ccc-8ddd-123456789012";
+  assert.deepEqual(
+    collectPayloadIssues({
+      asset_key: `sequence:${uuid}`,
+      template_asset_key: "123456789012345",
+      note: `see ${uuid}`,
+      label: `sequence:${uuid}`,
+    }),
+    [],
+  );
+  assert.deepEqual(collectPayloadIssues({ body: "Call 0821234567 today" }), ["phone_number"]);
+  assert.deepEqual(collectPayloadIssues({ body: `Call 0821234567 about ${uuid}` }), ["phone_number"]);
+});
+
 test("push update skips assets a client has edited", () => {
   const original = checksum(templateContent(EDUCATION_PAYLOAD.message_templates[0]));
   const incoming = checksum(templateContent({ ...EDUCATION_PAYLOAD.message_templates[0], body: "Agency rewrite" }));

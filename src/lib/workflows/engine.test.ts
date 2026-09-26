@@ -144,7 +144,7 @@ test("three failed tries mark the run failed and raise an alert", () => {
 });
 
 test("dry run resolves steps and does not send or queue", () => {
-  let fetches = 0;
+  const fetches = 0;
   const workflow = phase1Workflows().find((item) => item.asset_key === "workflow:assign-and-ack");
   assert.ok(workflow);
   const state = createInitialState();

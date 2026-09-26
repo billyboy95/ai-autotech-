@@ -42,6 +42,41 @@ async function asUser(db, userId, sql, params = []) {
   }
 }
 
+test("uuid asset keys are not phone numbers and a real phone does not throw", async () => {
+  const db = new PGlite();
+  await applyBase(db);
+  await db.exec(migration("20261016120000_phase2c_snapshots.sql"));
+
+  const uuid = "aaaaaaaa-bbbb-4ccc-8ddd-123456789012";
+  const clean = {
+    version: 1,
+    pipelines: [
+      {
+        asset_key: `pipeline:${uuid}`,
+        name: "Sales",
+        stages: [{ asset_key: `stage:${uuid}`, name: "New" }],
+      },
+    ],
+    sequences: [
+      {
+        asset_key: `sequence:${uuid}`,
+        steps: [{ asset_key: `step:${uuid}`, template_asset_key: "123456789012345" }],
+      },
+    ],
+    note: `see ${uuid}`,
+    label: `sequence:${uuid}`,
+  };
+  const cleanIssues = await db.query("select public.snapshot_payload_issues($1::jsonb) as issues", [JSON.stringify(clean)]);
+  assert.deepEqual(cleanIssues.rows[0].issues ?? [], []);
+
+  const flagged = {
+    ...clean,
+    body: `Call 0821234567 about ${uuid}`,
+  };
+  const phoneIssues = await db.query("select public.snapshot_payload_issues($1::jsonb) as issues", [JSON.stringify(flagged)]);
+  assert.deepEqual(phoneIssues.rows[0].issues, ["phone_number"]);
+});
+
 test("phase 2c snapshots stay free of contacts, messages, and secrets", async () => {
   const db = new PGlite();
   await applyBase(db);

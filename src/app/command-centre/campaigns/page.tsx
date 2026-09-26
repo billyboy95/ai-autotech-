@@ -20,7 +20,7 @@ export default async function CampaignsPage() {
 
   return (
     <CrmFrame setupError={workspace.setupError} sendingEnabled={sendingEnabled}>
-      <div data-testid="campaigns" className="grid gap-4">
+      <div data-testid="campaigns" className="grid min-w-0 max-w-full grid-cols-1 gap-4">
         <div>
           <h1 className="font-display text-2xl font-bold text-[#0B1F3A]">Campaigns</h1>
           <p className="text-sm text-slate-500">
@@ -28,13 +28,13 @@ export default async function CampaignsPage() {
           </p>
         </div>
 
-        <form action={importCampaignCsv} className="grid gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+        <form action={importCampaignCsv} className="grid min-w-0 gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
           <h2 className="font-display text-lg font-bold text-[#0B1F3A]">Import prospects</h2>
           <p className="text-sm text-slate-600">Columns: name, business, niche, website, phone, email, opening line.</p>
           <label className="grid gap-1 text-xs font-semibold text-slate-600">
             Add to campaign
-            <select name="campaignId" className="h-10 rounded-md border border-slate-200 px-2 text-sm font-normal">
-              <option value="">New campaign with WhatsApp, email, then SMS</option>
+            <select name="campaignId" className="h-10 w-full min-w-0 max-w-full rounded-md border border-slate-200 px-2 text-sm font-normal">
+              <option value="">New campaign</option>
               {campaigns.map((campaign) => (
                 <option key={campaign.id} value={campaign.id}>
                   {campaign.name}
@@ -55,7 +55,7 @@ export default async function CampaignsPage() {
           <button className="h-10 w-fit rounded-md bg-[#0B1F3A] px-4 text-sm font-semibold text-white">Import and queue</button>
         </form>
 
-        <form action={saveCampaignForm} className="grid gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+        <form action={saveCampaignForm} className="grid min-w-0 grid-cols-1 gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
           <h2 className="font-display text-lg font-bold text-[#0B1F3A]">Sequence</h2>
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="grid gap-1 text-xs font-semibold text-slate-600">
@@ -100,7 +100,7 @@ export default async function CampaignsPage() {
               <p className="mt-1 text-sm text-slate-500">
                 {campaign.steps.map((step) => `${step.channel} +${step.delayHours}h`).join(" · ") || "No steps"}
               </p>
-              <div className="mt-3 overflow-x-auto">
+              <div className="mt-3 min-w-0 overflow-x-auto">
                 <table className="w-full min-w-[720px] text-left text-sm">
                   <thead className="text-xs uppercase tracking-wide text-slate-500">
                     <tr>

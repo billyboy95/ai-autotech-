@@ -19,7 +19,7 @@ export default async function SocialPage() {
 
   return (
     <CrmFrame setupError={workspace.setupError} sendingEnabled={sendingEnabled}>
-      <div data-testid="social-calendar" className="grid gap-4">
+      <div data-testid="social-calendar" className="grid min-w-0 grid-cols-1 gap-4">
         <div>
           <h1 className="font-display text-2xl font-bold text-[#0B1F3A]">Social calendar</h1>
           <p className="text-sm text-slate-500">

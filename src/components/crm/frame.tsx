@@ -49,7 +49,8 @@ export function CrmFrame({
             {sendingEnabled ? "Sending is on" : "Sending is off"}
           </p>
         </div>
-        <nav className="mx-auto flex max-w-7xl gap-1 overflow-x-auto px-4 pb-3">
+        <div className="mx-auto max-w-7xl overflow-x-auto px-4 pb-3">
+        <nav className="flex w-max gap-1">
           {links.map(([href, label]) => {
             const active = href === "/command-centre" ? pathname === href : pathname === href || pathname.startsWith(`${href}/`);
             return (
@@ -65,8 +66,9 @@ export function CrmFrame({
             );
           })}
         </nav>
+        </div>
       </header>
-      <div className="mx-auto grid max-w-7xl gap-4 px-4 py-6">
+      <div className="mx-auto grid max-w-7xl grid-cols-1 gap-4 px-4 py-6">
         {setupError ? (
           <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">{setupError}</p>
         ) : null}

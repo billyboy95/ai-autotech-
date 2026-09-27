@@ -1,6 +1,8 @@
 "use server";
 
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { BRAND_HOST_COOKIE } from "@/lib/brand/host";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export type AuthActionState = {
@@ -30,6 +32,9 @@ export async function signIn(
   if (next.startsWith("/") && !next.startsWith("//")) {
     redirect(next);
   }
+
+  const brandHost = (await cookies()).get(BRAND_HOST_COOKIE)?.value;
+  if (brandHost) redirect("/command-centre");
 
   const memberships = await supabase.from("memberships").select("role");
   const agency = (memberships.data ?? []).some(

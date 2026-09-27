@@ -1,26 +1,42 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { resolveRequestBrand } from "@/lib/brand/request";
 import { runAutomationsNow } from "@/app/actions/automation";
+import { PeriodMetricsPanel } from "@/components/agency-rollup";
 import { CommandShell } from "@/components/crm/command-shell";
+import { loadWorkspacePeriod } from "@/lib/agency/load";
+import { eastcPeriodFixture, periodBounds, periodMetrics, zentrixPeriodFixture } from "@/lib/agency/metrics";
 import { formatZar } from "@/lib/automation/ids";
 import { loadCommandData } from "@/lib/automation/page-data";
 import { buildReport } from "@/lib/automation/report";
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
-  title: "Today | AI AutoTech CRM",
-  robots: { index: false, follow: false },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const brand = await resolveRequestBrand();
+  if (brand && !brand.showPlatformName) {
+    return { title: { absolute: brand.productName }, robots: { index: false, follow: false } };
+  }
+  return { title: "Today", robots: { index: false, follow: false } };
+}
 
 export default async function CommandCentrePage({
   searchParams,
 }: {
-  searchParams: Promise<{ org?: string }>;
+  searchParams: Promise<{ org?: string; from?: string; to?: string }>;
 }) {
   const params = await searchParams;
-  const { workspace, classic, sendingEnabled } = await loadCommandData();
+  const bounds = periodBounds(params);
+  const { workspace, classic, sendingEnabled, tenant } = await loadCommandData();
   const report = buildReport(workspace.state, new Date(), sendingEnabled);
+  const livePeriod = tenant.brandLocked || tenant.mode === "member" ? await loadWorkspacePeriod(tenant.active.id, bounds.from, bounds.to) : null;
+  const samplePeriod =
+    !livePeriod && tenant.mode === "preview" && tenant.active.slug === "eastc"
+      ? periodMetrics(eastcPeriodFixture)
+      : !livePeriod && tenant.mode === "preview" && tenant.active.slug === "zentrix"
+        ? periodMetrics(zentrixPeriodFixture)
+        : null;
+  const period = livePeriod ?? samplePeriod;
   const openJobs = classic.jobs.filter((job) => job.status !== "Done");
   const unpaid = classic.invoices.filter((invoice) => invoice.status === "Unpaid");
 
@@ -36,6 +52,15 @@ export default async function CommandCentrePage({
             <button className="h-10 rounded-md bg-[#0B1F3A] px-4 text-sm font-semibold text-white">Run automations</button>
           </form>
         </div>
+
+        {period ? (
+          <PeriodMetricsPanel
+            metrics={period}
+            sample={!livePeriod}
+            fromDay={livePeriod ? bounds.fromDay : "2026-09-01"}
+            toDay={livePeriod ? bounds.toDay : "2026-09-03"}
+          />
+        ) : null}
 
         <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <Card label="New leads today" value={String(report.newToday)} detail="Captured since midnight in Johannesburg" />

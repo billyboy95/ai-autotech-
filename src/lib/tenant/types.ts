@@ -22,13 +22,29 @@ export type WorkspaceSummary = {
   primaryColor: string;
   accentColor: string;
   domain: string;
+  customDomain: string;
   formKey: string;
   settings: WorkspaceSettings;
+  branding: WorkspaceBranding;
   sendingEnabled: boolean;
   senderName: string;
   timezone: string;
   currency: string;
 };
+
+export type WorkspaceBranding = {
+  enabled: boolean;
+  showPlatformName: boolean;
+  productName: string;
+};
+
+export function emptyBranding(orgType: OrgType = "client"): WorkspaceBranding {
+  return {
+    enabled: true,
+    showPlatformName: orgType === "agency",
+    productName: "",
+  };
+}
 
 export type ChannelPlaceholders = {
   whatsapp: { phoneNumberId: string; displayPhone: string };
@@ -71,6 +87,8 @@ export type WorkspaceResolution = {
   scoped: boolean;
   requiresLogin: boolean;
   requestedSlug: string | null;
+  brandLocked: boolean;
+  brandHost: string | null;
 };
 
 export type ClientMetric = {

@@ -19,6 +19,9 @@ export type CommandChrome = {
   agencyBanner: string | null;
   billingBanner: string | null;
   billingTone: "block" | "warn" | null;
+  productName: string;
+  logoUrl: string;
+  showPlatformName: boolean;
 };
 
 const links = [
@@ -59,12 +62,16 @@ export function CrmFrame({
       <header className="border-b border-slate-200 bg-white">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-4">
           <div className="flex items-center gap-3">
-            <BrandLogo compact />
+            {chrome?.showPlatformName === false ? (
+              <BrandLogo compact name={chrome.productName} logoUrl={chrome.logoUrl} color={chrome.primaryColor} />
+            ) : (
+              <BrandLogo compact />
+            )}
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: chrome?.primaryColor || "#2563EB" }}>
                 Command centre
               </p>
-              <p className="text-sm font-semibold text-slate-700">{chrome?.activeName || "AI AutoTech Pty Ltd"}</p>
+              <p className="text-sm font-semibold text-slate-700">{chrome?.productName || chrome?.activeName || "Workspace"}</p>
             </div>
           </div>
           {chrome ? (

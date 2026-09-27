@@ -6,7 +6,7 @@ import { loadCommandData } from "@/lib/automation/page-data";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Clients | AI AutoTech CRM",
+  title: "Clients",
   robots: { index: false, follow: false },
 };
 

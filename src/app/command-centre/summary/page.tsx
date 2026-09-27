@@ -8,7 +8,7 @@ import { buildReport, summaryLines } from "@/lib/automation/report";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Daily summary | AI AutoTech CRM",
+  title: "Daily summary",
   robots: { index: false, follow: false },
 };
 

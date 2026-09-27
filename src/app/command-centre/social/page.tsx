@@ -9,7 +9,7 @@ import { trackedUrl } from "@/lib/automation/social";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Social | AI AutoTech CRM",
+  title: "Social",
   robots: { index: false, follow: false },
 };
 

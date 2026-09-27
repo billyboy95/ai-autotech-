@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { redirect } from "next/navigation";
 import { CrmFrame } from "@/components/crm/frame";
+import { presentWorkspace } from "@/lib/brand/present";
 import { loadBillingNote } from "@/lib/billing/load";
 import { loadInboxUnread } from "@/lib/inbox/load";
 import { recordAgencyView, rememberActiveOrg, safeResolveWorkspace } from "@/lib/tenant/context";
@@ -47,6 +48,7 @@ export async function CommandShell({
       ? `Viewing ${tenant.active.name} as agency`
       : null;
 
+  const brand = presentWorkspace(tenant.active);
   const inboxUnread = await loadInboxUnread();
   const billingNote =
     tenant.mode === "member" && tenant.scoped && !tenant.active.id.startsWith("preview-")
@@ -70,6 +72,9 @@ export async function CommandShell({
         agencyBanner,
         billingBanner: billingNote?.text ?? null,
         billingTone: billingNote?.tone ?? null,
+        productName: brand.productName,
+        logoUrl: brand.logoUrl,
+        showPlatformName: brand.showPlatformName,
       }}
     >
       {children}

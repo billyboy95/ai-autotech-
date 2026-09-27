@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { BRAND_HOST_COOKIE, brandHostFrom, brandRedirectPath, isMarketingPath, stubPath } from "@/lib/brand/host";
 import { ORG_COOKIE, WORKSPACE_COOKIE } from "@/lib/tenant/types";
 
 // The company CRM at /command-centre stays open for the agency workspace (owner path).
@@ -19,6 +20,45 @@ function rememberWorkspace(request: NextRequest, response: NextResponse) {
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  if (pathname === "/brand/clear") {
+    const url = request.nextUrl.clone();
+    url.pathname = "/login";
+    url.search = "";
+    const cleared = NextResponse.redirect(url);
+    cleared.cookies.set(BRAND_HOST_COOKIE, "", { httpOnly: true, sameSite: "lax", path: "/", maxAge: 0 });
+    return cleared;
+  }
+
+  const stub = stubPath(pathname);
+  if (stub) {
+    const url = request.nextUrl.clone();
+    url.pathname = stub.pathname;
+    const redirected = NextResponse.redirect(url);
+    if (stub.host) {
+      redirected.cookies.set(BRAND_HOST_COOKIE, stub.host, {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        maxAge: 60 * 60 * 24 * 30,
+      });
+    }
+    return redirected;
+  }
+
+  const brandHost = brandHostFrom({
+    header: request.headers.get("x-aat-host"),
+    cookie: request.cookies.get(BRAND_HOST_COOKIE)?.value,
+    forwardedHost: request.headers.get("x-forwarded-host"),
+    host: request.headers.get("host"),
+  });
+  const brandedTarget = brandHost ? brandRedirectPath(pathname) : null;
+  if (brandedTarget) {
+    const url = request.nextUrl.clone();
+    url.pathname = brandedTarget;
+    return NextResponse.redirect(url);
+  }
+  if (isMarketingPath(pathname)) return NextResponse.next();
 
   if (pathname === UNLOCK_PATH || pathname.startsWith(`${UNLOCK_PATH}/`)) {
     const url = request.nextUrl.clone();
@@ -63,5 +103,17 @@ export const config = {
     "/agency/:path*",
     "/login",
     "/intake/:path*",
+    "/",
+    "/about",
+    "/services",
+    "/contact",
+    "/blog",
+    "/software-development",
+    "/crm-solutions",
+    "/ai-agents",
+    "/automation",
+    "/case-studies",
+    "/d/:path*",
+    "/brand/clear",
   ],
 };

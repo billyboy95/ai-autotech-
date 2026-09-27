@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { previewInbox } from "@/lib/inbox/preview";
 import {
   acceptRealtimeRow,
   formatInboxCost,
@@ -172,4 +173,14 @@ test("a suppressed reply is recorded as blocked_consent and is not sent", () => 
   assert.equal(reply.outbox.status, "blocked_consent");
   assert.notEqual(reply.message.status, "sent");
   assert.equal(reply.outbox.provider, "outbox");
+});
+
+test("a branded eastc host keeps the preview inbox inside EASTC", () => {
+  const open = previewInbox({});
+  assert.equal(open.conversations.some((item) => item.contactName === "Thabo Ndlovu"), true);
+  const eastc = previewInbox({ brandSlug: "eastc" });
+  assert.deepEqual(eastc.conversations.map((item) => item.contactName), ["Lerato Mokoena"]);
+  assert.equal(JSON.stringify(eastc).includes("Ndlovu"), false);
+  const zentrix = previewInbox({ brandSlug: "zentrix" });
+  assert.deepEqual(zentrix.conversations, []);
 });

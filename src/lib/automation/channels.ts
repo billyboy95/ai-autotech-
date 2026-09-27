@@ -61,6 +61,8 @@ export type DeliveryRequest = {
   serviceSendsThisMonth?: number;
   sentAt?: string;
   owner?: string;
+  senderName?: string;
+  showPlatformName?: boolean;
   /** When set, this connection is the only credential source. Env keys are ignored. */
   connection?: ChannelConnectionCredentials | null;
 };

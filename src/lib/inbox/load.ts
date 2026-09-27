@@ -25,13 +25,20 @@ export async function loadInbox(query: {
 }): Promise<InboxData> {
   const filter = parseInboxFilter(query.filter);
   const channel = parseInboxChannel(query.channel);
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-    return previewInbox({ ...query, filter, channel, notice: query.notice });
-  }
-
   const tenant = await safeResolveWorkspace(query.org);
-  if (!tenant.scoped || tenant.active.id.startsWith("preview-")) {
-    return previewInbox({ ...query, filter, channel, notice: query.notice });
+  if (
+    !process.env.NEXT_PUBLIC_SUPABASE_URL
+    || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    || !tenant.scoped
+    || tenant.active.id.startsWith("preview-")
+  ) {
+    return previewInbox({
+      ...query,
+      filter,
+      channel,
+      notice: query.notice,
+      brandSlug: tenant.brandLocked ? tenant.active.slug : null,
+    });
   }
 
   const supabase = await createSupabaseServerClient();

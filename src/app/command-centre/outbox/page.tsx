@@ -11,7 +11,7 @@ import { loadCommandData } from "@/lib/automation/page-data";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Outbox | AI AutoTech CRM",
+  title: "Outbox",
   robots: { index: false, follow: false },
 };
 

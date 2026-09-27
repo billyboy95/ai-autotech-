@@ -1,9 +1,12 @@
+import { classicForBrand } from "@/lib/brand/present";
 import { isSendEnabled } from "@/lib/automation/channels";
 import { createInitialState } from "@/lib/automation/engine";
+import { DEFAULT_SETTINGS } from "@/lib/automation/types";
 import { loadWorkspace, type Workspace } from "@/lib/automation/service";
 import type { CrmData } from "@/lib/crm-store";
 import { readCrm } from "@/lib/crm-store";
 import { safeResolveWorkspace } from "@/lib/tenant/context";
+import type { WorkspaceResolution } from "@/lib/tenant/types";
 
 const DEMO_CLASSIC: CrmData = {
   leads: [],
@@ -45,23 +48,62 @@ const DEMO_CLASSIC: CrmData = {
 
 const EMPTY_CLASSIC: CrmData = { leads: [], clients: [], jobs: [], invoices: [] };
 
-export async function loadCommandData(): Promise<{ workspace: Workspace; classic: CrmData; sendingEnabled: boolean }> {
+const EMPTY_WORKSPACE: Workspace = {
+  state: createInitialState(),
+  automationReady: false,
+  setupError: null,
+  demo: false,
+};
+
+export async function loadCommandData(): Promise<{
+  workspace: Workspace;
+  classic: CrmData;
+  sendingEnabled: boolean;
+  tenant: WorkspaceResolution;
+}> {
+  const tenant = await safeResolveWorkspace();
+  if (tenant.brandLocked && tenant.mode === "preview") {
+    return {
+      workspace: {
+        state: createInitialState({
+          templates: [],
+          settings: { ...DEFAULT_SETTINGS, defaultOwner: "", team: [], checklist: [], rules: [] },
+        }),
+        automationReady: false,
+        setupError: null,
+        demo: false,
+      },
+      classic: classicForBrand(DEMO_CLASSIC, tenant.active.slug),
+      sendingEnabled: isSendEnabled(),
+      tenant,
+    };
+  }
+  if (tenant.requiresLogin || (tenant.brandLocked && tenant.workspaces.length === 0)) {
+    return {
+      workspace: EMPTY_WORKSPACE,
+      classic: EMPTY_CLASSIC,
+      sendingEnabled: isSendEnabled(),
+      tenant,
+    };
+  }
+
+  const lockedOrgId =
+    tenant.brandLocked && !tenant.active.id.startsWith("preview-") ? tenant.active.id : null;
   let workspace: Workspace;
   try {
-    workspace = await loadWorkspace();
+    workspace = await loadWorkspace(lockedOrgId);
   } catch (error) {
     console.error("automation workspace load failed", error);
     workspace = {
       state: createInitialState(),
       automationReady: false,
-      setupError: error instanceof Error ? error.message : "Command centre data is unavailable.",
+      setupError: tenant.brandLocked ? null : error instanceof Error ? error.message : "Command centre data is unavailable.",
       demo: false,
     };
   }
   let classic = workspace.demo ? DEMO_CLASSIC : EMPTY_CLASSIC;
   if (!workspace.demo) {
     try {
-      const tenant = await safeResolveWorkspace();
       const orgId = tenant.scoped && !tenant.active.id.startsWith("preview-") ? tenant.active.id : null;
       classic = await readCrm(orgId);
     } catch (error) {
@@ -69,5 +111,6 @@ export async function loadCommandData(): Promise<{ workspace: Workspace; classic
       classic = EMPTY_CLASSIC;
     }
   }
-  return { workspace, classic, sendingEnabled: isSendEnabled() };
+  if (tenant.brandLocked) classic = classicForBrand(classic, tenant.active.slug);
+  return { workspace, classic, sendingEnabled: isSendEnabled(), tenant };
 }

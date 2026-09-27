@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { AgencyView } from "@/components/agency-view";
+import { loadAgencyRollup, sampleRollup } from "@/lib/agency/load";
+import { periodBounds } from "@/lib/agency/metrics";
 import { previewWorkspaces, EDUCATION_BLUEPRINT, ECOMMERCE_BLUEPRINT } from "@/lib/tenant/blueprints";
 import { zentrixStores } from "@/lib/shopify/catalog";
 import { resolveWorkspace, loadOrganizations } from "@/lib/tenant/context";
@@ -37,15 +39,26 @@ function SignInWall() {
   );
 }
 
-export default async function AgencyPage() {
+export default async function AgencyPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ from?: string; to?: string }>;
+}) {
+  const params = await searchParams;
+  const bounds = periodBounds(params);
   const workspace = await resolveWorkspace();
   if (workspace.mode === "preview") {
     const [agency, eastc, zentrix] = previewWorkspaces();
+    const sample = sampleRollup();
     return (
       <AgencyView
         agency={agency}
         preview
         signedInEmail={null}
+        rollup={sample}
+        rollupSample
+        fromDay="2026-09-01"
+        toDay="2026-09-03"
         clients={[
           {
             workspace: eastc,
@@ -78,5 +91,18 @@ export default async function AgencyPage() {
   const agency = orgs.find((org) => org.slug === AGENCY_SLUG) ?? orgs.find((org) => org.orgType === "agency") ?? workspace.active;
   const clients = orgs.filter((org) => org.orgType === "client" && allowed.has(org.slug));
   const metrics = await clientMetrics(clients);
-  return <AgencyView agency={agency} clients={metrics} preview={false} signedInEmail={workspace.userEmail} />;
+  const live = await loadAgencyRollup(agency.id, bounds.from, bounds.to);
+  const rollup = live ?? sampleRollup().filter((row) => clients.some((client) => client.slug === row.slug));
+  return (
+    <AgencyView
+      agency={agency}
+      clients={metrics}
+      preview={false}
+      signedInEmail={workspace.userEmail}
+      rollup={rollup}
+      rollupSample={!live}
+      fromDay={live ? bounds.fromDay : "2026-09-01"}
+      toDay={live ? bounds.toDay : "2026-09-03"}
+    />
+  );
 }

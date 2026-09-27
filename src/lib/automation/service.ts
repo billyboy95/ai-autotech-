@@ -25,7 +25,7 @@ export function isDemoMode() {
   return process.env.CRM_DEMO_DATA === "1";
 }
 
-export async function loadWorkspace(): Promise<Workspace> {
+export async function loadWorkspace(orgId?: string | null): Promise<Workspace> {
   if (isDemoMode()) {
     return { state: applyEnvDefaults(hydrateState(readDemoState())), automationReady: true, setupError: null, demo: true };
   }
@@ -33,7 +33,7 @@ export async function loadWorkspace(): Promise<Workspace> {
   if (!supabase) {
     throw new Error("CRM store requires a configured Supabase service role.");
   }
-  const loaded = await loadSupabaseWorkspace(supabase);
+  const loaded = await loadSupabaseWorkspace(supabase, orgId ?? null);
   return { ...loaded, state: applyEnvDefaults(hydrateState(loaded.state)), demo: false };
 }
 

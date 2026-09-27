@@ -5,21 +5,29 @@ import { CommandShell } from "@/components/crm/command-shell";
 import { defaultCampaignSteps } from "@/lib/automation/campaigns";
 import { formatWhen } from "@/lib/automation/ids";
 import { loadCommandData } from "@/lib/automation/page-data";
-import { safeResolveWorkspace } from "@/lib/tenant/context";
+import { mentionsPlatform, presentWorkspace } from "@/lib/brand/present";
 import { AGENCY_SLUG } from "@/lib/tenant/types";
 
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Campaigns | AI AutoTech CRM",
+  title: "Campaigns",
   robots: { index: false, follow: false },
 };
 
 export default async function CampaignsPage() {
-  const { workspace, sendingEnabled } = await loadCommandData();
-  const tenant = await safeResolveWorkspace();
+  const { workspace, sendingEnabled, tenant } = await loadCommandData();
   const campaigns = workspace.state.campaigns;
-  const steps = defaultCampaignSteps();
+  const brand = presentWorkspace(tenant.active);
+  const steps = defaultCampaignSteps().map((step) => {
+    if (brand.showPlatformName || !mentionsPlatform(`${step.subject} ${step.body}`)) return step;
+    const product = brand.productName || "the team";
+    return {
+      ...step,
+      subject: step.subject.replace(/ai autotech/gi, product),
+      body: step.body.replace(/ai autotech/gi, product),
+    };
+  });
 
   return (
     <CommandShell setupError={workspace.setupError} sendingEnabled={sendingEnabled}>
@@ -51,7 +59,7 @@ export default async function CampaignsPage() {
             name="csv"
             rows={5}
             className="rounded-md border border-slate-200 px-3 py-2 font-mono text-xs"
-            placeholder={"name,business,niche,website,phone,email,opening line,consent_basis\nThabo,Ndlovu Dental,dental,https://example.co.za,0825550101,thabo@example.co.za,Your front desk is still copying WhatsApp into a notebook.,"}
+            placeholder={"name,business,niche,website,phone,email,opening line,consent_basis\nAyesha,Example Co,clinic,https://example.co.za,0825550101,ayesha@example.co.za,Your front desk is still copying WhatsApp into a notebook.,"}
           />
           <label className="text-xs font-semibold text-slate-600">
             Or upload a CSV

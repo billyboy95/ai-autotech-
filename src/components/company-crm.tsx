@@ -19,7 +19,15 @@ function Field({ name, label, placeholder }: { name: string; label: string; plac
   );
 }
 
-export function CompanySection({ data, section }: { data: CrmData; section: "clients" | "jobs" | "money" }) {
+export function CompanySection({
+  data,
+  section,
+  hidePlatformName = false,
+}: {
+  data: CrmData;
+  section: "clients" | "jobs" | "money";
+  hidePlatformName?: boolean;
+}) {
   if (section === "clients") {
     return (
       <section className="grid gap-4 lg:grid-cols-[280px_1fr]">
@@ -60,12 +68,12 @@ export function CompanySection({ data, section }: { data: CrmData; section: "cli
             Type
             <select name="kind" className="h-10 rounded-md border border-slate-200 px-3 text-sm" defaultValue="Professional Websites">
               <optgroup label="Services">
-                {OFFER_SERVICES.map((item) => (
+                {OFFER_SERVICES.filter((item) => !hidePlatformName || !/ai autotech/i.test(item.name)).map((item) => (
                   <option key={item.name}>{item.name}</option>
                 ))}
               </optgroup>
               <optgroup label="Packages">
-                {OFFER_PACKAGES.map((item) => (
+                {OFFER_PACKAGES.filter((item) => !hidePlatformName || !/ai autotech/i.test(item.name)).map((item) => (
                   <option key={item.name}>{item.name}</option>
                 ))}
               </optgroup>

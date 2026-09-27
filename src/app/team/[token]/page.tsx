@@ -1,14 +1,17 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { cookies } from "next/headers";
+import { TeamRecommendationView } from "@/components/bots/team-recommendation";
 import { TeamAccept } from "@/components/referrals/public-forms";
+import { loadPublicTeam } from "@/lib/bots/public-team";
+import { isShareToken } from "@/lib/bots/share-token";
 import { REFERRAL_COOKIE, readReferralCode } from "@/lib/referrals/codes";
 import { recordReferralClick } from "@/server/workers/referrals";
 
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Team invite",
+  title: "Team",
   robots: { index: false, follow: false },
 };
 
@@ -22,6 +25,23 @@ export default async function TeamPage({
   const [{ token }, query] = await Promise.all([params, searchParams]);
   const code = readReferralCode(query.ref) || readReferralCode((await cookies()).get(REFERRAL_COOKIE)?.value);
   if (code) await recordReferralClick(code, "team");
+
+  if (isShareToken(token)) {
+    const recommendation = await loadPublicTeam(token);
+    return (
+      <main className="min-h-screen bg-[#F3F4F6] px-4 py-10 text-[#111827]">
+        <div className="mx-auto grid max-w-2xl gap-4 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#2563EB]">AIOS</p>
+          <h1 className="font-display text-2xl font-bold text-[#0B1F3A]">Recommended team</h1>
+          {recommendation ? (
+            <TeamRecommendationView recommendation={recommendation} />
+          ) : (
+            <p className="text-sm text-slate-700">This team link is not active. Ask the person who sent it for a new link.</p>
+          )}
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="grid min-h-screen place-items-center bg-[#F3F4F6] px-4">

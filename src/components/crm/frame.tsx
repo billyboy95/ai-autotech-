@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { BrandLogo } from "@/components/brand-logo";
 import { WorkspaceSwitcher } from "@/components/workspace-switcher";
+import { AIOS_SECTIONS } from "@/lib/aios-menu";
 import type { WorkspaceOption } from "@/lib/tenant/types";
 
 export type CommandChrome = {
@@ -24,27 +25,17 @@ export type CommandChrome = {
   showPlatformName: boolean;
 };
 
-const links = [
-  ["/command-centre", "Today"],
-  ["/command-centre/inbox", "Inbox"],
-  ["/command-centre/calendars", "Calendars"],
-  ["/command-centre/reviews", "Reviews"],
-  ["/command-centre/ai-replies", "AI replies"],
-  ["/command-centre/pipeline", "Pipeline"],
-  ["/command-centre/outbox", "Outbox"],
-  ["/command-centre/campaigns", "Campaigns"],
-  ["/command-centre/contacts", "Contacts"],
-  ["/command-centre/social", "Social"],
-  ["/command-centre/templates", "Templates"],
-  ["/command-centre/workflows", "Workflows"],
-  ["/command-centre/summary", "Summary"],
-  ["/command-centre/clients", "Clients"],
-  ["/command-centre/jobs", "Jobs"],
-  ["/command-centre/money", "Money"],
-  ["/command-centre/billing", "Billing"],
-  ["/command-centre/referrals", "Referrals"],
-  ["/command-centre/settings", "Settings"],
-] as const;
+const sections = AIOS_SECTIONS;
+
+const navLink = "inline-flex h-11 shrink-0 items-center rounded-md px-3 text-sm font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#2563EB]";
+
+function linkActive(pathname: string, href: string) {
+  if (href === "/command-centre" || href === "/command-centre/agents") return pathname === href;
+  if (href === "/command-centre/bots") {
+    return pathname === href || (pathname.startsWith(`${href}/`) && !pathname.startsWith("/command-centre/bots/agency"));
+  }
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
 
 export function CrmFrame({
   children,
@@ -97,24 +88,47 @@ export function CrmFrame({
           </p>
         </div>
         <div className="mx-auto max-w-7xl overflow-x-auto px-4 pb-3">
-        <nav className="flex w-max gap-1">
-          {links.map(([href, label]) => {
-            const active = href === "/command-centre" ? pathname === href : pathname === href || pathname.startsWith(`${href}/`);
+        <nav className="grid gap-2" aria-label="AIOS">
+          <div className="flex w-max gap-1">
+            {sections.map((section) => {
+              const href = "href" in section ? section.href : section.links[0][0];
+              const childActive = "links" in section ? section.links.some(([link]) => linkActive(pathname, link)) : false;
+              const active = linkActive(pathname, href) || childActive;
+              return (
+                <Link
+                  key={section.id}
+                  href={href}
+                  className={`${navLink} ${active ? "bg-[#0B1F3A] text-white" : "text-slate-700 hover:bg-slate-100"}`}
+                >
+                  {section.label}
+                </Link>
+              );
+            })}
+          </div>
+          {sections.map((section) => {
+            if (!("links" in section)) return null;
+            const open = section.links.some(([link]) => linkActive(pathname, link));
+            if (!open) return null;
             return (
-              <Link
-                key={href}
-                href={href}
-                className={`inline-flex h-10 shrink-0 items-center rounded-md px-3 text-sm font-semibold ${
-                  active ? "bg-[#0B1F3A] text-white" : "text-slate-600 hover:bg-slate-100"
-                }`}
-              >
-                {label}
-                {href.endsWith("/inbox") && inboxUnread > 0 ? (
-                  <span className={`ml-2 rounded-full px-1.5 text-xs ${active ? "bg-white/20 text-white" : "bg-[#2563EB] text-white"}`}>
-                    {inboxUnread}
-                  </span>
-                ) : null}
-              </Link>
+              <div key={`${section.id}-sub`} className="flex w-max gap-1">
+                {section.links.map(([href, label]) => {
+                  const active = linkActive(pathname, href);
+                  return (
+                    <Link
+                      key={href}
+                      href={href}
+                      className={`${navLink} ${active ? "bg-[#2563EB] text-white" : "text-slate-700 hover:bg-slate-100"}`}
+                    >
+                      {label}
+                      {href.endsWith("/inbox") && inboxUnread > 0 ? (
+                        <span className={`ml-2 rounded-full px-1.5 text-xs ${active ? "bg-white/20 text-white" : "bg-[#2563EB] text-white"}`}>
+                          {inboxUnread}
+                        </span>
+                      ) : null}
+                    </Link>
+                  );
+                })}
+              </div>
             );
           })}
         </nav>

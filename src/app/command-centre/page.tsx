@@ -3,7 +3,11 @@ import Link from "next/link";
 import { resolveRequestBrand } from "@/lib/brand/request";
 import { runAutomationsNow } from "@/app/actions/automation";
 import { PeriodMetricsPanel } from "@/components/agency-rollup";
+import { AssistantPanel } from "@/components/bots/assistant-panel";
 import { CommandShell } from "@/components/crm/command-shell";
+import { Advanced } from "@/components/ui/advanced";
+import { PageLead } from "@/components/ui/page-lead";
+import { isBotAssistantEnabled } from "@/lib/bots/flag";
 import { loadWorkspacePeriod } from "@/lib/agency/load";
 import { eastcPeriodFixture, periodBounds, periodMetrics, zentrixPeriodFixture } from "@/lib/agency/metrics";
 import { formatZar } from "@/lib/automation/ids";
@@ -17,7 +21,7 @@ export async function generateMetadata(): Promise<Metadata> {
   if (brand && !brand.showPlatformName) {
     return { title: { absolute: brand.productName }, robots: { index: false, follow: false } };
   }
-  return { title: "Today", robots: { index: false, follow: false } };
+  return { title: "Home", robots: { index: false, follow: false } };
 }
 
 export default async function CommandCentrePage({
@@ -45,15 +49,20 @@ export default async function CommandCentrePage({
   return (
     <CommandShell setupError={workspace.setupError} sendingEnabled={sendingEnabled} requestedSlug={params.org}>
       <div data-testid="dashboard" className="grid gap-4">
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <h1 className="font-display text-2xl font-bold text-[#0B1F3A]">Today</h1>
-            <p className="text-sm text-slate-500">{report.date} · Africa/Johannesburg</p>
-          </div>
+        <PageLead
+          title="Home"
+          body={`Today · ${report.date} · Africa/Johannesburg. Set up a team first. The Lead Agent below can also open any page.`}
+          action="Set up this business"
+          href="/command-centre/setup"
+        />
+
+        <AssistantPanel enabled={isBotAssistantEnabled()} />
+
+        <Advanced>
           <form action={runAutomationsNow}>
-            <button className="h-10 rounded-md bg-[#0B1F3A] px-4 text-sm font-semibold text-white">Run automations</button>
+            <button className="inline-flex h-11 items-center rounded-md bg-[#0B1F3A] px-4 text-sm font-semibold text-white">Run automations</button>
           </form>
-        </div>
+        </Advanced>
 
         {period ? (
           <PeriodMetricsPanel
@@ -74,11 +83,11 @@ export default async function CommandCentrePage({
         <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
           <h2 className="font-display text-lg font-bold text-[#0B1F3A]">Attribution</h2>
           <ul className="mt-3 grid gap-1 text-sm">
-            {report.attribution.length === 0 ? <li className="text-slate-500">No leads yet.</li> : null}
+            {report.attribution.length === 0 ? <li className="text-slate-700">No leads yet. Set up a team above, or add a contact in CRM.</li> : null}
             {report.attribution.map((row) => (
               <li key={`${row.source}-${row.campaign}`}>
                 <span className="font-semibold text-[#0B1F3A]">{row.source}</span>
-                <span className="text-slate-500"> / {row.campaign}</span>
+                <span className="text-slate-700"> / {row.campaign}</span>
                 <span className="text-slate-700"> · {row.leads}</span>
               </li>
             ))}
@@ -96,9 +105,9 @@ export default async function CommandCentrePage({
           <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
             {report.perStage.map((row) => (
               <div key={row.stage} className="rounded-lg bg-slate-50 px-3 py-2">
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{row.stage}</p>
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-700">{row.stage}</p>
                 <p className="mt-1 font-display text-2xl font-bold text-[#0B1F3A]">{row.count}</p>
-                <p className="text-xs text-slate-500">{row.valueZar ? formatZar(row.valueZar) : "No value yet"}</p>
+                <p className="text-xs text-slate-700">{row.valueZar ? formatZar(row.valueZar) : "No value yet"}</p>
               </div>
             ))}
           </div>
@@ -108,13 +117,13 @@ export default async function CommandCentrePage({
           <article className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
             <h2 className="font-display text-lg font-bold text-[#0B1F3A]">Hot leads</h2>
             <ul className="mt-3 grid gap-2 text-sm">
-              {report.hotLeads.length === 0 ? <li className="text-slate-500">No hot leads right now.</li> : null}
+              {report.hotLeads.length === 0 ? <li className="text-slate-700">No hot leads right now. They show here after a lead scores high.</li> : null}
               {report.hotLeads.map((lead) => (
                 <li key={lead.id}>
                   <Link href={`/command-centre/leads/${lead.id}`} className="font-semibold text-[#0B1F3A] hover:text-[#2563EB]">
                     {lead.name}
                   </Link>
-                  <span className="text-slate-500">
+                  <span className="text-slate-700">
                     {" "}
                     · {lead.company || "No company"} · {lead.score} · {lead.stage} · {lead.ownerName || "Unassigned"}
                   </span>
@@ -125,13 +134,13 @@ export default async function CommandCentrePage({
           <article className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
             <h2 className="font-display text-lg font-bold text-[#0B1F3A]">Stuck or overdue</h2>
             <ul className="mt-3 grid gap-2 text-sm">
-              {report.stuck.length === 0 ? <li className="text-slate-500">Nothing is stuck.</li> : null}
+              {report.stuck.length === 0 ? <li className="text-slate-700">Nothing is stuck. Overdue leads show here when they need a look.</li> : null}
               {report.stuck.map((lead) => (
                 <li key={lead.id} className="rounded-md bg-slate-50 px-3 py-2">
                   <Link href={`/command-centre/leads/${lead.id}`} className="font-semibold text-[#0B1F3A] hover:text-[#2563EB]">
                     {lead.name}
                   </Link>
-                  <span className="text-slate-500"> · {lead.stage}</span>
+                  <span className="text-slate-700"> · {lead.stage}</span>
                   <p className="text-slate-600">{lead.reason}</p>
                 </li>
               ))}
@@ -141,7 +150,7 @@ export default async function CommandCentrePage({
 
         <section className="grid gap-3 sm:grid-cols-2">
           <article className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Open jobs</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-700">Open jobs</p>
             <p className="mt-2 font-display text-3xl font-bold text-[#0B1F3A]">{openJobs.length}</p>
             <ul className="mt-2 text-sm text-slate-600">
               {openJobs.slice(0, 3).map((job) => (
@@ -152,7 +161,7 @@ export default async function CommandCentrePage({
             </ul>
           </article>
           <article className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Unpaid</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-700">Unpaid</p>
             <p className="mt-2 font-display text-3xl font-bold text-[#0B1F3A]">{unpaid.length}</p>
             <ul className="mt-2 text-sm text-slate-600">
               {unpaid.slice(0, 3).map((invoice) => (
@@ -171,9 +180,9 @@ export default async function CommandCentrePage({
 function Card({ label, value, detail, href }: { label: string; value: string; detail: string; href?: string }) {
   const body = (
     <>
-      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">{label}</p>
+      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-700">{label}</p>
       <p className="mt-2 font-display text-3xl font-bold text-[#0B1F3A]">{value}</p>
-      <p className="mt-1 text-sm text-slate-500">{detail}</p>
+      <p className="mt-1 text-sm text-slate-700">{detail}</p>
     </>
   );
   if (href) {

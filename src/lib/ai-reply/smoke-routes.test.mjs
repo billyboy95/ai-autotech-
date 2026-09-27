@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { test } from "node:test";
 
-test("inbox and conversation AI settings respond", { timeout: 180_000 }, async () => {
+test("inbox, conversation AI, calendars, and public booking respond", { timeout: 180_000 }, async () => {
   const port = 4187;
   const root = new URL("../../..", import.meta.url).pathname;
   const nextBin = new URL("../../../node_modules/next/dist/bin/next", import.meta.url).pathname;
@@ -61,6 +61,23 @@ test("inbox and conversation AI settings respond", { timeout: 180_000 }, async (
     assert.match(settingsHtml, /Conversation AI/);
     assert.match(settingsHtml, /AI_REPLY_API_KEY/);
     assert.match(settingsHtml, /Off until an agency owner or client admin enables it/);
+
+    const calendars = await fetch(`http://127.0.0.1:${port}/command-centre/calendars`, { redirect: "manual" });
+    assert.equal(calendars.status, 200);
+    const calendarsHtml = await calendars.text();
+    assert.match(calendarsHtml, /Calendars/);
+    assert.match(calendarsHtml, /appointment\.booked/);
+
+    const booking = await fetch(`http://127.0.0.1:${port}/book/ai-autotech-audit`, { redirect: "manual" });
+    assert.equal(booking.status, 200);
+    const bookingHtml = await booking.text();
+    assert.match(bookingHtml, /Book appointment/);
+    assert.match(bookingHtml, /not marketing consent/);
+
+    const directory = await fetch(`http://127.0.0.1:${port}/book/ai-autotech`, { redirect: "manual" });
+    assert.equal(directory.status, 200);
+    const directoryHtml = await directory.text();
+    assert.match(directoryHtml, /ai-autotech-audit/);
   } finally {
     stop();
   }

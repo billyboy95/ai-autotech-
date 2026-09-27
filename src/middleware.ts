@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { authGateEnabled, decideAccess, supabaseAuthConfigured } from "@/lib/auth/gate";
+import { authOnlyRealtime } from "@/lib/supabase/realtime";
 import { BRAND_HOST_COOKIE, brandHostFrom, brandRedirectPath, isMarketingPath, stubPath } from "@/lib/brand/host";
 import { ORG_COOKIE, WORKSPACE_COOKIE } from "@/lib/tenant/types";
 
@@ -85,6 +86,7 @@ export async function middleware(request: NextRequest) {
             rememberWorkspace(request, response);
           },
         },
+        realtime: authOnlyRealtime,
       },
     );
     try {

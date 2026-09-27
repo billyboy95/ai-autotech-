@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { authOnlyRealtime } from "@/lib/supabase/realtime";
 import type { ChannelConnectionCredentials } from "@/lib/automation/channels";
 import type { ConnectionRow } from "@/lib/channels/inbound";
 
@@ -10,6 +11,7 @@ function serviceClient() {
   if (!supabaseUrl || !serviceRoleKey) return null;
   return createClient(supabaseUrl, serviceRoleKey, {
     auth: { autoRefreshToken: false, persistSession: false },
+    realtime: authOnlyRealtime,
   });
 }
 

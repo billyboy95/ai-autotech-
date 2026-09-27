@@ -148,6 +148,27 @@ test("a member of org A cannot view org B", () => {
   assert.equal(visibleWorkspace(allowed, "org-a")?.id, "org-a");
 });
 
+test("every command-centre and agency page requires a session, and public intake does not", () => {
+  const gated = [
+    "/command-centre",
+    "/command-centre/pipeline",
+    "/command-centre/reviews",
+    "/command-centre/leads/abc",
+    "/agency",
+    "/agency/eastc/settings",
+  ];
+  for (const path of gated) {
+    assert.equal(requiresSession(path), true, path);
+    const decision = decideAccess({ pathname: path, authRequired: true, userId: null });
+    assert.equal(decision.type, "redirect", path);
+    if (decision.type === "redirect") assert.equal(decision.next, path);
+  }
+  for (const path of ["/api/public/audit", "/api/public/contact", "/api/public/leads", "/r/eastc"]) {
+    assert.equal(isPublicPath(path), true, path);
+    assert.deepEqual(decideAccess({ pathname: path, authRequired: true, userId: null }), { type: "continue" });
+  }
+});
+
 test("middleware redirects an unauthenticated /command-centre request to /login", async () => {
   const previous = {
     url: process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -164,12 +185,50 @@ test("middleware redirects an unauthenticated /command-centre request to /login"
     const location = denied.headers.get("location") ?? "";
     assert.match(location, /\/login\?next=%2Fcommand-centre$/);
 
+    for (const path of ["/command-centre/pipeline", "/command-centre/reviews", "/agency"]) {
+      const response = await middleware(new NextRequest(`http://localhost${path}`));
+      assert.equal(response.status, 307, path);
+      assert.match(response.headers.get("location") ?? "", new RegExp(`/login\\?next=${encodeURIComponent(path).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`));
+    }
+
     const login = await middleware(new NextRequest("http://localhost/login"));
     assert.equal(login.status, 200);
 
-    const audit = await middleware(new NextRequest("http://localhost/api/public/audit"));
-    assert.equal(audit.status, 200);
+    for (const path of ["/api/public/audit", "/api/public/contact"]) {
+      const response = await middleware(new NextRequest(`http://localhost${path}`, { method: "POST" }));
+      assert.equal(response.status, 200, path);
+    }
   } finally {
+    if (previous.url === undefined) delete process.env.NEXT_PUBLIC_SUPABASE_URL;
+    else process.env.NEXT_PUBLIC_SUPABASE_URL = previous.url;
+    if (previous.key === undefined) delete process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    else process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = previous.key;
+    if (previous.vercel === undefined) delete process.env.VERCEL_ENV;
+    else process.env.VERCEL_ENV = previous.vercel;
+  }
+});
+
+test("middleware still redirects when the runtime has no native WebSocket", async () => {
+  const previous = {
+    url: process.env.NEXT_PUBLIC_SUPABASE_URL,
+    key: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    vercel: process.env.VERCEL_ENV,
+    node: process.versions.node,
+    webSocket: globalThis.WebSocket,
+  };
+  Object.defineProperty(process.versions, "node", { value: "20.18.1", configurable: true });
+  Object.defineProperty(globalThis, "WebSocket", { value: undefined, configurable: true });
+  process.env.NEXT_PUBLIC_SUPABASE_URL = "http://127.0.0.1:9";
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "test-anon-key";
+  process.env.VERCEL_ENV = "";
+  try {
+    const { middleware } = await import("@/middleware");
+    const denied = await middleware(new NextRequest("http://localhost/command-centre/pipeline"));
+    assert.equal(denied.status, 307);
+    assert.match(denied.headers.get("location") ?? "", /\/login\?next=%2Fcommand-centre%2Fpipeline$/);
+  } finally {
+    Object.defineProperty(process.versions, "node", { value: previous.node, configurable: true });
+    Object.defineProperty(globalThis, "WebSocket", { value: previous.webSocket, configurable: true });
     if (previous.url === undefined) delete process.env.NEXT_PUBLIC_SUPABASE_URL;
     else process.env.NEXT_PUBLIC_SUPABASE_URL = previous.url;
     if (previous.key === undefined) delete process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;

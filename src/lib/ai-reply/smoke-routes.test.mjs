@@ -80,6 +80,22 @@ test("inbox, conversation AI, calendars, reviews, and public pages respond", { t
     const directoryHtml = await directory.text();
     assert.match(directoryHtml, /ai-autotech-audit/);
 
+    const pipeline = await fetch(`http://127.0.0.1:${port}/command-centre/pipeline`, { redirect: "manual" });
+    assert.equal(pipeline.status, 200);
+
+    const contact = await fetch(`http://127.0.0.1:${port}/api/public/contact`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: "{}",
+    });
+    assert.equal(contact.status, 400);
+    const audit = await fetch(`http://127.0.0.1:${port}/api/public/audit`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: "{}",
+    });
+    assert.equal(audit.status, 400);
+
     const reviews = await fetch(`http://127.0.0.1:${port}/command-centre/reviews`, { redirect: "manual" });
     assert.equal(reviews.status, 200);
     const reviewsHtml = await reviews.text();

@@ -93,6 +93,8 @@ export async function getDashboardData(): Promise<DashboardData> {
 
   try {
     const supabase = await createSupabaseServerClient();
+    const { data: auth } = await supabase.auth.getUser();
+    if (!auth.user) return mockDashboardData();
     const organizationId = await getCurrentOrganizationId();
     const orgFilter = <T,>(query: SupabaseListQuery<T>) =>
       organizationId ? query.eq("organization_id", organizationId) : query;

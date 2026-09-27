@@ -23,15 +23,11 @@ function SignInWall() {
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#2563EB]">Agency</p>
         <h1 className="mt-2 font-display text-2xl font-bold text-[#0B1F3A]">Sign in to see client workspaces</h1>
         <p className="mt-3 text-sm leading-6 text-slate-600">
-          AI AutoTech Pty Ltd is the parent agency. Client workspaces such as EASTC stay behind a login.
-          The company CRM at the agency workspace is still open, so existing leads are not locked away.
+          AI AutoTech Pty Ltd is the parent agency. Client workspaces and the company CRM both require a login and a membership in that organisation.
         </p>
         <div className="mt-5 flex flex-wrap gap-2">
           <Link href="/login?next=/agency" className="h-10 rounded-md bg-[#2563EB] px-4 text-sm font-semibold leading-10 text-white">
             Sign in
-          </Link>
-          <Link href="/command-centre" className="h-10 rounded-md border border-slate-200 px-4 text-sm font-semibold leading-10 text-[#0B1F3A]">
-            Open agency CRM
           </Link>
         </div>
       </section>

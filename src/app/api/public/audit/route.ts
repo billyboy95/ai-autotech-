@@ -3,6 +3,8 @@ import { z } from "zod";
 import { enrollLead } from "@/lib/automation/service";
 import { newShareToken } from "@/lib/bots/share-token";
 import { nid } from "@/lib/crm-store";
+import { readReferralCode, referralCodeFromCookieHeader } from "@/lib/referrals/codes";
+import { recordReferralClick } from "@/server/workers/referrals";
 import { agencyOrgId, insertForOrg, serviceConfigured } from "@/server/workers/with-org";
 
 export const runtime = "nodejs";
@@ -118,6 +120,7 @@ const schema = z.object({
       utm_term: str(120),
       utm_content: str(120),
       referrer: str(400),
+      ref: str(16),
     })
     .partial()
     .default({}),
@@ -291,6 +294,9 @@ export async function POST(request: Request) {
   if (!enrolled.ok) {
     console.error("audit automation skipped", enrolled.error);
   }
+
+  const ref = readReferralCode(input.tracking.ref) || referralCodeFromCookieHeader(request.headers.get("cookie"));
+  if (ref) await recordReferralClick(ref, "audit", crmLeadId);
 
   return json(
     { ok: true, id: data.id, reference, ...(storedToken ? { teamPath: `/team/${shareToken}` } : {}) },

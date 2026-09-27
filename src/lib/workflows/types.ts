@@ -9,6 +9,7 @@ export const TRIGGER_TYPES = [
   "message.no_reply",
   // Public calendar booking records this existing trigger. There is no appointment_booked value.
   "appointment.booked",
+  // review.received is not listed. Phase 3c leaves it deferred so this check matches the database and seeded workflows stay valid.
   "invoice.paid",
   "opt_out.received",
   "schedule.cron",

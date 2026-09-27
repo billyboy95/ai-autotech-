@@ -220,7 +220,8 @@ function toAgent(bot: CatalogBot, templateName: string): RecommendedAgent {
 
 /**
  * The full team for the matched business. Rules only: no model call.
- * Every agent in the template is included. Nothing is held back for later.
+ * The niche template is the leanest set for that business. Every agent in it
+ * is included. Budget does not drop agents, and nothing is held for a later phase.
  */
 export function recommendTeam(answers: SetupAnswers): TeamRecommendation {
   const templateSlug = matchTemplate(answers.business) ?? fallbackTemplate(answers);

@@ -33,6 +33,13 @@ export function roleForOrg(org: WorkspaceSummary, memberships: Membership[], org
   return viaParent?.role ?? null;
 }
 
+/** A requested slug is visible only when it is already in the caller's accessible set. */
+export function visibleWorkspace(accessible: WorkspaceSummary[], requestedSlug: string | null | undefined): WorkspaceSummary | null {
+  if (!accessible.length) return null;
+  if (!requestedSlug) return accessible.find((org) => org.orgType === "agency") ?? accessible[0];
+  return accessible.find((org) => org.slug === requestedSlug) ?? null;
+}
+
 export function toOptions(orgs: WorkspaceSummary[]): WorkspaceOption[] {
   return orgs.map((org) => ({ slug: org.slug, name: org.name, orgType: org.orgType }));
 }

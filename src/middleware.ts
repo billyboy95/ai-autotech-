@@ -1,11 +1,11 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { authGateEnabled, decideAccess, supabaseAuthConfigured } from "@/lib/auth/gate";
+import { authOnlyRealtime } from "@/lib/supabase/realtime";
 import { BRAND_HOST_COOKIE, brandHostFrom, brandRedirectPath, isMarketingPath, stubPath } from "@/lib/brand/host";
+import { REFERRAL_COOKIE, REFERRAL_MAX_AGE_SECONDS, readReferralCode } from "@/lib/referrals/codes";
 import { ORG_COOKIE, WORKSPACE_COOKIE } from "@/lib/tenant/types";
 
-// The company CRM at /command-centre stays open for the agency workspace (owner path).
-// Client workspaces are refused in the page when nobody is signed in.
-// Middleware refreshes a Supabase session when keys exist, and remembers the workspace slug.
 const UNLOCK_PATH = "/command-centre/unlock";
 
 function rememberWorkspace(request: NextRequest, response: NextResponse) {
@@ -15,6 +15,25 @@ function rememberWorkspace(request: NextRequest, response: NextResponse) {
     response.cookies.set(WORKSPACE_COOKIE, org, options);
     response.cookies.set(ORG_COOKIE, org, options);
   }
+  return response;
+}
+
+function rememberReferral(request: NextRequest, response: NextResponse) {
+  const code = readReferralCode(request.nextUrl.searchParams.get("ref"));
+  if (!code) return response;
+  response.cookies.set(REFERRAL_COOKIE, code, {
+    httpOnly: true,
+    sameSite: "lax",
+    path: "/",
+    maxAge: REFERRAL_MAX_AGE_SECONDS,
+    secure: request.nextUrl.protocol === "https:",
+  });
+  return response;
+}
+
+function stampWorkspace(request: NextRequest, response: NextResponse) {
+  rememberWorkspace(request, response);
+  rememberReferral(request, response);
   return response;
 }
 
@@ -43,7 +62,7 @@ export async function middleware(request: NextRequest) {
         maxAge: 60 * 60 * 24 * 30,
       });
     }
-    return redirected;
+    return rememberReferral(request, redirected);
   }
 
   const brandHost = brandHostFrom({
@@ -56,9 +75,9 @@ export async function middleware(request: NextRequest) {
   if (brandedTarget) {
     const url = request.nextUrl.clone();
     url.pathname = brandedTarget;
-    return NextResponse.redirect(url);
+    return rememberReferral(request, NextResponse.redirect(url));
   }
-  if (isMarketingPath(pathname)) return NextResponse.next();
+  if (isMarketingPath(pathname)) return rememberReferral(request, NextResponse.next());
 
   if (pathname === UNLOCK_PATH || pathname.startsWith(`${UNLOCK_PATH}/`)) {
     const url = request.nextUrl.clone();
@@ -70,27 +89,54 @@ export async function middleware(request: NextRequest) {
   }
 
   let response = NextResponse.next({ request });
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-  if (supabaseUrl && supabaseKey) {
-    const supabase = createServerClient(supabaseUrl, supabaseKey, {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll();
+  let userId: string | null = null;
+  if (supabaseAuthConfigured()) {
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL ?? "",
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "",
+      {
+        cookies: {
+          getAll() {
+            return request.cookies.getAll();
+          },
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
+            response = NextResponse.next({ request });
+            cookiesToSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options));
+            stampWorkspace(request, response);
+          },
         },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
-          response = NextResponse.next({ request });
-          cookiesToSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options));
-          rememberWorkspace(request, response);
-        },
+        realtime: authOnlyRealtime,
       },
-    });
-    await supabase.auth.getUser();
+    );
+    try {
+      const { data, error } = await supabase.auth.getUser();
+      userId = error ? null : data.user?.id ?? null;
+    } catch {
+      userId = null;
+    }
   }
 
-  rememberWorkspace(request, response);
+  const decision = decideAccess({
+    pathname,
+    search: request.nextUrl.search,
+    authRequired: authGateEnabled(),
+    userId,
+  });
+  if (decision.type === "unauthorized") {
+    return NextResponse.json({ ok: false, error: "Sign in required." }, { status: 401 });
+  }
+  if (decision.type === "redirect") {
+    const url = request.nextUrl.clone();
+    url.pathname = decision.pathname;
+    url.search = "";
+    url.searchParams.set("next", decision.next);
+    const redirect = NextResponse.redirect(url);
+    redirect.headers.set("X-Robots-Tag", "noindex, nofollow");
+    return rememberReferral(request, redirect);
+  }
+
+  stampWorkspace(request, response);
   response.headers.set("X-Robots-Tag", "noindex, nofollow");
   return response;
 }
@@ -102,6 +148,12 @@ export const config = {
     "/agency",
     "/agency/:path*",
     "/login",
+    "/login/:path*",
+    "/auth/:path*",
+    "/api/automation/summary",
+    "/api/proposals/:path*",
+    "/api/invoices/:path*",
+    "/api/contacts/:path*",
     "/intake/:path*",
     "/",
     "/about",
@@ -115,5 +167,9 @@ export const config = {
     "/case-studies",
     "/d/:path*",
     "/brand/clear",
+    "/audit",
+    "/signup",
+    "/team/:path*",
+    "/api/public/audit",
   ],
 };

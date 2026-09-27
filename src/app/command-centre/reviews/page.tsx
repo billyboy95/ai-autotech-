@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
+import { ReviewsDesk } from "@/components/reviews/reviews-desk";
 import { CommandShell } from "@/components/crm/command-shell";
-import { PageLead } from "@/components/ui/page-lead";
 import { loadCommandData } from "@/lib/automation/page-data";
+import { loadReviewDesk } from "@/lib/reviews/load";
 
 export const dynamic = "force-dynamic";
 
@@ -13,20 +14,17 @@ export const metadata: Metadata = {
 export default async function ReviewsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ org?: string }>;
+  searchParams: Promise<{ org?: string; rating?: string; notice?: string }>;
 }) {
   const params = await searchParams;
-  const { workspace, sendingEnabled } = await loadCommandData();
+  const [{ workspace, sendingEnabled }, desk] = await Promise.all([
+    loadCommandData(),
+    loadReviewDesk({ org: params.org, rating: params.rating, notice: params.notice }),
+  ]);
+
   return (
     <CommandShell setupError={workspace.setupError} sendingEnabled={sendingEnabled} requestedSlug={params.org}>
-      <div className="grid gap-4">
-        <PageLead
-          title="Reviews"
-          body="No review requests are waiting. Open the Review Requests agent and start a trial. It drafts a request. Nothing is posted and nothing is sent."
-          action="Open Review Requests"
-          href="/command-centre/bots/review-requests"
-        />
-      </div>
+      <ReviewsDesk data={desk} />
     </CommandShell>
   );
 }

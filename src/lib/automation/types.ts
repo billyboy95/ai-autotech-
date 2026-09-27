@@ -31,7 +31,7 @@ export type CampaignStatus = "draft" | "active" | "paused";
 
 export type ProspectStatus = "queued" | "in_sequence" | "replied" | "booked" | "stopped" | "not_contacted";
 
-export type OutboxStatus = "queued" | "approved" | "sent" | "failed" | "cancelled" | "blocked" | "blocked_consent" | "held";
+export type OutboxStatus = "queued" | "approved" | "sent" | "failed" | "cancelled" | "blocked" | "blocked_consent" | "held" | "draft";
 
 export type OutboxPurpose = "marketing" | "service" | "transactional" | "consent_request";
 

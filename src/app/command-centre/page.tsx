@@ -33,7 +33,9 @@ export default async function CommandCentrePage({
   const bounds = periodBounds(params);
   const { workspace, classic, sendingEnabled, tenant } = await loadCommandData();
   const report = buildReport(workspace.state, new Date(), sendingEnabled);
-  const livePeriod = tenant.brandLocked || tenant.mode === "member" ? await loadWorkspacePeriod(tenant.active.id, bounds.from, bounds.to) : null;
+  const livePeriod = tenant.mode === "member" && tenant.role && !tenant.requiresLogin
+    ? await loadWorkspacePeriod(tenant.active.id, bounds.from, bounds.to)
+    : null;
   const samplePeriod =
     !livePeriod && tenant.mode === "preview" && tenant.active.slug === "eastc"
       ? periodMetrics(eastcPeriodFixture)

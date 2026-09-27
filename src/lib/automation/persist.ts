@@ -206,7 +206,7 @@ async function upsertOutbox(supabase: SupabaseClient, rows: Record<string, unkno
   let saved = await supabase.from("crm_outbox").upsert(payload);
   if (saved.error && /check constraint/i.test(saved.error.message) && /status/i.test(saved.error.message)) {
     payload = payload.map((row) =>
-      row.status === "blocked" || row.status === "blocked_consent" || row.status === "held"
+      row.status === "blocked" || row.status === "blocked_consent" || row.status === "held" || row.status === "draft"
         ? { ...row, status: "failed", error: row.error || "Blocked" }
         : row,
     );
@@ -784,6 +784,7 @@ function outboxStatus(value: string): OutboxStatus {
     || value === "blocked"
     || value === "blocked_consent"
     || value === "held"
+    || value === "draft"
   ) {
     return value;
   }

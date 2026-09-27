@@ -39,7 +39,14 @@ export const AIOS_SECTIONS = [
   },
   { id: "team", label: "Team", href: "/command-centre/team" },
   { id: "automations", label: "Automations", href: "/command-centre/workflows" },
-  { id: "billing", label: "Billing", href: "/command-centre/billing" },
+  {
+    id: "billing",
+    label: "Billing",
+    links: [
+      ["/command-centre/billing", "Billing"],
+      ["/command-centre/referrals", "Referrals"],
+    ],
+  },
   {
     id: "agency",
     label: "Agency",

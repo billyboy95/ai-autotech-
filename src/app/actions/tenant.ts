@@ -4,6 +4,7 @@ import { createHash, randomBytes } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { normalizeHost } from "@/lib/brand/host";
 import { workspaceWriteBlock } from "@/lib/billing/guard";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { resolveWorkspace } from "@/lib/tenant/context";
@@ -117,6 +118,12 @@ export async function saveWorkspaceSettings(
     },
   };
 
+  const customDomainRaw = String(formData.get("customDomain") ?? "");
+  const customDomain = normalizeHost(customDomainRaw);
+  if (customDomainRaw.trim() && !customDomain) {
+    return { ok: false, message: "Enter a hostname such as crm.client.test, without a path or port." };
+  }
+
   try {
     await updateWorkspace(workspace.active.id, {
       name: String(formData.get("name") ?? workspace.active.name).trim() || workspace.active.name,
@@ -127,6 +134,12 @@ export async function saveWorkspaceSettings(
       primary_color: String(formData.get("primaryColor") ?? workspace.active.primaryColor),
       accent_color: String(formData.get("accentColor") ?? workspace.active.accentColor),
       sender_name: String(formData.get("senderName") ?? workspace.active.senderName),
+      custom_domain: customDomain,
+      branding: {
+        enabled: true,
+        showPlatformName: formData.get("showPlatformName") === "on",
+        productName: String(formData.get("productName") ?? "").trim(),
+      },
       information_officer: {
         name: String(formData.get("informationOfficerName") ?? ""),
         email: String(formData.get("informationOfficerEmail") ?? ""),

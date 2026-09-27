@@ -1,5 +1,5 @@
 import { AGENCY_DECK_COLORS, AGENCY_WHATSAPP_E164 } from "@/lib/brand/catalog";
-import { emptyChannels, emptyShopify, type WorkspaceBlueprint, type WorkspaceSummary } from "./types";
+import { emptyBranding, emptyChannels, emptyShopify, type WorkspaceBlueprint, type WorkspaceSummary } from "./types";
 
 export const AGENCY_BLUEPRINT: WorkspaceBlueprint = {
   key: "agency",
@@ -121,7 +121,9 @@ export function previewWorkspaces(): WorkspaceSummary[] {
     primaryColor: AGENCY_DECK_COLORS.navy,
     accentColor: AGENCY_DECK_COLORS.blue,
     domain: "aiautotech.co.za",
+    customDomain: "",
     formKey: "ai-autotech",
+    branding: { ...emptyBranding("agency"), productName: "AI AutoTech" },
     settings: {
       channels: { ...emptyChannels(), whatsapp: { phoneNumberId: "", displayPhone: AGENCY_WHATSAPP_E164 } },
       shopify: emptyShopify(),
@@ -144,7 +146,9 @@ export function previewWorkspaces(): WorkspaceSummary[] {
     primaryColor: "#0F3D4C",
     accentColor: "#C4A35A",
     domain: "eastech.co.za",
+    customDomain: "crm.eastc.test",
     formKey: "eastc",
+    branding: { enabled: true, showPlatformName: false, productName: "EASTC" },
     settings: { channels: emptyChannels(), shopify: emptyShopify() },
     sendingEnabled: false,
     senderName: "East Sea Technocentric Varsity (EASTC)",
@@ -164,7 +168,9 @@ export function previewWorkspaces(): WorkspaceSummary[] {
     primaryColor: "#111827",
     accentColor: "#16A34A",
     domain: "zentrixonline.co.za",
+    customDomain: "crm.zentrix.test",
     formKey: "zentrix",
+    branding: { enabled: true, showPlatformName: false, productName: "Zentrix Online" },
     settings: { channels: emptyChannels(), shopify: emptyShopify() },
     sendingEnabled: false,
     senderName: "Zentrix Online",

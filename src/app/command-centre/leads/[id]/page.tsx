@@ -8,17 +8,20 @@ import { formatSendCost, marketingConsentFor, previewSendBlock } from "@/lib/aut
 import { formatWhen, formatZar } from "@/lib/automation/ids";
 import { loadCommandData } from "@/lib/automation/page-data";
 import { PIPELINE_STAGES } from "@/lib/automation/types";
+import { presentWorkspace } from "@/lib/brand/present";
 
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Lead | AI AutoTech CRM",
+  title: "Lead",
   robots: { index: false, follow: false },
 };
 
 export default async function LeadDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const { workspace, sendingEnabled } = await loadCommandData();
+  const { workspace, sendingEnabled, tenant } = await loadCommandData();
+  const brand = presentWorkspace(tenant.active);
+  const sender = brand.showPlatformName ? "Billy from AI AutoTech" : brand.senderName || brand.productName;
   const lead = workspace.state.leads.find((item) => item.id === id);
   if (!lead) notFound();
 
@@ -77,7 +80,7 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
             )}
             {lead.phone ? (
               <a
-                href={buildWaLink(lead.phone, `Hi ${lead.name.split(" ")[0]}, it's Billy from AI AutoTech.`)}
+                href={buildWaLink(lead.phone, `Hi ${lead.name.split(" ")[0]}, it's ${sender}.`)}
                 className="inline-flex h-10 items-center rounded-md border border-slate-200 px-4 text-sm font-semibold text-[#0B1F3A]"
               >
                 Open WhatsApp

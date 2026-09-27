@@ -32,6 +32,7 @@ PR #3 is merged. Its files are on `main` and are still unapplied. Run them after
 11. `supabase/migrations/20261017120000_phase2d_workflows.sql`
 12. `supabase/migrations/20261018120000_phase2e_inbox.sql`
 13. `supabase/migrations/20261019120000_phase2f_billing.sql`
+14. `supabase/migrations/20261020120000_phase2g_agency_rollup.sql`
 
 Why this order:
 
@@ -47,6 +48,7 @@ Why this order:
 - `phase2d_workflows` adds the workflow engine tables (`events`, `workflows`, `workflow_runs`, `workflow_run_logs`, `workflow_alerts`, `contact_tags`) and seeds one workflow row per organisation for the phase 1 assignment, stage, and sequence behaviour. It follows phase 2c because snapshot export and apply grow a `workflows` array. `workflow_engine_enabled` stays false, and `sending_enabled` stays false. Leave `WORKFLOW_ENGINE_ENABLED` unset until this file has been applied. Snapshot export then includes workflows and still excludes contacts, messages, and secrets.
 - `phase2e_inbox` adds `conversations`, `messages`, and `conversation_notes`, with org indexes and RLS. A `client_user` with `assigned_only` only sees conversations assigned to them. Inbound WhatsApp opens a 24-hour window; free-form replies after that are rejected unless the row points at an approved template. The monthly free service-message counter is `wa_service_sends_this_month` (1,000 per WhatsApp number from 1 Oct 2026). Realtime tables are added to `supabase_realtime` when that publication already exists. This file does not turn `sending_enabled` on. Inbound messages call `record_workflow_event` for `message.inbound`. Apply it after phase 2d.
 - `phase2f_billing` adds ZAR `plans`, `org_subscriptions` (sandbox must stay true), idempotent `billing_events`, usage reports, and Yoco sandbox payment-link drafts. It follows phase 2e and the phase 2b usage ledger. A PayFast ITN is applied only by the service role. `past_due` for 7 days becomes `suspended`: the organisation status is suspended, `sending_enabled` is forced false, and queued outbox rows are held. Signed-in writes on a suspended workspace are rejected. This file does not call PayFast, Paystack, or Yoco, and it does not turn sending on. Leave `BILLING_SANDBOX` unset until you have the PayFast sandbox merchant id `10000100`. Do not put a live merchant id in the environment.
+- `phase2g_agency_rollup` adds `agency_rollup(agency_id, from_ts, to_ts)`, `workspace_period_metrics` for the same period on one workspace, and `resolve_custom_domain`. It follows phase 2f. A caller who is not an agency member of that agency is rejected, including a `client_admin`. The rollup lists child workspaces only. It does not turn `sending_enabled` on and it does not change sandbox billing. Apply it after step 13. Do not run it until `SUPABASE_DB_URL` is available.
 
 ## Workflow runner schedule
 
@@ -96,6 +98,14 @@ select cron.schedule(
 ```
 
 A failed PayFast sandbox ITN sets `org_subscriptions.status` to `past_due`. Seven days later this job sets `suspended`, forces `sending_enabled` false, and holds queued outbox rows.
+
+## White-label host
+
+Step 14 does not buy a domain and does not turn sending on. `organizations.custom_domain` is already on the table from phase 2a. `resolve_custom_domain` returns the public brand for that host.
+
+Until the domain is added on Vercel, open the stub path `/d/<hostname>/login`. That sets the `aat_brand_host` cookie and sends you to `/login`. Two reserved test hosts are wired for local preview: `crm.eastc.test` (EASTC) and `crm.zentrix.test` (Zentrix Online). Example: `/d/crm.eastc.test/login`. Clear it at `/brand/clear`.
+
+When you attach a real hostname, add it on the Vercel project and set `organizations.custom_domain` to that host (no port). The app reads `Host` and `x-forwarded-host`. A client login hides the words “AI AutoTech” unless that workspace’s branding has `showPlatformName` set. Email From uses the workspace sender name on the same rule.
 
 ## Shared timestamps
 

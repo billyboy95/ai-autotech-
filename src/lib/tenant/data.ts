@@ -8,7 +8,7 @@ import type { ClientMetric, MembershipRole, WorkspaceBlueprint, WorkspaceSummary
 import { AGENCY_SLUG, emptyChannels, emptyShopify, type ShopifyStoreRecord } from "@/lib/tenant/types";
 
 const ORG_COLUMNS =
-  "id, name, slug, org_type, parent_id, legal_name, location, industry, logo_url, primary_color, accent_color, domain, form_key, settings, sending_enabled, sender_name, timezone, currency";
+  "id, name, slug, org_type, parent_id, legal_name, location, industry, logo_url, primary_color, accent_color, domain, custom_domain, form_key, settings, branding, sending_enabled, sender_name, timezone, currency";
 
 async function db() {
   return createSupabaseServerClient();

@@ -7,7 +7,7 @@ import { loadInbox } from "@/lib/inbox/load";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Inbox | AI AutoTech CRM",
+  title: "Inbox",
   robots: { index: false, follow: false },
 };
 

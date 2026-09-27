@@ -1,5 +1,5 @@
 import { AGENCY_DECK_COLORS } from "@/lib/brand/catalog";
-import { emptyChannels, emptyShopify, type ChannelPlaceholders, type MembershipRole, type OrgType, type ShopifyCredentials, type WorkspaceSettings, type WorkspaceSummary } from "./types";
+import { emptyBranding, emptyChannels, emptyShopify, type ChannelPlaceholders, type MembershipRole, type OrgType, type ShopifyCredentials, type WorkspaceBranding, type WorkspaceSettings, type WorkspaceSummary } from "./types";
 
 export type OrganizationRow = {
   id: string;
@@ -14,8 +14,10 @@ export type OrganizationRow = {
   primary_color: string | null;
   accent_color: string | null;
   domain: string | null;
+  custom_domain?: string | null;
   form_key: string | null;
   settings: unknown;
+  branding?: unknown;
   sending_enabled?: boolean | null;
   sender_name?: string | null;
   timezone?: string | null;
@@ -60,6 +62,16 @@ export function parseSettings(value: unknown): WorkspaceSettings {
   return { channels: parsed, shopify: credentials };
 }
 
+export function parseBranding(value: unknown, orgType: OrgType): WorkspaceBranding {
+  const root = asRecord(value);
+  const fallback = emptyBranding(orgType);
+  return {
+    enabled: root.enabled === undefined ? fallback.enabled : Boolean(root.enabled),
+    showPlatformName: root.showPlatformName === undefined ? fallback.showPlatformName : root.showPlatformName === true,
+    productName: text(root.productName),
+  };
+}
+
 export function toWorkspace(row: OrganizationRow): WorkspaceSummary | null {
   if (!row.slug) return null;
   const orgType: OrgType = row.org_type === "agency" ? "agency" : "client";
@@ -76,8 +88,10 @@ export function toWorkspace(row: OrganizationRow): WorkspaceSummary | null {
     primaryColor: row.primary_color || AGENCY_DECK_COLORS.navy,
     accentColor: row.accent_color || AGENCY_DECK_COLORS.blue,
     domain: row.domain ?? "",
+    customDomain: row.custom_domain ?? "",
     formKey: row.form_key || row.slug,
     settings: parseSettings(row.settings),
+    branding: parseBranding(row.branding, orgType),
     sendingEnabled: Boolean(row.sending_enabled),
     senderName: row.sender_name || row.name,
     timezone: row.timezone || "Africa/Johannesburg",

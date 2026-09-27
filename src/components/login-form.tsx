@@ -8,7 +8,7 @@ const initialState: AuthActionState = {
   message: "",
 };
 
-export function LoginForm({ next }: { next?: string }) {
+export function LoginForm({ next, placeholder = "admin@ai-autotech.co.za" }: { next?: string; placeholder?: string }) {
   const [state, formAction, pending] = useActionState(signIn, initialState);
 
   return (
@@ -21,7 +21,7 @@ export function LoginForm({ next }: { next?: string }) {
           type="email"
           required
           className="h-11 rounded-md border border-slate-200 px-3 outline-none transition focus:border-[#2563EB] focus:ring-4 focus:ring-blue-100"
-          placeholder="admin@ai-autotech.co.za"
+          placeholder={placeholder}
         />
       </label>
       <label className="grid gap-2 text-sm font-medium text-slate-700">

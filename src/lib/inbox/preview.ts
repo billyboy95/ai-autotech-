@@ -129,14 +129,25 @@ const threads: Record<string, InboxThread> = {
   },
 };
 
-export function previewInbox(query: { filter?: string; channel?: string; id?: string; notice?: string | null }): InboxData {
+export function previewInbox(query: {
+  filter?: string;
+  channel?: string;
+  id?: string;
+  notice?: string | null;
+  brandSlug?: string | null;
+}): InboxData {
   const filter = parseInboxFilter(query.filter);
   const channel = parseInboxChannel(query.channel);
   const list = [
     { id: OPEN_WA, channel: "whatsapp", status: "open", assignedUserId: PREVIEW_USER, unread: 1, preview: "Can I still apply for the October intake?", name: "Lerato Mokoena", window: threads[OPEN_WA].windowExpiresAt },
     { id: OPEN_SMS, channel: "sms", status: "open", assignedUserId: null, unread: 0, preview: "Please call the practice.", name: "Thabo Ndlovu", window: null },
     { id: EXPIRED_WA, channel: "whatsapp", status: "open", assignedUserId: null, unread: 2, preview: "Thanks, I will think about it.", name: "Amina Patel", window: threads[EXPIRED_WA].windowExpiresAt },
-  ].filter((item) => matchesInboxList({
+  ].filter((item) => {
+    if (!query.brandSlug || query.brandSlug === "ai-autotech") return true;
+    const company = threads[item.id]?.contact?.company ?? "";
+    if (query.brandSlug === "eastc") return /eastc/i.test(company);
+    return false;
+  }).filter((item) => matchesInboxList({
     status: item.status,
     assignedUserId: item.assignedUserId,
     channel: item.channel,

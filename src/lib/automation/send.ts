@@ -1,5 +1,6 @@
 import net from "node:net";
 import tls from "node:tls";
+import { brandedEmailFrom, brandedSubject } from "@/lib/brand/email-from";
 import { buildSmsLink, buildWaLink, isSendEnabled, toE164, type DeliveryRequest, type DeliveryResult, type EnvLike } from "@/lib/automation/channels";
 import { ensureMarketingFooter, quoteSendCost } from "@/lib/automation/compliance";
 
@@ -307,7 +308,11 @@ async function sendResend(
   env: EnvLike,
   fetchImpl: typeof fetch,
 ): Promise<DeliveryResult> {
-  const from = env.RESEND_FROM || "AI AutoTech <billy@aiautotech.co.za>";
+  const from = brandedEmailFrom({
+    senderName: message.senderName,
+    address: env.RESEND_FROM,
+    showPlatformName: message.showPlatformName,
+  });
   const response = await fetchImpl("https://api.resend.com/emails", {
     method: "POST",
     headers: {
@@ -317,7 +322,7 @@ async function sendResend(
     body: JSON.stringify({
       from,
       to: [message.to],
-      subject: message.subject || "AI AutoTech",
+      subject: brandedSubject({ subject: message.subject, senderName: message.senderName, showPlatformName: message.showPlatformName }),
       text: message.body,
     }),
   });
@@ -384,13 +389,27 @@ async function sendSmtp(message: DeliveryRequest, env: EnvLike): Promise<Deliver
   const port = Number(env.SMTP_PORT || 587);
   const user = env.SMTP_USER || "";
   const pass = env.SMTP_PASS || "";
-  const from = env.SMTP_FROM || user;
+  const from = brandedEmailFrom({
+    senderName: message.senderName,
+    address: env.SMTP_FROM || user,
+    showPlatformName: message.showPlatformName,
+    legacy: env.SMTP_FROM || user,
+  });
   if (!host || !from) {
     return { status: "failed", provider: "smtp", providerId: "", waLink: "", error: "SMTP_HOST and SMTP_FROM are required." };
   }
 
   try {
-    await smtpSend({ host, port, user, pass, from, to: message.to, subject: message.subject || "AI AutoTech", body: message.body });
+    await smtpSend({
+      host,
+      port,
+      user,
+      pass,
+      from,
+      to: message.to,
+      subject: brandedSubject({ subject: message.subject, senderName: message.senderName, showPlatformName: message.showPlatformName }),
+      body: message.body,
+    });
     return { status: "sent", provider: "smtp", providerId: "", waLink: "", error: "" };
   } catch (error) {
     return {

@@ -8,7 +8,7 @@ import { safeResolveWorkspace } from "@/lib/tenant/context";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Billing | AI AutoTech CRM",
+  title: "Billing",
   robots: { index: false, follow: false },
 };
 

@@ -42,9 +42,18 @@ export function WorkspaceSettingsForm({
           <Field name="primaryColor" label="Primary colour" defaultValue={workspace.primaryColor} disabled={readOnly} />
           <Field name="accentColor" label="Accent colour" defaultValue={workspace.accentColor} disabled={readOnly} />
           <Field name="senderName" label="Sender name" defaultValue={workspace.senderName} disabled={readOnly} />
+          <Field name="customDomain" label="Custom domain" defaultValue={workspace.customDomain} disabled={readOnly} />
+          <Field name="productName" label="Login name" defaultValue={workspace.branding.productName} disabled={readOnly} />
           <Field name="informationOfficerName" label="Information officer" defaultValue="" disabled={readOnly} />
           <Field name="informationOfficerEmail" label="Information officer email" defaultValue="" disabled={readOnly} />
         </div>
+        <label className="flex items-center gap-2 text-sm text-slate-700">
+          <input name="showPlatformName" type="checkbox" defaultChecked={workspace.branding.showPlatformName} disabled={readOnly} />
+          Show AI AutoTech on this workspace
+        </label>
+        <p className="text-sm text-slate-500">
+          Client workspaces leave this off. The login page, command centre mark, and email sender name then use this workspace. A real hostname is added in Vercel later. Until then, /d/your.host.test/login is the preview path.
+        </p>
         <label className="flex items-center gap-2 text-sm text-slate-700">
           <input name="sendingEnabled" type="checkbox" defaultChecked={workspace.sendingEnabled} disabled={!canToggleSending || readOnly} />
           Sending enabled

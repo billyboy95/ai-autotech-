@@ -1,6 +1,7 @@
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { agencyOrgId, serviceConfigured, withOrg } from "@/server/workers/with-org";
+import { BRAND_HOST_COOKIE, BRAND_HOST_HEADER, TEST_BRAND_HOSTS, brandHostFrom } from "@/lib/brand/host";
 import { expandAccessibleOrgs, roleForOrg, toOptions } from "@/lib/tenant/access";
 import { previewWorkspaces } from "@/lib/tenant/blueprints";
 import { missingTenantTable, toWorkspace, type OrganizationRow } from "@/lib/tenant/rows";
@@ -10,25 +11,127 @@ import {
   ORG_COOKIE,
   WORKSPACE_COOKIE,
   type Membership,
+  type MembershipRole,
   type WorkspaceResolution,
   type WorkspaceSummary,
 } from "@/lib/tenant/types";
 
 const ORG_COLUMNS =
-  "id, name, slug, org_type, parent_id, legal_name, location, industry, logo_url, primary_color, accent_color, domain, form_key, settings, sending_enabled, sender_name, timezone, currency";
+  "id, name, slug, org_type, parent_id, legal_name, location, industry, logo_url, primary_color, accent_color, domain, custom_domain, form_key, settings, branding, sending_enabled, sender_name, timezone, currency";
 const ORG_COLUMNS_BASE =
   "id, name, slug, org_type, parent_id, legal_name, location, industry, logo_url, primary_color, accent_color, domain, form_key, settings";
 
 function phase2ColumnMissing(error: { message: string } | null) {
-  return Boolean(error && /sending_enabled|sender_name|timezone|currency/.test(error.message));
+  return Boolean(error && /sending_enabled|sender_name|timezone|currency|custom_domain|branding/.test(error.message));
 }
 
-function resolution(input: Omit<WorkspaceResolution, "requiresLogin" | "requestedSlug"> & Partial<Pick<WorkspaceResolution, "requiresLogin" | "requestedSlug">>): WorkspaceResolution {
+function resolution(
+  input: Omit<WorkspaceResolution, "requiresLogin" | "requestedSlug" | "brandLocked" | "brandHost"> &
+    Partial<Pick<WorkspaceResolution, "requiresLogin" | "requestedSlug" | "brandLocked" | "brandHost">>,
+): WorkspaceResolution {
   return {
     requiresLogin: false,
     requestedSlug: null,
+    brandLocked: false,
+    brandHost: null,
     ...input,
   };
+}
+
+export function applyBrandLock(
+  current: WorkspaceResolution,
+  brandSlug: string,
+  orgs: WorkspaceSummary[],
+  role: MembershipRole | null,
+): WorkspaceResolution {
+  const branded = orgs.find((org) => org.slug === brandSlug);
+  if (!branded) {
+    return resolution({
+      mode: current.mode === "preview" ? "preview" : "member",
+      active: current.active,
+      workspaces: [],
+      role: null,
+      userEmail: current.userEmail,
+      canManageAgency: false,
+      scoped: true,
+      requiresLogin: true,
+      requestedSlug: brandSlug,
+      brandLocked: true,
+      brandHost: current.brandHost,
+    });
+  }
+
+  if (current.mode === "preview") {
+    return resolution({
+      mode: "preview",
+      active: branded,
+      workspaces: toOptions([branded]),
+      role: null,
+      userEmail: null,
+      canManageAgency: false,
+      scoped: true,
+      requiresLogin: false,
+      requestedSlug: brandSlug,
+      brandLocked: true,
+      brandHost: current.brandHost,
+    });
+  }
+
+  if (current.mode === "owner" || !role) {
+    return resolution({
+      mode: "member",
+      active: branded,
+      workspaces: [],
+      role: null,
+      userEmail: current.userEmail,
+      canManageAgency: false,
+      scoped: true,
+      requiresLogin: true,
+      requestedSlug: brandSlug,
+      brandLocked: true,
+      brandHost: current.brandHost,
+    });
+  }
+
+  return resolution({
+    mode: "member",
+    active: branded,
+    workspaces: toOptions([branded]),
+    role,
+    userEmail: current.userEmail,
+    canManageAgency: false,
+    scoped: true,
+    requiresLogin: false,
+    requestedSlug: brandSlug,
+    brandLocked: true,
+    brandHost: current.brandHost,
+  });
+}
+
+export async function currentBrandHost() {
+  const headerStore = await headers();
+  const cookieStore = await cookies();
+  return brandHostFrom({
+    header: headerStore.get(BRAND_HOST_HEADER),
+    cookie: cookieStore.get(BRAND_HOST_COOKIE)?.value,
+    forwardedHost: headerStore.get("x-forwarded-host"),
+    host: headerStore.get("host"),
+  });
+}
+
+export async function slugForBrandHost(host: string | null) {
+  if (!host) return null;
+  if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    try {
+      const supabase = await createSupabaseServerClient();
+      const { data, error } = await supabase.rpc("resolve_custom_domain", { p_host: host });
+      const slug = data && typeof data === "object" && "slug" in data ? String((data as { slug?: string }).slug || "") : "";
+      if (!error && slug) return slug;
+    } catch {
+      // The phase 2g function is not applied yet. Test hosts still resolve.
+    }
+  }
+  return TEST_BRAND_HOSTS[host] ?? null;
 }
 
 function ownerShell(active: WorkspaceSummary, scoped: boolean): WorkspaceResolution {
@@ -125,14 +228,22 @@ async function loadMemberships(userId: string): Promise<Membership[]> {
 }
 
 export async function resolveWorkspace(requestedSlug?: string | null): Promise<WorkspaceResolution> {
+  const brandHost = await currentBrandHost();
+  const brandSlug = await slugForBrandHost(brandHost);
   const cookieStore = await cookies();
   const cookieSlug = cookieStore.get(ORG_COOKIE)?.value ?? cookieStore.get(WORKSPACE_COOKIE)?.value ?? null;
-  const asked = requestedSlug || cookieSlug;
+  const asked = brandSlug || requestedSlug || cookieSlug;
+
+  const lock = (current: WorkspaceResolution, catalog: WorkspaceSummary[], role: MembershipRole | null = null) => {
+    const hosted = { ...current, brandHost };
+    if (!brandSlug) return hosted;
+    return applyBrandLock(hosted, brandSlug, catalog, role);
+  };
 
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
     const previews = previewWorkspaces();
     const active = previews.find((org) => org.slug === asked) ?? previews[0];
-    return resolution({
+    return lock(resolution({
       mode: "preview",
       active,
       workspaces: toOptions(previews),
@@ -140,7 +251,7 @@ export async function resolveWorkspace(requestedSlug?: string | null): Promise<W
       userEmail: null,
       canManageAgency: true,
       scoped: false,
-    });
+    }), previews);
   }
 
   const orgs = await loadOrganizations();
@@ -148,25 +259,28 @@ export async function resolveWorkspace(requestedSlug?: string | null): Promise<W
 
   if (!orgs || !agency) {
     const fallback = previewWorkspaces()[0];
-    return ownerShell(fallback, false);
+    return lock(ownerShell(fallback, false), previewWorkspaces());
   }
 
   const user = await sessionUser();
   if (!user) {
     if (asked && asked !== agency.slug) {
-      return resolution({
+      return lock(resolution({
         ...ownerShell(agency, true),
         requiresLogin: true,
         requestedSlug: asked,
-      });
+      }), orgs);
     }
-    return ownerShell(agency, true);
+    return lock(ownerShell(agency, true), orgs);
   }
 
   const memberships = await loadMemberships(user.id);
   const accessible = expandAccessibleOrgs(orgs, memberships);
+  const branded = brandSlug ? orgs.find((org) => org.slug === brandSlug) ?? null : null;
+  const brandedRole = branded ? roleForOrg(branded, memberships, orgs) : null;
+
   if (!accessible.length) {
-    return resolution({
+    return lock(resolution({
       mode: "member",
       active: agency,
       workspaces: [],
@@ -176,13 +290,13 @@ export async function resolveWorkspace(requestedSlug?: string | null): Promise<W
       scoped: true,
       requiresLogin: false,
       requestedSlug: asked,
-    });
+    }), orgs, brandedRole);
   }
 
   const requested = asked ? accessible.find((org) => org.slug === asked) : undefined;
   if (asked && !requested) {
     const fallback = accessible.find((org) => org.slug === AGENCY_SLUG) ?? accessible[0];
-    return resolution({
+    return lock(resolution({
       mode: "member",
       active: fallback,
       workspaces: toOptions(accessible),
@@ -192,12 +306,12 @@ export async function resolveWorkspace(requestedSlug?: string | null): Promise<W
       scoped: true,
       requiresLogin: false,
       requestedSlug: asked,
-    });
+    }), orgs, brandedRole);
   }
 
   const active = requested ?? accessible.find((org) => org.orgType === "agency") ?? accessible[0];
   const role = roleForOrg(active, memberships, orgs);
-  return resolution({
+  return lock(resolution({
     mode: "member",
     active,
     workspaces: toOptions(accessible),
@@ -205,7 +319,7 @@ export async function resolveWorkspace(requestedSlug?: string | null): Promise<W
     userEmail: user.email ?? null,
     canManageAgency: memberships.some((membership) => isAgencyRole(membership.role)),
     scoped: true,
-  });
+  }), orgs, brandedRole);
 }
 
 export async function rememberActiveOrg(orgId: string) {

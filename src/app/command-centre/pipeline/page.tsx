@@ -7,7 +7,7 @@ import { loadCommandData } from "@/lib/automation/page-data";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Pipeline | AI AutoTech CRM",
+  title: "Pipeline",
   robots: { index: false, follow: false },
 };
 
@@ -25,10 +25,10 @@ export default async function PipelinePage() {
       <div className="grid gap-4 xl:grid-cols-[260px_1fr]">
         <form action={addPipelineLead} className="grid h-fit gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
           <h2 className="font-display text-lg font-bold text-[#0B1F3A]">New lead</h2>
-          <Field name="name" label="Name" placeholder="Thabo Ndlovu" />
-          <Field name="company" label="Business" placeholder="Ndlovu Dental" />
+          <Field name="name" label="Name" placeholder="Contact name" />
+          <Field name="company" label="Business" placeholder="Business name" />
           <Field name="phone" label="Phone / WhatsApp" placeholder="082…" />
-          <Field name="email" label="Email" placeholder="thabo@…" />
+          <Field name="email" label="Email" placeholder="name@example.com" />
           <Field name="companySize" label="Team size" placeholder="12" />
           <Field name="notes" label="Note" placeholder="Asked about WhatsApp" />
           <button className="h-10 rounded-md bg-[#2563EB] text-sm font-semibold text-white">Save and assign</button>

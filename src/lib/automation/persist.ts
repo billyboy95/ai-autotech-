@@ -38,7 +38,7 @@ export function migrationHint(detail: string) {
   return `${detail} Apply ${MIGRATION_FILE}, then ${OUTBOUND_MIGRATION_FILE}, then ${COMPLIANCE_MIGRATION_FILE} in the Supabase SQL editor. Existing leads are not deleted.`;
 }
 
-export async function loadSupabaseWorkspace(supabase: SupabaseClient): Promise<{
+export async function loadSupabaseWorkspace(supabase: SupabaseClient, orgId: string | null = null): Promise<{
   state: AutomationState;
   automationReady: boolean;
   setupError: string | null;
@@ -83,26 +83,35 @@ export async function loadSupabaseWorkspace(supabase: SupabaseClient): Promise<{
         ? `${complianceError} Apply ${COMPLIANCE_MIGRATION_FILE} in the Supabase SQL editor. The pipeline still runs. Existing leads are not deleted.`
         : null;
 
-  const templateRows = (templates.data ?? []) as Record<string, unknown>[];
+  const keep = (rows: unknown) => {
+    const list = (rows ?? []) as Record<string, unknown>[];
+    if (!orgId) return list;
+    return list.filter((row) => row.org_id === orgId);
+  };
+  const templateRows = keep(templates.data);
   const settingsRow = settings.data as Record<string, unknown> | null;
 
   return {
     automationReady: !coreError,
     setupError,
     state: {
-      leads: ((leads.data ?? []) as Record<string, unknown>[]).map(mapLead),
-      activities: coreError ? [] : ((activities.data ?? []) as Record<string, unknown>[]).map(mapActivity),
-      outbox: coreError ? [] : ((outbox.data ?? []) as Record<string, unknown>[]).map(mapOutbox),
-      templates: templateRows.length ? templateRows.map(mapTemplate) : DEFAULT_TEMPLATES.map((template) => ({ ...template })),
+      leads: keep(leads.data).map(mapLead),
+      activities: coreError ? [] : keep(activities.data).map(mapActivity),
+      outbox: coreError ? [] : keep(outbox.data).map(mapOutbox),
+      templates: templateRows.length
+        ? templateRows.map(mapTemplate)
+        : orgId
+          ? []
+          : DEFAULT_TEMPLATES.map((template) => ({ ...template })),
       settings: settingsRow ? mapSettings(settingsRow) : structuredClone(DEFAULT_SETTINGS),
-      handovers: coreError ? [] : ((handovers.data ?? []) as Record<string, unknown>[]).map(mapHandover),
-      tasks: coreError ? [] : ((tasks.data ?? []) as Record<string, unknown>[]).map(mapTask),
-      quotes: coreError ? [] : ((quotes.data ?? []) as Record<string, unknown>[]).map(mapQuote),
-      socialPosts: outboundError || coreError ? [] : ((social.data ?? []) as Record<string, unknown>[]).map(mapSocial),
-      campaigns: outboundError || coreError ? [] : ((campaigns.data ?? []) as Record<string, unknown>[]).map(mapCampaign),
-      prospects: outboundError || coreError ? [] : ((prospects.data ?? []) as Record<string, unknown>[]).map(mapProspect),
-      clicks: outboundError || coreError ? [] : ((clicks.data ?? []) as Record<string, unknown>[]).map(mapClick),
-      suppressions: complianceError || coreError ? [] : ((suppressions.data ?? []) as Record<string, unknown>[]).map(mapSuppression),
+      handovers: coreError ? [] : keep(handovers.data).map(mapHandover),
+      tasks: coreError ? [] : keep(tasks.data).map(mapTask),
+      quotes: coreError ? [] : keep(quotes.data).map(mapQuote),
+      socialPosts: outboundError || coreError ? [] : keep(social.data).map(mapSocial),
+      campaigns: outboundError || coreError ? [] : keep(campaigns.data).map(mapCampaign),
+      prospects: outboundError || coreError ? [] : keep(prospects.data).map(mapProspect),
+      clicks: outboundError || coreError ? [] : keep(clicks.data).map(mapClick),
+      suppressions: complianceError || coreError ? [] : keep(suppressions.data).map(mapSuppression),
     },
   };
 }

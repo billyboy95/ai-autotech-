@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Montserrat, Poppins } from "next/font/google";
 import Script from "next/script";
+import { resolveRequestBrand } from "@/lib/brand/request";
 import "./globals.css";
 
 const montserrat = Montserrat({
@@ -15,7 +16,7 @@ const poppins = Poppins({
   weight: ["400", "500", "600", "700"],
 });
 
-export const metadata: Metadata = {
+const platformMetadata: Metadata = {
   metadataBase: new URL("https://ai-autotech.co.za"),
   title: {
     default: "AI AutoTech",
@@ -39,6 +40,32 @@ export const metadata: Metadata = {
       "A scalable internal operating system evolving into a client-facing SaaS platform.",
   },
 };
+
+export async function generateMetadata(): Promise<Metadata> {
+  const brand = await resolveRequestBrand();
+  if (!brand || brand.showPlatformName) return platformMetadata;
+  const description = `${brand.productName} workspace.`;
+  return {
+    title: {
+      default: brand.productName,
+      template: `%s | ${brand.productName}`,
+    },
+    description,
+    openGraph: {
+      title: brand.productName,
+      description,
+      siteName: brand.productName,
+      locale: "en_ZA",
+      type: "website",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: brand.productName,
+      description,
+    },
+    robots: { index: false, follow: false },
+  };
+}
 
 export default function RootLayout({
   children,

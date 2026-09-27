@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { buildRecommendedTeam } from "@/app/actions/bots";
 import { TeamRecommendationView } from "@/components/bots/team-recommendation";
 import { agentQuestionSteps, agentProgressLabel } from "@/lib/bots/interview";
@@ -114,7 +115,7 @@ export function SetupInterview({ orgSlug, notice }: { orgSlug: string; notice?: 
     <div className="grid gap-4">
       <div>
         <h1 className="font-display text-2xl font-bold text-[#0B1F3A]">Lead Agent</h1>
-        <p className="mt-1 max-w-2xl text-sm text-slate-700">Answer the business questions, then each agent&apos;s questions. Shared answers are not asked again. The full team is configured after the sandbox payment. Nothing is sent.</p>
+        <p className="mt-1 max-w-2xl text-sm text-slate-700">Answer the business questions, then each agent&apos;s questions. Shared answers are not asked again. The full team is configured after the sandbox payment. Nothing is sent. The <Link href="/command-centre/lead-agent" className="font-semibold text-[#2563EB]">Lead Agent chat</Link> asks the niche, goals, channels, hours, and tools, then records a sandbox trial.</p>
       </div>
       {notice ? <p className="rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-950" role="status">{notice}</p> : null}
 

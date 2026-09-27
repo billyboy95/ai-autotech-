@@ -76,6 +76,9 @@ test("inbox, conversation AI, calendars, reviews, referrals, and public pages re
     assert.match(botsHtml, /Placeholder price/);
     assert.match(botsHtml, /Save 10% vs buying separately/);
     assert.match(botsHtml, /Save 15% vs buying separately/);
+    assert.match(botsHtml, /\/command-centre\/lead-agent/);
+    assert.match(botsHtml, /Build the full team/);
+    assert.doesNotMatch(botsHtml, /start with (these )?(3|three)/i);
     assert.doesNotMatch(botsHtml, /Save 0%/);
 
     const bot = await fetch(`http://127.0.0.1:${port}/command-centre/bots/inbound-lead`, { redirect: "manual" });
@@ -117,6 +120,23 @@ test("inbox, conversation AI, calendars, reviews, referrals, and public pages re
     const setupHtml = await setup.text();
     assert.match(setupHtml, /Lead Agent/);
     assert.match(setupHtml, /Clinic/);
+
+    const leadAgent = await fetch(`http://127.0.0.1:${port}/command-centre/lead-agent`, { redirect: "manual" });
+    assert.equal(leadAgent.status, 200);
+    const leadHtml = await leadAgent.text();
+    assert.match(leadHtml, /Lead Agent/);
+    assert.match(leadHtml, /What is the niche/);
+    assert.match(leadHtml, /full team/i);
+    assert.match(leadHtml, /Start this team/);
+    assert.match(leadHtml, /excluding VAT/);
+    assert.match(leadHtml, /sandbox/i);
+    assert.doesNotMatch(leadHtml, /start with (these )?(3|three)/i);
+    assert.doesNotMatch(leadHtml, /Connect your accounts/);
+    assert.doesNotMatch(leadHtml, /Import your contacts/);
+
+    const onboarding = await fetch(`http://127.0.0.1:${port}/command-centre/onboarding`, { redirect: "manual" });
+    assert.equal(onboarding.status, 307);
+    assert.match(onboarding.headers.get("location") || "", /\/command-centre\/lead-agent$/);
 
     const publicTeam = await fetch(`http://127.0.0.1:${port}/team/${"ab".repeat(32)}`, { redirect: "manual" });
     assert.equal(publicTeam.status, 200);
@@ -200,6 +220,7 @@ test("inbox, conversation AI, calendars, reviews, referrals, and public pages re
     }
     const agencyHtml = await (await fetch(`http://127.0.0.1:${port}/agency`, { redirect: "manual" })).text();
     assert.match(agencyHtml, /Apply Education pack to EASTC/);
+    assert.match(agencyHtml, /\/command-centre\/lead-agent/);
     const eastcSettings = await (await fetch(`http://127.0.0.1:${port}/agency/eastc/settings`, { redirect: "manual" })).text();
     assert.match(eastcSettings, /Apply Education pack to EASTC/);
     const zentrixSettings = await (await fetch(`http://127.0.0.1:${port}/agency/zentrix/settings`, { redirect: "manual" })).text();

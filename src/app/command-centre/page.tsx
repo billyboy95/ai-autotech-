@@ -51,9 +51,9 @@ export default async function CommandCentrePage({
       <div data-testid="dashboard" className="grid gap-4">
         <PageLead
           title="Home"
-          body={`Today · ${report.date} · Africa/Johannesburg. Set up a team first. The Lead Agent below can also open any page.`}
-          action="Set up this business"
-          href="/command-centre/setup"
+          body={`Today · ${report.date} · Africa/Johannesburg. Build the full team first. The Lead Agent below can also open any page.`}
+          action="Build the full team"
+          href="/command-centre/lead-agent"
         />
 
         <AssistantPanel enabled={isBotAssistantEnabled()} />

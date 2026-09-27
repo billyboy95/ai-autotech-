@@ -16,8 +16,8 @@ export function BotStoreView({ data }: { data: BotStoreData }) {
       <PageLead
         title="Agent store"
         body="Agents and bots are the same thing. Platform is R299/mo, then Starter, Pro, or Always-On. The Lead Agent is included. Prices exclude VAT and stay placeholders until Billy publishes them. Sandbox only."
-        action="Set up a team"
-        href="/command-centre/setup"
+        action="Build the full team"
+        href="/command-centre/lead-agent"
       />
       {data.notice ? <p className="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600">{data.notice}</p> : null}
 
@@ -103,7 +103,7 @@ export function BotStoreView({ data }: { data: BotStoreData }) {
       </section>
 
       <Advanced>
-        <p className="text-sm text-slate-700">Buy stays in the sandbox. Nothing is charged. A team from setup is usually the better start.</p>
+        <p className="text-sm text-slate-700">Buy stays in the sandbox. Nothing is charged. The Lead Agent records the full team.</p>
         {data.canSeeAgency ? (
           <Link href="/command-centre/bots/agency" className="text-sm font-semibold text-[#2563EB]">Agent MRR</Link>
         ) : null}

@@ -31,7 +31,8 @@ export function AssistantPanel({ enabled }: { enabled: boolean }) {
     <section className="rounded-md border border-slate-200 bg-white p-4 shadow-sm" aria-labelledby="lead-agent-heading">
       <h2 id="lead-agent-heading" className="font-display text-lg font-bold text-[#0B1F3A]">Lead Agent</h2>
       <p className="mt-1 text-sm text-slate-700">
-        Ask for any page in the menus, or name a business and get a team. Nothing is sent.
+        Ask for any page in the menus, or name a business and get the full team. Nothing is sent.{" "}
+        <Link href="/command-centre/lead-agent" className="font-semibold text-[#2563EB]">Build the full team</Link>
         {enabled ? " Confirm before a task, draft, or agent change is saved." : " The writing model is off, so tasks and drafts wait until it is turned on."}
       </p>
       <form action={enabled ? propose : undefined} onSubmit={onAsk} className="mt-3 grid gap-2">

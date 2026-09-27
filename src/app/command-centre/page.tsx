@@ -3,7 +3,9 @@ import Link from "next/link";
 import { resolveRequestBrand } from "@/lib/brand/request";
 import { runAutomationsNow } from "@/app/actions/automation";
 import { PeriodMetricsPanel } from "@/components/agency-rollup";
+import { AssistantPanel } from "@/components/bots/assistant-panel";
 import { CommandShell } from "@/components/crm/command-shell";
+import { isBotAssistantEnabled } from "@/lib/bots/flag";
 import { loadWorkspacePeriod } from "@/lib/agency/load";
 import { eastcPeriodFixture, periodBounds, periodMetrics, zentrixPeriodFixture } from "@/lib/agency/metrics";
 import { formatZar } from "@/lib/automation/ids";
@@ -52,6 +54,8 @@ export default async function CommandCentrePage({
             <button className="h-10 rounded-md bg-[#0B1F3A] px-4 text-sm font-semibold text-white">Run automations</button>
           </form>
         </div>
+
+        <AssistantPanel enabled={isBotAssistantEnabled()} />
 
         {period ? (
           <PeriodMetricsPanel

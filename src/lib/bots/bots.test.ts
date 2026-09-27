@@ -1,0 +1,217 @@
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import test from "node:test";
+import type { ReplyProvider } from "@/lib/ai-reply/provider";
+import { applyConfirmedActions, proposeAssistantActions, proposalsFromText } from "@/lib/bots/assistant";
+import { addSandboxBotLines, openBotCheckout } from "@/lib/bots/billing";
+import { BOT_CATALOG, BOT_BUNDLES, TEAM_TEMPLATES, bundleBySlug } from "@/lib/bots/catalog";
+import { isBotAssistantEnabled } from "@/lib/bots/flag";
+import { allocateBundlePrice, assertBundleDiscount, bundleSaving } from "@/lib/bots/pricing";
+import { runBot } from "@/lib/bots/runtime";
+import { applyTeamTemplate, emptyTemplateBook } from "@/lib/bots/templates";
+
+const sandboxEnv = {
+  BILLING_SANDBOX: "true",
+  PAYFAST_MERCHANT_ID: "10000100",
+  PAYFAST_MERCHANT_KEY: "sandbox-key",
+  PAYFAST_PASSPHRASE: "",
+  NEXT_PUBLIC_SITE_URL: "http://localhost:3000",
+} as NodeJS.ProcessEnv;
+
+test("catalogue prices are placeholders and every bundle is a real group discount", () => {
+  assert.equal(BOT_CATALOG.every((bot) => bot.pricePlaceholder && bot.currency === "ZAR"), true);
+  for (const bundle of BOT_BUNDLES) {
+    const saving = assertBundleDiscount(bundle);
+    assert.equal(saving.savingPercent, 20);
+    assert.ok(saving.bundlePriceCents > saving.maxBotCents);
+    assert.ok(saving.bundlePriceCents < saving.separateTotalCents);
+    const shares = allocateBundlePrice(
+      bundle.botSlugs.map((slug) => BOT_CATALOG.find((bot) => bot.slug === slug)!),
+      saving.bundlePriceCents,
+    );
+    assert.equal(shares.reduce((sum, line) => sum + line.amountCents, 0), saving.bundlePriceCents);
+  }
+  const sales = bundleBySlug("sales-team");
+  assert.throws(() => assertBundleDiscount({ ...sales, bundlePriceCents: bundleSaving(sales).separateTotalCents }));
+  assert.throws(() => assertBundleDiscount({ ...sales, bundlePriceCents: bundleSaving(sales).maxBotCents }));
+});
+
+test("sandbox checkout never charges and does not add a second subscription", () => {
+  const trial = openBotCheckout({
+    orgId: "org-1",
+    orgName: "EASTC",
+    bundleSlug: "sales-team",
+    intent: "trial",
+    env: sandboxEnv,
+  });
+  assert.equal(trial.checkout.sandbox, true);
+  assert.equal(trial.checkout.charged, false);
+  assert.equal(trial.checkout.mode, "form");
+  assert.match(trial.checkout.actionUrl || "", /sandbox\.payfast\.co\.za/);
+  const ledger = addSandboxBotLines({ subscriptions: [{ orgId: "org-1" }], lines: [] }, trial.lines);
+  assert.equal(ledger.subscriptions.length, 1);
+  assert.equal(ledger.lines.length, 3);
+  assert.equal(ledger.lines.every((line) => line.sandbox && line.charged === false), true);
+
+  const again = addSandboxBotLines(ledger, trial.lines);
+  assert.equal(again.lines.length, 3);
+
+  const closed = openBotCheckout({
+    orgId: "org-1",
+    orgName: "EASTC",
+    botSlug: "ads",
+    intent: "buy",
+    env: { BILLING_SANDBOX: "false" },
+  });
+  assert.equal(closed.lines.length, 0);
+  assert.equal(closed.checkout.charged, false);
+  assert.equal(closed.checkout.sandbox, true);
+
+  const live = openBotCheckout({
+    orgId: "org-1",
+    orgName: "EASTC",
+    botSlug: "ads",
+    intent: "buy",
+    env: { ...sandboxEnv, PAYFAST_MERCHANT_ID: "20000100" },
+  });
+  assert.equal(live.lines.length, 0);
+  assert.equal(live.checkout.charged, false);
+  assert.match(live.checkout.message, /10000100/);
+});
+
+test("team templates apply once and do not duplicate or send", () => {
+  const env = sandboxEnv;
+  const first = applyTeamTemplate(emptyTemplateBook([{ orgId: "org-1" }]), {
+    orgId: "org-1",
+    orgName: "EASTC",
+    templateSlug: "sales-team",
+    env,
+  });
+  assert.equal(first.createdStages, 6);
+  assert.equal(first.book.sendingEnabled, false);
+  assert.equal(first.book.contacts.length, 0);
+  assert.equal(first.book.messages.length, 0);
+  assert.equal(first.book.secrets.length, 0);
+  assert.equal(first.book.workflows.every((flow) => flow.active === false), true);
+  assert.equal(first.book.ledger.subscriptions.length, 1);
+  const second = applyTeamTemplate(first.book, {
+    orgId: "org-1",
+    orgName: "EASTC",
+    templateSlug: "sales-team",
+    env,
+  });
+  assert.equal(second.createdStages, 0);
+  assert.equal(second.book.pipelines[0].stages.length, 6);
+  assert.equal(second.book.workflows.length, 2);
+  assert.equal(second.book.bots.length, 3);
+  assert.equal(second.book.ledger.lines.length, 3);
+
+  const full = applyTeamTemplate(second.book, {
+    orgId: "org-1",
+    orgName: "EASTC",
+    templateSlug: "full-business",
+    env,
+  });
+  assert.equal(full.book.pipelines.length, 2);
+  assert.equal(full.book.bots.length, 5);
+  assert.equal(full.book.sendingEnabled, false);
+  assert.equal(TEAM_TEMPLATES.length, 3);
+});
+
+test("bot runs stay drafts or tasks", () => {
+  const base = {
+    sendingEnabled: false,
+    suppressed: false,
+    stopped: false,
+    consents: [{ channel: "whatsapp", status: "opted_in" }, { channel: "email", status: "opted_in" }],
+    leadName: "Lerato",
+  };
+  const inbound = runBot({ ...base, slug: "inbound-lead" });
+  assert.equal(inbound.status, "drafted");
+  assert.ok(inbound.artifacts.some((item) => item.kind === "task"));
+  assert.ok(inbound.artifacts.some((item) => item.kind === "draft"));
+  assert.equal(inbound.artifacts.some((item) => item.outboxStatus === "draft" && item.status !== "draft"), false);
+
+  const skipped = runBot({ ...base, slug: "outbound-sales", consents: [], suppressed: true });
+  assert.equal(skipped.status, "skipped");
+  assert.equal(skipped.artifacts.length, 0);
+
+  const outbound = runBot({ ...base, slug: "outbound-sales", sendingEnabled: true });
+  assert.equal(outbound.output.outboxStatus, "draft");
+  assert.equal(outbound.artifacts.every((item) => !item.outboxStatus || item.outboxStatus === "draft"), true);
+  assert.equal(JSON.stringify(outbound).includes('"queued"'), false);
+  assert.equal(JSON.stringify(outbound).includes('"sent"'), false);
+
+  const onboarding = runBot({ ...base, slug: "onboarding" });
+  assert.match(onboarding.output.draftBody || "", /\/book\//);
+  assert.ok(onboarding.artifacts.some((item) => item.kind === "task"));
+
+  for (const slug of ["ads", "social-posting"] as const) {
+    const run = runBot({ ...base, slug });
+    assert.equal(run.artifacts.every((item) => item.kind === "draft" && !item.outboxStatus), true);
+    assert.match(run.summary, /draft/i);
+  }
+});
+
+test("the assistant stays off without the flag and key, and confirm does not send", async () => {
+  assert.equal(isBotAssistantEnabled({}), false);
+  assert.equal(isBotAssistantEnabled({ BOT_ASSISTANT_ENABLED: "true" }), false);
+  assert.equal(isBotAssistantEnabled({ BOT_ASSISTANT_ENABLED: "true", AI_REPLY_API_KEY: "test-key" }), true);
+
+  const off = await proposeAssistantActions({ request: "send the lead a message", env: {} });
+  assert.equal(off.enabled, false);
+  assert.equal(off.proposals.length, 0);
+
+  const provider: ReplyProvider = {
+    model: "test",
+    configured: () => true,
+    async complete() {
+      return {
+        ok: true,
+        model: "test",
+        text: JSON.stringify({
+          actions: [
+            { kind: "create_task", label: "Call Lerato", detail: "Today" },
+            { kind: "send_message", label: "Send now", detail: "no" },
+            { kind: "draft_message", label: "Draft a follow-up", detail: "Hello, this is a draft." },
+            { kind: "activate_bot", label: "Activate Inbound Lead", detail: "inbound-lead" },
+          ],
+        }),
+      };
+    },
+  };
+  const plan = await proposeAssistantActions({
+    request: "help with this lead",
+    env: { BOT_ASSISTANT_ENABLED: "true", AI_REPLY_API_KEY: "test-key" },
+    provider,
+  });
+  assert.equal(plan.proposals.some((item) => item.kind === "create_task"), true);
+  assert.equal(plan.proposals.some((item) => (item.kind as string) === "send_message"), false);
+  const book = applyConfirmedActions(
+    { sendingEnabled: false, tasks: [], drafts: [], stageMoves: [], activeBots: [] },
+    plan.proposals,
+    plan.proposals.map((item) => item.id),
+  );
+  assert.equal(book.sendingEnabled, false);
+  assert.equal(book.tasks.length, 1);
+  assert.equal(book.drafts.length, 1);
+  assert.equal(book.drafts[0].status, "draft");
+  assert.deepEqual(book.activeBots, ["inbound-lead"]);
+  assert.equal(proposalsFromText('{"actions":[{"kind":"send","label":"Send"}]}').length, 0);
+});
+
+test("phase 4a migration does not send, delete, or charge", () => {
+  const sql = readFileSync(new URL("../../../supabase/migrations/20261024120000_phase4a_bots.sql", import.meta.url), "utf8");
+  assert.equal(/sending_enabled\s*=\s*true/i.test(sql), false);
+  assert.equal(/\btruncate\b/i.test(sql), false);
+  assert.equal(/\bdelete from\b/i.test(sql), false);
+  assert.equal(/\bdrop table\b/i.test(sql), false);
+  assert.match(sql, /to be confirmed by Billy/);
+  assert.match(sql, /price_placeholder/);
+  assert.match(sql, /check \(sandbox\)/);
+  assert.match(sql, /check \(charged = false\)/);
+  assert.match(sql, /'draft'/);
+  for (const slug of ["inbound-lead", "outbound-sales", "onboarding", "ads", "social-posting", "sales-team", "marketing-team", "full-business"]) {
+    assert.match(sql, new RegExp(slug));
+  }
+});

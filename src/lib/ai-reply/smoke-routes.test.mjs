@@ -68,6 +68,19 @@ test("inbox, conversation AI, calendars, and public booking respond", { timeout:
     assert.match(calendarsHtml, /Calendars/);
     assert.match(calendarsHtml, /appointment\.booked/);
 
+    const bots = await fetch(`http://127.0.0.1:${port}/command-centre/bots`, { redirect: "manual" });
+    assert.equal(bots.status, 200);
+    const botsHtml = await bots.text();
+    assert.match(botsHtml, /Bot Store/);
+    assert.match(botsHtml, /Placeholder price/);
+    assert.match(botsHtml, /Save 20% vs buying separately/);
+
+    const bot = await fetch(`http://127.0.0.1:${port}/command-centre/bots/inbound-lead`, { redirect: "manual" });
+    assert.equal(bot.status, 200);
+    const botHtml = await bot.text();
+    assert.match(botHtml, /Inbound Lead/);
+    assert.match(botHtml, /Activity/);
+
     const booking = await fetch(`http://127.0.0.1:${port}/book/ai-autotech-audit`, { redirect: "manual" });
     assert.equal(booking.status, 200);
     const bookingHtml = await booking.text();

@@ -65,7 +65,7 @@ export function BotStoreView({ data }: { data: BotStoreData }) {
                 <span className="font-display text-xl font-bold text-[#0B1F3A]">{rands(bundle.bundlePriceCents)}</span>
                 <span> / month</span>
               </p>
-              <p className="text-sm font-semibold text-emerald-700">Save {bundle.savingPercent}% vs buying separately</p>
+              <p className="text-sm font-semibold text-emerald-700">{`Save ${bundle.savingPercent}% vs buying separately`}</p>
               <div className="mt-3 flex flex-wrap gap-2">
                 <TrialForm slug={data.orgSlug} bundle={bundle.slug} intent="trial" label="Start trial" />
                 <TrialForm slug={data.orgSlug} bundle={bundle.slug} intent="buy" label="Buy (sandbox)" />

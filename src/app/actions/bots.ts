@@ -17,8 +17,6 @@ export type AssistantActionState = {
   proposals: { id: string; kind: string; label: string; detail: string }[];
 };
 
-const emptyAssistant: AssistantActionState = { message: "", proposals: [] };
-
 function canManage(role: string | null) {
   return role === "client_admin" || isAgencyRole(role as "agency_owner" | "agency_staff" | null);
 }
@@ -223,5 +221,3 @@ export async function applyBotAssistant(
     proposals: [],
   };
 }
-
-export { emptyAssistant };

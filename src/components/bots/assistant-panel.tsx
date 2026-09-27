@@ -1,8 +1,10 @@
 "use client";
 
 import { useActionState } from "react";
-import { applyBotAssistant, emptyAssistant, proposeBotAssistant } from "@/app/actions/bots";
+import { applyBotAssistant, proposeBotAssistant } from "@/app/actions/bots";
 import { assistantUnavailableMessage } from "@/lib/bots/assistant";
+
+const emptyAssistant = { message: "", proposals: [] as { id: string; kind: string; label: string; detail: string }[] };
 
 export function AssistantPanel({ enabled }: { enabled: boolean }) {
   const [plan, propose] = useActionState(proposeBotAssistant, emptyAssistant);

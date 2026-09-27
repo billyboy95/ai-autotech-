@@ -25,7 +25,14 @@ export type CommandChrome = {
 };
 
 const sections = [
-  { id: "home", label: "Home", href: "/command-centre" },
+  {
+    id: "home",
+    label: "Home",
+    links: [
+      ["/command-centre", "Today"],
+      ["/command-centre/setup", "Setup"],
+    ],
+  },
   {
     id: "crm",
     label: "CRM",

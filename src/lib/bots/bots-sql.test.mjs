@@ -115,6 +115,8 @@ test("phase 4a keeps sandbox billing, the bundle discount, and draft-only outbox
   }
   const templates = await db.query(`select slug from bot_templates`);
   assert.ok(templates.rows.length >= 17);
+  assert.ok(templates.rows.some((row) => row.slug === "faceless-youtube"));
+  assert.ok(templates.rows.some((row) => row.slug === "ai-automation-agency"));
   const education = await db.query(`select payload::text as payload from bot_templates where slug = 'education-school'`);
   assert.match(education.rows[0].payload, /stage:admissions:enquiry/);
 
@@ -208,6 +210,31 @@ test("phase 4a keeps sandbox billing, the bundle discount, and draft-only outbox
   assert.equal(hidden.rows.length, 0);
   const owner = await asUser(db, AGENCY_USER, `select bot_slug from org_bots where org_id = '${EASTC_ORG}'`);
   assert.equal(owner.rows.length, 3);
+
+  const recommended = await asUser(
+    db,
+    EASTC_ADMIN,
+    `select public.start_recommended_sandbox_team($1, array['receptionist','reminder-drafts','document-admin']) as result`,
+    [EASTC_ORG],
+  );
+  assert.equal(recommended.rows[0].result.charged, false);
+  assert.equal(recommended.rows[0].result.sandbox, true);
+  assert.equal(recommended.rows[0].result.sending_enabled, false);
+  assert.equal(recommended.rows[0].result.amount_cents, 304000);
+  const recommendedLines = await db.query(
+    `select coalesce(sum(amount_cents), 0)::int as total, bool_and(charged = false) as uncharged
+     from org_bot_billing_lines
+     where org_id = $1 and bot_slug in ('receptionist', 'reminder-drafts', 'document-admin')`,
+    [EASTC_ORG],
+  );
+  assert.equal(recommendedLines.rows[0].total, 304000);
+  assert.equal(recommendedLines.rows[0].uncharged, true);
+  const sendingAfterTeam = await db.query(`select sending_enabled from organizations where id = $1`, [EASTC_ORG]);
+  assert.equal(sendingAfterTeam.rows[0].sending_enabled, false);
+  await assert.rejects(
+    asUser(db, EASTC_USER, `select public.start_recommended_sandbox_team('${EASTC_ORG}', array['receptionist'])`),
+    /not allowed/i,
+  );
 
   await db.query(
     `insert into org_subscriptions (org_id, plan_code, provider, status, sandbox) values ($1, 'starter', 'manual', 'suspended', true)`,

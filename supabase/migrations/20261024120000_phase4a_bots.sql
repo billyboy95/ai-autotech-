@@ -926,16 +926,119 @@ begin
 end;
 $$;
 
+create or replace function public.start_recommended_sandbox_team(
+  p_org uuid,
+  p_slugs text[]
+) returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_slug text;
+  v_price integer;
+  v_config jsonb;
+  prices integer[] := array[]::integer[];
+  configs jsonb[] := array[]::jsonb[];
+  ordered text[] := array[]::text[];
+  separate_total integer := 0;
+  max_price integer := 0;
+  bundle_price integer;
+  running integer := 0;
+  share integer;
+  idx integer;
+  n integer;
+  sending boolean;
+begin
+  if auth.uid() is not null
+     and not public.has_org_role(p_org, array['agency_owner', 'agency_staff', 'client_admin']) then
+    raise exception 'not allowed';
+  end if;
+
+  if p_slugs is null or cardinality(p_slugs) < 1 or cardinality(p_slugs) > 8 then
+    raise exception 'team required';
+  end if;
+
+  for v_slug in
+    select distinct u.slug
+    from unnest(p_slugs) as u(slug)
+    where u.slug is not null and u.slug <> ''
+    order by u.slug
+  loop
+    select c.monthly_price_cents, c.default_config into v_price, v_config
+    from public.bot_catalog c
+    where c.slug = v_slug and c.active;
+    if v_price is null then
+      raise exception 'unknown bot';
+    end if;
+    ordered := array_append(ordered, v_slug);
+    prices := array_append(prices, v_price);
+    configs := array_append(configs, v_config);
+    separate_total := separate_total + v_price;
+    if v_price > max_price then
+      max_price := v_price;
+    end if;
+  end loop;
+
+  n := cardinality(ordered);
+  if n < 1 then
+    raise exception 'team required';
+  end if;
+
+  if n = 1 then
+    bundle_price := separate_total;
+  else
+    bundle_price := separate_total - round(separate_total * 0.2)::integer;
+    if bundle_price <= max_price or bundle_price >= separate_total then
+      raise exception 'bundle discount rule';
+    end if;
+  end if;
+
+  for idx in 1..n loop
+    if idx < n then
+      share := floor(bundle_price::numeric * prices[idx] / separate_total)::integer;
+      running := running + share;
+    else
+      share := bundle_price - running;
+    end if;
+    perform public.upsert_sandbox_bot_line(p_org, ordered[idx], null, configs[idx], share);
+  end loop;
+
+  select o.sending_enabled into sending from public.organizations o where o.id = p_org;
+
+  return jsonb_build_object(
+    'ok', true,
+    'sandbox', true,
+    'charged', false,
+    'bots', n,
+    'amount_cents', bundle_price,
+    'sending_enabled', coalesce(sending, false)
+  );
+end;
+$$;
+
+-- Public team links. The token is the only lookup key. Existing audit rows are left in place.
+do $audit_token$
+begin
+  if to_regclass('public.crm_audit_leads') is not null then
+    alter table public.crm_audit_leads add column if not exists share_token text;
+    create unique index if not exists crm_audit_leads_share_token_idx on public.crm_audit_leads (share_token);
+  end if;
+end
+$audit_token$;
+
 revoke all on function public.bot_bundle_quoted_price(integer, numeric, integer) from public, anon;
 revoke all on function public.assert_bot_bundle_discounts() from public, anon;
 revoke all on function public.upsert_sandbox_bot_line(uuid, text, text, jsonb, integer) from public, anon;
 revoke all on function public.start_bot_sandbox_trial(uuid, text, text) from public, anon;
 revoke all on function public.apply_bot_template(uuid, text) from public, anon;
 revoke all on function public.record_bot_outbox_draft(uuid, text, text, text, text, text) from public, anon;
+revoke all on function public.start_recommended_sandbox_team(uuid, text[]) from public, anon;
 
 grant execute on function public.start_bot_sandbox_trial(uuid, text, text) to authenticated;
 grant execute on function public.apply_bot_template(uuid, text) to authenticated;
 grant execute on function public.record_bot_outbox_draft(uuid, text, text, text, text, text) to authenticated;
+grant execute on function public.start_recommended_sandbox_team(uuid, text[]) to authenticated;
 
 revoke all on public.bot_catalog from public, anon;
 revoke all on public.bot_bundles from public, anon;
@@ -969,6 +1072,7 @@ begin
     grant execute on function public.start_bot_sandbox_trial(uuid, text, text) to service_role;
     grant execute on function public.apply_bot_template(uuid, text) to service_role;
     grant execute on function public.record_bot_outbox_draft(uuid, text, text, text, text, text) to service_role;
+    grant execute on function public.start_recommended_sandbox_team(uuid, text[]) to service_role;
   end if;
 end
 $service_grants$;
@@ -1364,6 +1468,62 @@ begin
       $q$["task"]$q$::jsonb,
       $q${"tone":"plain","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:it-support","stage":"stage:bot:it-support:new","channel":"email"}$q$::jsonb,
       $q$workflows$q$, true
+    ),
+    (
+      $q$scriptwriter$q$, $q$Scriptwriter$q$, $q$marketing$q$, $q$content$q$,
+      $q$Drafts a script. Nothing is published.$q$,
+      150000, 'ZAR', true,
+      $q$["content-draft"]$q$::jsonb,
+      $q${"tone":"clear","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:content","stage":"stage:bot:content:new","channel":"email"}$q$::jsonb,
+      $q$workflows$q$, true
+    ),
+    (
+      $q$video-editor-brief$q$, $q$Video Editor Brief$q$, $q$marketing$q$, $q$content$q$,
+      $q$Writes an editor brief as a task. Nothing is published.$q$,
+      140000, 'ZAR', true,
+      $q$["task"]$q$::jsonb,
+      $q${"tone":"precise","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:content","stage":"stage:bot:content:new","channel":"email"}$q$::jsonb,
+      $q$workflows$q$, true
+    ),
+    (
+      $q$thumbnail-brief$q$, $q$Thumbnail Brief$q$, $q$marketing$q$, $q$content$q$,
+      $q$Writes a thumbnail and design brief as a task. Nothing is published.$q$,
+      120000, 'ZAR', true,
+      $q$["task"]$q$::jsonb,
+      $q${"tone":"visual","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:content","stage":"stage:bot:content:new","channel":"email"}$q$::jsonb,
+      $q$workflows$q$, true
+    ),
+    (
+      $q$seo-titles$q$, $q$SEO Titles$q$, $q$marketing$q$, $q$content$q$,
+      $q$Drafts titles and search lines. Nothing is published.$q$,
+      130000, 'ZAR', true,
+      $q$["content-draft"]$q$::jsonb,
+      $q${"tone":"tight","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:content","stage":"stage:bot:content:new","channel":"email"}$q$::jsonb,
+      $q$ai_reply$q$, true
+    ),
+    (
+      $q$scheduler-poster$q$, $q$Scheduler$q$, $q$marketing$q$, $q$social$q$,
+      $q$Files a posting slot and a draft. Nothing is published.$q$,
+      120000, 'ZAR', true,
+      $q$["social-post-draft","task"]$q$::jsonb,
+      $q${"tone":"brief","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:social","stage":"stage:bot:social:new","channel":"social"}$q$::jsonb,
+      $q$workflows$q$, true
+    ),
+    (
+      $q$community-manager$q$, $q$Community Manager$q$, $q$marketing$q$, $q$social$q$,
+      $q$Drafts a community reply. Nothing is published.$q$,
+      140000, 'ZAR', true,
+      $q$["ai-draft"]$q$::jsonb,
+      $q${"tone":"friendly","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:social","stage":"stage:bot:social:new","channel":"social"}$q$::jsonb,
+      $q$ai_reply$q$, true
+    ),
+    (
+      $q$content-analytics$q$, $q$Content Analytics$q$, $q$marketing$q$, $q$content$q$,
+      $q$Writes a performance note as a task. Nothing is sent.$q$,
+      130000, 'ZAR', true,
+      $q$["task"]$q$::jsonb,
+      $q${"tone":"plain","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:content","stage":"stage:bot:content:new","channel":"email"}$q$::jsonb,
+      $q$workflows$q$, true
     )
   on conflict (slug) do update set
     name = excluded.name,
@@ -1464,6 +1624,36 @@ begin
       $q$agency-consulting$q$, $q$Agency / consulting$q$,
       $q$Inbound, outbound, proposals, onboarding, invoices, and content. Placeholder price, to be confirmed by Billy.$q$,
       696000, 20, 'ZAR', true
+    ),
+    (
+      $q$faceless-youtube$q$, $q$Faceless YouTube$q$,
+      $q$Scripts, edit briefs, thumbnails, titles, scheduling, and analytics. Placeholder price, to be confirmed by Billy.$q$,
+      632000, 20, 'ZAR', true
+    ),
+    (
+      $q$facebook-community$q$, $q$Facebook page / community$q$,
+      $q$Community, scheduling, scripts, titles, analytics, and a content calendar. Placeholder price, to be confirmed by Billy.$q$,
+      648000, 20, 'ZAR', true
+    ),
+    (
+      $q$tiktok-reels$q$, $q$TikTok / Reels$q$,
+      $q$Scripts, edit briefs, thumbnails, scheduling, and community replies. Placeholder price, to be confirmed by Billy.$q$,
+      536000, 20, 'ZAR', true
+    ),
+    (
+      $q$podcast$q$, $q$Podcast$q$,
+      $q$Scripts, titles, scheduling, community, and analytics. Placeholder price, to be confirmed by Billy.$q$,
+      536000, 20, 'ZAR', true
+    ),
+    (
+      $q$personal-brand$q$, $q$Personal brand$q$,
+      $q$Scripts, brand voice, scheduling, community, and titles. Placeholder price, to be confirmed by Billy.$q$,
+      560000, 20, 'ZAR', true
+    ),
+    (
+      $q$ai-automation-agency$q$, $q$AI agency / automation agency$q$,
+      $q$The AI AutoTech shape: inbound, outbound, proposals, onboarding, ads, social, support, and content. Placeholder price, to be confirmed by Billy.$q$,
+      936000, 20, 'ZAR', true
     )
   on conflict (slug) do update set
     name = excluded.name,
@@ -1557,7 +1747,42 @@ begin
       ($q$agency-consulting$q$, $q$proposal-writer$q$, 3),
       ($q$agency-consulting$q$, $q$onboarding$q$, 4),
       ($q$agency-consulting$q$, $q$invoice-drafts$q$, 5),
-      ($q$agency-consulting$q$, $q$blog-drafts$q$, 6)
+      ($q$agency-consulting$q$, $q$blog-drafts$q$, 6),
+      ($q$faceless-youtube$q$, $q$scriptwriter$q$, 1),
+      ($q$faceless-youtube$q$, $q$video-editor-brief$q$, 2),
+      ($q$faceless-youtube$q$, $q$thumbnail-brief$q$, 3),
+      ($q$faceless-youtube$q$, $q$seo-titles$q$, 4),
+      ($q$faceless-youtube$q$, $q$scheduler-poster$q$, 5),
+      ($q$faceless-youtube$q$, $q$content-analytics$q$, 6),
+      ($q$facebook-community$q$, $q$community-manager$q$, 1),
+      ($q$facebook-community$q$, $q$scheduler-poster$q$, 2),
+      ($q$facebook-community$q$, $q$scriptwriter$q$, 3),
+      ($q$facebook-community$q$, $q$seo-titles$q$, 4),
+      ($q$facebook-community$q$, $q$content-analytics$q$, 5),
+      ($q$facebook-community$q$, $q$content-calendar$q$, 6),
+      ($q$tiktok-reels$q$, $q$scriptwriter$q$, 1),
+      ($q$tiktok-reels$q$, $q$video-editor-brief$q$, 2),
+      ($q$tiktok-reels$q$, $q$thumbnail-brief$q$, 3),
+      ($q$tiktok-reels$q$, $q$scheduler-poster$q$, 4),
+      ($q$tiktok-reels$q$, $q$community-manager$q$, 5),
+      ($q$podcast$q$, $q$scriptwriter$q$, 1),
+      ($q$podcast$q$, $q$seo-titles$q$, 2),
+      ($q$podcast$q$, $q$scheduler-poster$q$, 3),
+      ($q$podcast$q$, $q$community-manager$q$, 4),
+      ($q$podcast$q$, $q$content-analytics$q$, 5),
+      ($q$personal-brand$q$, $q$scriptwriter$q$, 1),
+      ($q$personal-brand$q$, $q$brand-voice$q$, 2),
+      ($q$personal-brand$q$, $q$scheduler-poster$q$, 3),
+      ($q$personal-brand$q$, $q$community-manager$q$, 4),
+      ($q$personal-brand$q$, $q$seo-titles$q$, 5),
+      ($q$ai-automation-agency$q$, $q$inbound-lead$q$, 1),
+      ($q$ai-automation-agency$q$, $q$outbound-sales$q$, 2),
+      ($q$ai-automation-agency$q$, $q$proposal-writer$q$, 3),
+      ($q$ai-automation-agency$q$, $q$onboarding$q$, 4),
+      ($q$ai-automation-agency$q$, $q$ads$q$, 5),
+      ($q$ai-automation-agency$q$, $q$social-posting$q$, 6),
+      ($q$ai-automation-agency$q$, $q$support-replies$q$, 7),
+      ($q$ai-automation-agency$q$, $q$blog-drafts$q$, 8)
   ) as item(bundle_slug, bot_slug, position) on item.bundle_slug = b.slug
   on conflict (bundle_id, bot_slug) do nothing;
 
@@ -1698,6 +1923,54 @@ begin
       $q$agency$q$,
       null,
       $q${"version":1,"bots":[{"slug":"inbound-lead","config":{"tone":"warm and plain","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:sales-team","stage":"stage:bot:sales-team:new","channel":"whatsapp"}},{"slug":"outbound-sales","config":{"tone":"direct","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:sales-team","stage":"stage:bot:sales-team:contacted","channel":"whatsapp"}},{"slug":"proposal-writer","config":{"tone":"clear","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:sales-team","stage":"stage:bot:sales-team:proposal","channel":"email"}},{"slug":"onboarding","config":{"tone":"helpful","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:sales-team","stage":"stage:bot:sales-team:won","channel":"email"}},{"slug":"invoice-drafts","config":{"tone":"formal","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:finance","stage":"stage:bot:finance:new","channel":"email"}},{"slug":"blog-drafts","config":{"tone":"useful","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:content","stage":"stage:bot:content:new","channel":"email"}}],"pipelines":[{"asset_key":"pipeline:bot:agency-consulting","name":"Engagement","is_default":false,"stages":[{"asset_key":"stage:bot:agency-consulting:lead","name":"Lead","position":1,"is_won":false,"is_lost":false},{"asset_key":"stage:bot:agency-consulting:proposal","name":"Proposal","position":2,"is_won":false,"is_lost":false},{"asset_key":"stage:bot:agency-consulting:won","name":"Won","position":3,"is_won":true,"is_lost":false},{"asset_key":"stage:bot:agency-consulting:lost","name":"Lost","position":4,"is_won":false,"is_lost":true}]}],"workflows":[{"asset_key":"workflow:bot:agency-consulting","name":"Draft the engagement task","trigger_type":"lead.created","trigger":{},"steps":[{"id":"task","kind":"create_task","title":"Draft the engagement task"}]}]}$q$::jsonb
+    ),
+    (
+      $q$faceless-youtube$q$, $q$Faceless YouTube$q$,
+      $q$Script, edit, thumbnail, titles, scheduler, and analytics. Sending stays off.$q$,
+      $q$faceless-youtube$q$,
+      $q$youtube$q$,
+      null,
+      $q${"version":1,"bots":[{"slug":"scriptwriter","config":{"tone":"clear","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:content","stage":"stage:bot:content:new","channel":"email"}},{"slug":"video-editor-brief","config":{"tone":"precise","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:content","stage":"stage:bot:content:new","channel":"email"}},{"slug":"thumbnail-brief","config":{"tone":"visual","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:content","stage":"stage:bot:content:new","channel":"email"}},{"slug":"seo-titles","config":{"tone":"tight","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:content","stage":"stage:bot:content:new","channel":"email"}},{"slug":"scheduler-poster","config":{"tone":"brief","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:social","stage":"stage:bot:social:new","channel":"social"}},{"slug":"content-analytics","config":{"tone":"plain","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:content","stage":"stage:bot:content:new","channel":"email"}}],"pipelines":[{"asset_key":"pipeline:bot:faceless-youtube","name":"Video","is_default":false,"stages":[{"asset_key":"stage:bot:faceless-youtube:idea","name":"Idea","position":1,"is_won":false,"is_lost":false},{"asset_key":"stage:bot:faceless-youtube:script","name":"Script","position":2,"is_won":false,"is_lost":false},{"asset_key":"stage:bot:faceless-youtube:edit","name":"Edit","position":3,"is_won":false,"is_lost":false},{"asset_key":"stage:bot:faceless-youtube:scheduled","name":"Scheduled","position":4,"is_won":true,"is_lost":false}]}],"workflows":[{"asset_key":"workflow:bot:faceless-youtube","name":"Draft the next video task","trigger_type":"lead.created","trigger":{},"steps":[{"id":"task","kind":"create_task","title":"Draft the next video task"}]}]}$q$::jsonb
+    ),
+    (
+      $q$facebook-community$q$, $q$Facebook page / community$q$,
+      $q$Community, posts, and a content calendar. Sending stays off.$q$,
+      $q$facebook-community$q$,
+      $q$facebook$q$,
+      null,
+      $q${"version":1,"bots":[{"slug":"community-manager","config":{"tone":"friendly","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:social","stage":"stage:bot:social:new","channel":"social"}},{"slug":"scheduler-poster","config":{"tone":"brief","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:social","stage":"stage:bot:social:new","channel":"social"}},{"slug":"scriptwriter","config":{"tone":"clear","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:content","stage":"stage:bot:content:new","channel":"email"}},{"slug":"seo-titles","config":{"tone":"tight","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:content","stage":"stage:bot:content:new","channel":"email"}},{"slug":"content-analytics","config":{"tone":"plain","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:content","stage":"stage:bot:content:new","channel":"email"}},{"slug":"content-calendar","config":{"tone":"bright","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:social","stage":"stage:bot:social:new","channel":"social"}}],"pipelines":[{"asset_key":"pipeline:bot:facebook-community","name":"Community","is_default":false,"stages":[{"asset_key":"stage:bot:facebook-community:idea","name":"Idea","position":1,"is_won":false,"is_lost":false},{"asset_key":"stage:bot:facebook-community:draft","name":"Draft","position":2,"is_won":false,"is_lost":false},{"asset_key":"stage:bot:facebook-community:scheduled","name":"Scheduled","position":3,"is_won":true,"is_lost":false}]}],"workflows":[{"asset_key":"workflow:bot:facebook-community","name":"Draft the community post","trigger_type":"lead.created","trigger":{},"steps":[{"id":"task","kind":"create_task","title":"Draft the community post"}]}]}$q$::jsonb
+    ),
+    (
+      $q$tiktok-reels$q$, $q$TikTok / Reels$q$,
+      $q$Short scripts, edits, and posting drafts. Sending stays off.$q$,
+      $q$tiktok-reels$q$,
+      $q$tiktok$q$,
+      null,
+      $q${"version":1,"bots":[{"slug":"scriptwriter","config":{"tone":"clear","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:content","stage":"stage:bot:content:new","channel":"email"}},{"slug":"video-editor-brief","config":{"tone":"precise","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:content","stage":"stage:bot:content:new","channel":"email"}},{"slug":"thumbnail-brief","config":{"tone":"visual","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:content","stage":"stage:bot:content:new","channel":"email"}},{"slug":"scheduler-poster","config":{"tone":"brief","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:social","stage":"stage:bot:social:new","channel":"social"}},{"slug":"community-manager","config":{"tone":"friendly","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:social","stage":"stage:bot:social:new","channel":"social"}}],"pipelines":[{"asset_key":"pipeline:bot:tiktok-reels","name":"Short","is_default":false,"stages":[{"asset_key":"stage:bot:tiktok-reels:idea","name":"Idea","position":1,"is_won":false,"is_lost":false},{"asset_key":"stage:bot:tiktok-reels:cut","name":"Cut","position":2,"is_won":false,"is_lost":false},{"asset_key":"stage:bot:tiktok-reels:scheduled","name":"Scheduled","position":3,"is_won":true,"is_lost":false}]}],"workflows":[{"asset_key":"workflow:bot:tiktok-reels","name":"Draft the short video task","trigger_type":"lead.created","trigger":{},"steps":[{"id":"task","kind":"create_task","title":"Draft the short video task"}]}]}$q$::jsonb
+    ),
+    (
+      $q$podcast$q$, $q$Podcast$q$,
+      $q$Episode scripts, titles, and posting drafts. Sending stays off.$q$,
+      $q$podcast$q$,
+      $q$podcast$q$,
+      null,
+      $q${"version":1,"bots":[{"slug":"scriptwriter","config":{"tone":"clear","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:content","stage":"stage:bot:content:new","channel":"email"}},{"slug":"seo-titles","config":{"tone":"tight","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:content","stage":"stage:bot:content:new","channel":"email"}},{"slug":"scheduler-poster","config":{"tone":"brief","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:social","stage":"stage:bot:social:new","channel":"social"}},{"slug":"community-manager","config":{"tone":"friendly","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:social","stage":"stage:bot:social:new","channel":"social"}},{"slug":"content-analytics","config":{"tone":"plain","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:content","stage":"stage:bot:content:new","channel":"email"}}],"pipelines":[{"asset_key":"pipeline:bot:podcast","name":"Episode","is_default":false,"stages":[{"asset_key":"stage:bot:podcast:idea","name":"Idea","position":1,"is_won":false,"is_lost":false},{"asset_key":"stage:bot:podcast:recorded","name":"Recorded","position":2,"is_won":false,"is_lost":false},{"asset_key":"stage:bot:podcast:scheduled","name":"Scheduled","position":3,"is_won":true,"is_lost":false}]}],"workflows":[{"asset_key":"workflow:bot:podcast","name":"Draft the episode task","trigger_type":"lead.created","trigger":{},"steps":[{"id":"task","kind":"create_task","title":"Draft the episode task"}]}]}$q$::jsonb
+    ),
+    (
+      $q$personal-brand$q$, $q$Personal brand$q$,
+      $q$Founder scripts, voice, and posting drafts. Sending stays off.$q$,
+      $q$personal-brand$q$,
+      $q$personal-brand$q$,
+      null,
+      $q${"version":1,"bots":[{"slug":"scriptwriter","config":{"tone":"clear","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:content","stage":"stage:bot:content:new","channel":"email"}},{"slug":"brand-voice","config":{"tone":"on brand","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:branding","stage":"stage:bot:branding:new","channel":"social"}},{"slug":"scheduler-poster","config":{"tone":"brief","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:social","stage":"stage:bot:social:new","channel":"social"}},{"slug":"community-manager","config":{"tone":"friendly","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:social","stage":"stage:bot:social:new","channel":"social"}},{"slug":"seo-titles","config":{"tone":"tight","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:content","stage":"stage:bot:content:new","channel":"email"}}],"pipelines":[{"asset_key":"pipeline:bot:personal-brand","name":"Founder","is_default":false,"stages":[{"asset_key":"stage:bot:personal-brand:idea","name":"Idea","position":1,"is_won":false,"is_lost":false},{"asset_key":"stage:bot:personal-brand:draft","name":"Draft","position":2,"is_won":false,"is_lost":false},{"asset_key":"stage:bot:personal-brand:scheduled","name":"Scheduled","position":3,"is_won":true,"is_lost":false}]}],"workflows":[{"asset_key":"workflow:bot:personal-brand","name":"Draft the founder post","trigger_type":"lead.created","trigger":{},"steps":[{"id":"task","kind":"create_task","title":"Draft the founder post"}]}]}$q$::jsonb
+    ),
+    (
+      $q$ai-automation-agency$q$, $q$AI agency / automation agency$q$,
+      $q$The same shape as AI AutoTech: pipeline, proposals, onboarding, ads, social, support, and content. Sending stays off.$q$,
+      $q$ai-automation-agency$q$,
+      $q$ai-agency$q$,
+      null,
+      $q${"version":1,"bots":[{"slug":"inbound-lead","config":{"tone":"warm and plain","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:sales-team","stage":"stage:bot:sales-team:new","channel":"whatsapp"}},{"slug":"outbound-sales","config":{"tone":"direct","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:sales-team","stage":"stage:bot:sales-team:contacted","channel":"whatsapp"}},{"slug":"proposal-writer","config":{"tone":"clear","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:sales-team","stage":"stage:bot:sales-team:proposal","channel":"email"}},{"slug":"onboarding","config":{"tone":"helpful","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:sales-team","stage":"stage:bot:sales-team:won","channel":"email"}},{"slug":"ads","config":{"tone":"clear","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:marketing-team","stage":"stage:bot:marketing-team:draft","channel":"ads"}},{"slug":"social-posting","config":{"tone":"friendly","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:marketing-team","stage":"stage:bot:marketing-team:idea","channel":"social"}},{"slug":"support-replies","config":{"tone":"calm","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:customer-service","stage":"stage:bot:customer-service:new","channel":"whatsapp"}},{"slug":"blog-drafts","config":{"tone":"useful","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:content","stage":"stage:bot:content:new","channel":"email"}}],"pipelines":[{"asset_key":"pipeline:bot:ai-automation-agency","name":"Client","is_default":false,"stages":[{"asset_key":"stage:bot:ai-automation-agency:lead","name":"Lead","position":1,"is_won":false,"is_lost":false},{"asset_key":"stage:bot:ai-automation-agency:proposal","name":"Proposal","position":2,"is_won":false,"is_lost":false},{"asset_key":"stage:bot:ai-automation-agency:won","name":"Won","position":3,"is_won":true,"is_lost":false},{"asset_key":"stage:bot:ai-automation-agency:lost","name":"Lost","position":4,"is_won":false,"is_lost":true}]}],"workflows":[{"asset_key":"workflow:bot:ai-automation-agency","name":"Open the client task","trigger_type":"lead.created","trigger":{},"steps":[{"id":"task","kind":"create_task","title":"Open the client task"}]}]}$q$::jsonb
     )
   on conflict (slug) do update set
     name = excluded.name,
@@ -1708,3 +1981,4 @@ begin
     payload = excluded.payload;
 end
 $seed$;
+

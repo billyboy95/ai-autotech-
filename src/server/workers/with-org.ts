@@ -95,6 +95,36 @@ export async function callServiceRpc(fn: string, args: Record<string, unknown>) 
   return { data: result.data, error: result.error, configured: true as const };
 }
 
+const SHARE_TOKEN = /^[a-f0-9]{64}$/;
+
+/** Audit fields the public team page is allowed to read. No name, email, phone, or company. */
+export async function readAuditTeamSource(token: string) {
+  if (!SHARE_TOKEN.test(token)) return null;
+  const client = serviceClient();
+  if (!client) return null;
+  const result = await client.from("crm_audit_leads").select("industry, answers").eq("share_token", token).maybeSingle();
+  if (result.error || !result.data) return null;
+  const row = result.data as { industry?: string; answers?: Record<string, unknown> };
+  return {
+    industry: typeof row.industry === "string" ? row.industry : "",
+    answers: row.answers && typeof row.answers === "object" ? row.answers : {},
+  };
+}
+
+/** Creates a share token when the audit row has none. Returns null when storage is unavailable. */
+export async function ensureAuditShareToken(auditLeadId: string, token: string) {
+  if (!UUID.test(auditLeadId) || !SHARE_TOKEN.test(token)) return null;
+  const client = serviceClient();
+  if (!client) return null;
+  const existing = await client.from("crm_audit_leads").select("share_token").eq("id", auditLeadId).maybeSingle();
+  if (existing.error || !existing.data) return null;
+  const current = (existing.data as { share_token?: string | null }).share_token;
+  if (typeof current === "string" && SHARE_TOKEN.test(current)) return current;
+  const saved = await client.from("crm_audit_leads").update({ share_token: token }).eq("id", auditLeadId).is("share_token", null);
+  if (saved.error) return null;
+  return token;
+}
+
 export async function agencyOrgId() {
   const found = await lookupRow("organizations", "slug", "ai-autotech", "id");
   if (!found.configured || found.error || !found.data) return null;

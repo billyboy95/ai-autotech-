@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { enrollLead } from "@/lib/automation/service";
+import { newShareToken } from "@/lib/bots/share-token";
 import { nid } from "@/lib/crm-store";
 import { agencyOrgId, insertForOrg, serviceConfigured } from "@/server/workers/with-org";
 
@@ -194,7 +195,8 @@ export async function POST(request: Request) {
   const userAgent = (request.headers.get("user-agent") ?? "").slice(0, 400);
 
   const orgId = await agencyOrgId();
-  const { data, error } = await insertForOrg(orgId, "crm_audit_leads", {
+  const shareToken = newShareToken();
+  const auditRow = {
     reference,
     first_name: input.firstName,
     last_name: input.lastName,
@@ -223,7 +225,15 @@ export async function POST(request: Request) {
     consent: true,
     consent_text: input.consentText,
     crm_lead_id: crmLeadId,
-  });
+  };
+  let storedToken = true;
+  let { data, error } = await insertForOrg(orgId, "crm_audit_leads", { ...auditRow, share_token: shareToken });
+  if (error && /share_token/i.test(error.message)) {
+    storedToken = false;
+    const retry = await insertForOrg(orgId, "crm_audit_leads", auditRow);
+    data = retry.data;
+    error = retry.error;
+  }
 
   if (error || !data) {
     console.error("audit insert failed", error?.message);
@@ -282,5 +292,9 @@ export async function POST(request: Request) {
     console.error("audit automation skipped", enrolled.error);
   }
 
-  return json({ ok: true, id: data.id, reference }, 200, origin);
+  return json(
+    { ok: true, id: data.id, reference, ...(storedToken ? { teamPath: `/team/${shareToken}` } : {}) },
+    200,
+    origin,
+  );
 }

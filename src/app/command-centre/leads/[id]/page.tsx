@@ -9,6 +9,10 @@ import { formatWhen, formatZar } from "@/lib/automation/ids";
 import { loadCommandData } from "@/lib/automation/page-data";
 import { PIPELINE_STAGES } from "@/lib/automation/types";
 import { presentWorkspace } from "@/lib/brand/present";
+import { TeamRecommendationView } from "@/components/bots/team-recommendation";
+import { auditToSetup, recommendTeam } from "@/lib/bots/recommend";
+import { newShareToken } from "@/lib/bots/share-token";
+import { ensureAuditShareToken } from "@/server/workers/with-org";
 
 export const dynamic = "force-dynamic";
 
@@ -34,6 +38,10 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
   const tasks = workspace.state.tasks.filter((item) => item.leadId === id).sort((a, b) => a.ord - b.ord);
   const quote = workspace.state.quotes.find((item) => item.leadId === id);
   const booking = workspace.state.settings.bookingUrl;
+  const recommendation = lead.auditLeadId
+    ? recommendTeam(auditToSetup({ industry: lead.industry, answers: lead.answers, companySize: lead.companySize }))
+    : null;
+  const teamToken = lead.auditLeadId ? await ensureAuditShareToken(lead.auditLeadId, newShareToken()) : null;
 
   return (
     <CommandShell setupError={workspace.setupError} sendingEnabled={sendingEnabled}>
@@ -88,6 +96,12 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
             ) : null}
           </div>
         </header>
+
+        {recommendation ? (
+          <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+            <TeamRecommendationView recommendation={recommendation} publicPath={teamToken ? `/team/${teamToken}` : null} />
+          </section>
+        ) : null}
 
         <div className="grid gap-4 lg:grid-cols-[280px_1fr]">
           <div className="grid gap-4">

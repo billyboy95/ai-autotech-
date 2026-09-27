@@ -242,6 +242,10 @@ test("phase 4a migration does not send, delete, or charge", () => {
   assert.match(sql, /check \(charged = false\)/);
   assert.match(sql, /'draft'/);
   assert.match(sql, /healthcare-clinic/);
+  assert.match(sql, /faceless-youtube/);
+  assert.match(sql, /scriptwriter/);
+  assert.match(sql, /start_recommended_sandbox_team/);
+  assert.match(sql, /share_token/);
   assert.match(sql, /stage:admissions:enquiry/);
   assert.match(sql, /department/);
   for (const slug of ["inbound-lead", "outbound-sales", "onboarding", "ads", "social-posting", "sales-team", "marketing-team", "full-business", "admin-team", "education-school"]) {

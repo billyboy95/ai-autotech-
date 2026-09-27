@@ -53,6 +53,12 @@ export const INDUSTRIES = [
   "automotive",
   "ecommerce",
   "agency",
+  "youtube",
+  "facebook",
+  "tiktok",
+  "podcast",
+  "personal-brand",
+  "ai-agency",
 ] as const;
 
 export type Industry = (typeof INDUSTRIES)[number];
@@ -70,6 +76,12 @@ export const INDUSTRY_LABELS: Record<Industry, string> = {
   automotive: "Automotive",
   ecommerce: "Ecommerce store",
   agency: "Agency / consulting",
+  youtube: "Faceless YouTube",
+  facebook: "Facebook page / community",
+  tiktok: "TikTok / Reels",
+  podcast: "Podcast",
+  "personal-brand": "Personal brand",
+  "ai-agency": "AI agency / automation agency",
 };
 
 /** Human role each agent reports to. Shown on the agent page and the Team page. */
@@ -234,6 +246,13 @@ const SEEDS: AgentSeed[] = [
   { slug: "ticket-triage", name: "Ticket Triage", department: "it-support", description: "Turns a support note into a task. Nothing is sent.", monthlyPriceCents: 140_000, capabilities: ["task"], engine: "workflows", tone: "calm", channel: "email", pipeline: "pipeline:bot:it-support", stage: "stage:bot:it-support:new", inbox: true },
   { slug: "password-help", name: "Password Help", department: "it-support", description: "Drafts password-reset steps. Nothing is sent and no secret is stored.", monthlyPriceCents: 110_000, capabilities: ["ai-draft"], engine: "ai_reply", tone: "plain", channel: "email", pipeline: "pipeline:bot:it-support", stage: "stage:bot:it-support:new", tasks: true },
   { slug: "status-notes", name: "Status Notes", department: "it-support", description: "Writes an internal status task. Nothing is sent.", monthlyPriceCents: 100_000, capabilities: ["task"], engine: "workflows", tone: "plain", channel: "email", pipeline: "pipeline:bot:it-support", stage: "stage:bot:it-support:new", inbox: false },
+  { slug: "scriptwriter", name: "Scriptwriter", department: "content", description: "Drafts a script. Nothing is published.", monthlyPriceCents: 150_000, capabilities: ["content-draft"], engine: "workflows", tone: "clear", channel: "email", pipeline: "pipeline:bot:content", stage: "stage:bot:content:new", inbox: false, tasks: true },
+  { slug: "video-editor-brief", name: "Video Editor Brief", department: "content", description: "Writes an editor brief as a task. Nothing is published.", monthlyPriceCents: 140_000, capabilities: ["task"], engine: "workflows", tone: "precise", channel: "email", pipeline: "pipeline:bot:content", stage: "stage:bot:content:new", inbox: false },
+  { slug: "thumbnail-brief", name: "Thumbnail Brief", department: "content", description: "Writes a thumbnail and design brief as a task. Nothing is published.", monthlyPriceCents: 120_000, capabilities: ["task"], engine: "workflows", tone: "visual", channel: "email", pipeline: "pipeline:bot:content", stage: "stage:bot:content:new", inbox: false },
+  { slug: "seo-titles", name: "SEO Titles", department: "content", description: "Drafts titles and search lines. Nothing is published.", monthlyPriceCents: 130_000, capabilities: ["content-draft"], engine: "ai_reply", tone: "tight", channel: "email", pipeline: "pipeline:bot:content", stage: "stage:bot:content:new", inbox: false, tasks: true },
+  { slug: "scheduler-poster", name: "Scheduler", department: "social", description: "Files a posting slot and a draft. Nothing is published.", monthlyPriceCents: 120_000, capabilities: ["social-post-draft", "task"], engine: "workflows", tone: "brief", channel: "social", pipeline: "pipeline:bot:social", stage: "stage:bot:social:new", inbox: false },
+  { slug: "community-manager", name: "Community Manager", department: "social", description: "Drafts a community reply. Nothing is published.", monthlyPriceCents: 140_000, capabilities: ["ai-draft"], engine: "ai_reply", tone: "friendly", channel: "social", pipeline: "pipeline:bot:social", stage: "stage:bot:social:new", inbox: true, tasks: true },
+  { slug: "content-analytics", name: "Content Analytics", department: "content", description: "Writes a performance note as a task. Nothing is sent.", monthlyPriceCents: 130_000, capabilities: ["task"], engine: "workflows", tone: "plain", channel: "email", pipeline: "pipeline:bot:content", stage: "stage:bot:content:new", inbox: false },
 ];
 
 export const BOT_CATALOG: CatalogBot[] = SEEDS.map(agent);
@@ -291,6 +310,12 @@ export const BOT_BUNDLES: Array<CatalogBundle & { industry: Industry | null; dep
   bundle("automotive", "Automotive", "Leads, reception, reminders, reviews, and invoices. Placeholder price, to be confirmed by Billy.", ["inbound-lead", "receptionist", "reminder-drafts", "review-requests", "invoice-drafts"], "automotive", null),
   bundle("ecommerce-store", "Ecommerce store", "Orders, fulfilment, returns, support, ads, and social. Placeholder price, to be confirmed by Billy.", ["order-status", "fulfilment-tasks", "returns-drafts", "support-replies", "ads", "social-posting"], "ecommerce", null),
   bundle("agency-consulting", "Agency / consulting", "Inbound, outbound, proposals, onboarding, invoices, and content. Placeholder price, to be confirmed by Billy.", ["inbound-lead", "outbound-sales", "proposal-writer", "onboarding", "invoice-drafts", "blog-drafts"], "agency", null),
+  bundle("faceless-youtube", "Faceless YouTube", "Scripts, edit briefs, thumbnails, titles, scheduling, and analytics. Placeholder price, to be confirmed by Billy.", ["scriptwriter", "video-editor-brief", "thumbnail-brief", "seo-titles", "scheduler-poster", "content-analytics"], "youtube", null),
+  bundle("facebook-community", "Facebook page / community", "Community, scheduling, scripts, titles, analytics, and a content calendar. Placeholder price, to be confirmed by Billy.", ["community-manager", "scheduler-poster", "scriptwriter", "seo-titles", "content-analytics", "content-calendar"], "facebook", null),
+  bundle("tiktok-reels", "TikTok / Reels", "Scripts, edit briefs, thumbnails, scheduling, and community replies. Placeholder price, to be confirmed by Billy.", ["scriptwriter", "video-editor-brief", "thumbnail-brief", "scheduler-poster", "community-manager"], "tiktok", null),
+  bundle("podcast", "Podcast", "Scripts, titles, scheduling, community, and analytics. Placeholder price, to be confirmed by Billy.", ["scriptwriter", "seo-titles", "scheduler-poster", "community-manager", "content-analytics"], "podcast", null),
+  bundle("personal-brand", "Personal brand", "Scripts, brand voice, scheduling, community, and titles. Placeholder price, to be confirmed by Billy.", ["scriptwriter", "brand-voice", "scheduler-poster", "community-manager", "seo-titles"], "personal-brand", null),
+  bundle("ai-automation-agency", "AI agency / automation agency", "The AI AutoTech shape: inbound, outbound, proposals, onboarding, ads, social, support, and content. Placeholder price, to be confirmed by Billy.", ["inbound-lead", "outbound-sales", "proposal-writer", "onboarding", "ads", "social-posting", "support-replies", "blog-drafts"], "ai-agency", null),
 ];
 
 function stages(prefix: string, rows: Array<[string, string, boolean?, boolean?]>): TemplatePipeline["stages"] {
@@ -468,4 +493,10 @@ export const TEAM_TEMPLATES: TeamTemplate[] = [
   niche("automotive", "Automotive", "Enquiries, bookings, reviews, and invoices. Sending stays off.", "automotive", pipe("pipeline:bot:automotive", "Workshop", [["enquiry", "Enquiry"], ["booked", "Booked"], ["done", "Done", true]]), "Confirm the workshop booking"),
   niche("ecommerce-store", "Ecommerce store", "Orders, fulfilment, returns, and marketing drafts. Sending stays off.", "ecommerce", pipe("pipeline:bot:ecommerce-store", "Order", [["new", "New"], ["packed", "Packed"], ["fulfilled", "Fulfilled", true], ["returned", "Returned", false, true]]), "Open the fulfilment task"),
   niche("agency-consulting", "Agency / consulting", "Pipeline, proposals, onboarding, and content. Sending stays off.", "agency", pipe("pipeline:bot:agency-consulting", "Engagement", [["lead", "Lead"], ["proposal", "Proposal"], ["won", "Won", true], ["lost", "Lost", false, true]]), "Draft the engagement task"),
+  niche("faceless-youtube", "Faceless YouTube", "Script, edit, thumbnail, titles, scheduler, and analytics. Sending stays off.", "youtube", pipe("pipeline:bot:faceless-youtube", "Video", [["idea", "Idea"], ["script", "Script"], ["edit", "Edit"], ["scheduled", "Scheduled", true]]), "Draft the next video task"),
+  niche("facebook-community", "Facebook page / community", "Community, posts, and a content calendar. Sending stays off.", "facebook", pipe("pipeline:bot:facebook-community", "Community", [["idea", "Idea"], ["draft", "Draft"], ["scheduled", "Scheduled", true]]), "Draft the community post"),
+  niche("tiktok-reels", "TikTok / Reels", "Short scripts, edits, and posting drafts. Sending stays off.", "tiktok", pipe("pipeline:bot:tiktok-reels", "Short", [["idea", "Idea"], ["cut", "Cut"], ["scheduled", "Scheduled", true]]), "Draft the short video task"),
+  niche("podcast", "Podcast", "Episode scripts, titles, and posting drafts. Sending stays off.", "podcast", pipe("pipeline:bot:podcast", "Episode", [["idea", "Idea"], ["recorded", "Recorded"], ["scheduled", "Scheduled", true]]), "Draft the episode task"),
+  niche("personal-brand", "Personal brand", "Founder scripts, voice, and posting drafts. Sending stays off.", "personal-brand", pipe("pipeline:bot:personal-brand", "Founder", [["idea", "Idea"], ["draft", "Draft"], ["scheduled", "Scheduled", true]]), "Draft the founder post"),
+  niche("ai-automation-agency", "AI agency / automation agency", "The same shape as AI AutoTech: pipeline, proposals, onboarding, ads, social, support, and content. Sending stays off.", "ai-agency", pipe("pipeline:bot:ai-automation-agency", "Client", [["lead", "Lead"], ["proposal", "Proposal"], ["won", "Won", true], ["lost", "Lost", false, true]]), "Open the client task"),
 ];

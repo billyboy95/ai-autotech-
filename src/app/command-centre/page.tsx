@@ -57,6 +57,14 @@ export default async function CommandCentrePage({
 
         <AssistantPanel enabled={isBotAssistantEnabled()} />
 
+        <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+          <h2 className="font-display text-lg font-bold text-[#0B1F3A]">Lead Agent</h2>
+          <p className="mt-1 text-sm text-slate-600">Answer a few questions and get a team for this business. The trial stays in the sandbox and nothing is sent.</p>
+          <Link href="/command-centre/setup" className="mt-3 inline-flex h-10 items-center rounded-md bg-[#2563EB] px-4 text-sm font-semibold text-white">
+            Set up this business
+          </Link>
+        </section>
+
         {period ? (
           <PeriodMetricsPanel
             metrics={period}

@@ -94,6 +94,18 @@ test("inbox, conversation AI, calendars, and public booking respond", { timeout:
     assert.match(teamHtml, /Team/);
     assert.match(teamHtml, /reports to/);
 
+    const setup = await fetch(`http://127.0.0.1:${port}/command-centre/setup`, { redirect: "manual" });
+    assert.equal(setup.status, 200);
+    const setupHtml = await setup.text();
+    assert.match(setupHtml, /Lead Agent/);
+    assert.match(setupHtml, /Clinic/);
+
+    const publicTeam = await fetch(`http://127.0.0.1:${port}/team/not-a-real-token`, { redirect: "manual" });
+    assert.equal(publicTeam.status, 200);
+    const publicTeamHtml = await publicTeam.text();
+    assert.match(publicTeamHtml, /Recommended team/);
+    assert.match(publicTeamHtml, /not active/);
+
     const live = await fetch(`http://127.0.0.1:${port}/command-centre/agents`, { redirect: "manual" });
     assert.equal(live.status, 200);
     const liveHtml = await live.text();

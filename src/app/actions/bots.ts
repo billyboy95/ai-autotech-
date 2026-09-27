@@ -2,7 +2,9 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { TEAM_TEMPLATES, botBySlug } from "@/lib/bots/catalog";
 import { isBotAssistantEnabled } from "@/lib/bots/flag";
+import { polishRecommendationExplanations, type TeamRecommendation } from "@/lib/bots/recommend";
 import { assistantUnavailableMessage, applyConfirmedActions, proposeAssistantActions, proposalsFromText, type AssistantBook } from "@/lib/bots/assistant";
 import { openBotCheckout } from "@/lib/bots/billing";
 import { runBot } from "@/lib/bots/runtime";
@@ -23,7 +25,12 @@ function canManage(role: string | null) {
 
 function safeReturn(value: FormDataEntryValue | null) {
   const path = String(value ?? "").split("?")[0];
-  if (path.startsWith("/command-centre/bots") || path.startsWith("/command-centre/agents") || path === "/command-centre/team") return path;
+  if (
+    path.startsWith("/command-centre/bots")
+    || path.startsWith("/command-centre/agents")
+    || path === "/command-centre/team"
+    || path === "/command-centre/setup"
+  ) return path;
   return "/command-centre/bots";
 }
 
@@ -220,4 +227,67 @@ export async function applyBotAssistant(
     message: `Applied ${next.tasks.length} task${next.tasks.length === 1 ? "" : "s"}, ${next.drafts.length} draft${next.drafts.length === 1 ? "" : "s"}, ${next.stageMoves.length} stage move${next.stageMoves.length === 1 ? "" : "s"}, and ${next.activeBots.length} bot activation${next.activeBots.length === 1 ? "" : "s"}. Nothing was sent.`,
     proposals: [],
   };
+}
+
+function teamSlugs(value: FormDataEntryValue | null) {
+  const slugs = String(value ?? "").split(",").map((item) => item.trim()).filter(Boolean);
+  return [...new Set(slugs)].slice(0, 8);
+}
+
+function matchingTemplate(slugs: string[]) {
+  const key = [...slugs].sort().join(",");
+  return TEAM_TEMPLATES.find((template) => [...template.bots.map((bot) => bot.slug)].sort().join(",") === key) ?? null;
+}
+
+export async function buildRecommendedTeam(formData: FormData) {
+  const slug = String(formData.get("slug") ?? "");
+  const slugs = teamSlugs(formData.get("bots"));
+  const back = safeReturn(formData.get("return_to"));
+  const workspace = await manageable(slug);
+  if (!workspace) {
+    withNotice(back, "Preview workspace, or sign in as a workspace admin. The team was not applied. Nothing was sent.");
+  }
+  if (!slugs.length) withNotice(back, "Pick a team first. Nothing was sent.");
+  for (const bot of slugs) {
+    try {
+      botBySlug(bot);
+    } catch {
+      withNotice(back, "That team is not in the catalogue. Nothing was sent.");
+    }
+  }
+  const opened = openBotCheckout({
+    orgId: workspace.active.id,
+    orgName: workspace.active.name,
+    botSlug: slugs[0],
+    bundleSlug: matchingTemplate(slugs)?.bundleSlug ?? null,
+    intent: "trial",
+    env: process.env,
+  });
+  if (!opened.lines.length) withNotice(back, opened.checkout.message);
+  const supabase = await createSupabaseServerClient();
+  const template = matchingTemplate(slugs);
+  const saved = template
+    ? await supabase.rpc("apply_bot_template", { p_org: workspace.active.id, p_slug: template.slug })
+    : await supabase.rpc("start_recommended_sandbox_team", { p_org: workspace.active.id, p_slugs: slugs });
+  if (saved.error) withNotice(back, saved.error.message);
+  const payload = saved.data as { charged?: boolean; sending_enabled?: boolean } | null;
+  if (payload?.charged === true || payload?.sending_enabled === true) {
+    withNotice(back, "The team was refused. Nothing was sent.");
+  }
+  revalidatePath("/command-centre/bots");
+  revalidatePath("/command-centre/agents");
+  withNotice(back, "Sandbox trial recorded for the recommended team. Sending stays off and no charge was sent.");
+}
+
+export async function polishTeamCopy(formData: FormData) {
+  if (!isBotAssistantEnabled()) return null;
+  let recommendation: TeamRecommendation;
+  try {
+    recommendation = JSON.parse(String(formData.get("recommendation") ?? "")) as TeamRecommendation;
+  } catch {
+    return null;
+  }
+  if (!recommendation || !Array.isArray(recommendation.start) || !Array.isArray(recommendation.later)) return null;
+  const polished = await polishRecommendationExplanations(recommendation, (messages) => createOpenAiCompatibleProvider(process.env).complete(messages));
+  return [...polished.start, ...polished.later].map((agent) => agent.why);
 }

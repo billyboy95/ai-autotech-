@@ -10,6 +10,8 @@ import {
   type BotConfig,
 } from "@/lib/bots/catalog";
 import { allocateBundlePrice, bundleSaving } from "@/lib/bots/pricing";
+import { HIDDEN_COMPUTER, computerDetailFields } from "@/lib/computers/meter";
+import type { ComputerStatus } from "@/lib/computers/provider";
 import { tierLabel } from "@/lib/pricing/price-sheet";
 
 export type StoreBotCard = {
@@ -86,6 +88,10 @@ export type BotDetailData = {
   touches: AgentTouches | null;
   config: BotConfig;
   runs: BotRunRow[];
+  canViewComputer: boolean;
+  computerAllowanceHours: number;
+  computerUsedSeconds: number;
+  computerStatus: ComputerStatus;
 };
 
 export type AgencyBotRow = {
@@ -184,6 +190,7 @@ export function previewBotDetail(orgSlug: string, slug: string, notice: string |
       touches: null,
       config: botBySlug("inbound-lead").defaultConfig,
       runs: [],
+      ...HIDDEN_COMPUTER,
     };
   }
   const status = previewInstalled(orgSlug, slug) ?? "trial";
@@ -213,6 +220,13 @@ export function previewBotDetail(orgSlug: string, slug: string, notice: string |
       summary: `${bot.name} saved a draft. Nothing was sent.`,
       createdAt: "2026-09-01T08:00:00.000Z",
     }],
+    ...computerDetailFields({
+      slug: bot.slug,
+      department: bot.department,
+      canViewComputer: true,
+      usedSeconds: 0,
+      status: "idle",
+    }),
   };
 }
 

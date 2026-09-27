@@ -84,6 +84,21 @@ test("inbox, conversation AI, calendars, reviews, referrals, and public pages re
     assert.match(botHtml, /Inbound Lead/);
     assert.match(botHtml, /Activity/);
     assert.match(botHtml, /Reports to/);
+    assert.match(botHtml, /View computer/);
+
+    const computer = await fetch(`http://127.0.0.1:${port}/command-centre/bots/inbound-lead/computer`, { redirect: "manual" });
+    assert.equal(computer.status, 200);
+    const computerHtml = await computer.text();
+    assert.match(computerHtml, /View only/);
+    assert.match(computerHtml, /sandbox/i);
+    assert.match(computerHtml, /until Billy enables a provider/);
+    assert.match(computerHtml, /Add a fixture minute/);
+
+    const computerView = await fetch(`http://127.0.0.1:${port}/command-centre/bots/inbound-lead/computer/view?viewOnly=1&provider=fixture`, { redirect: "manual" });
+    assert.equal(computerView.status, 200);
+    const computerViewHtml = await computerView.text();
+    assert.match(computerViewHtml, /Sandbox computer/);
+    assert.match(computerViewHtml, /View only/);
 
     const templates = await fetch(`http://127.0.0.1:${port}/command-centre/agents/templates`, { redirect: "manual" });
     assert.equal(templates.status, 200);

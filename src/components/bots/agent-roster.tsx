@@ -29,6 +29,9 @@ export function AgentRoster({
                 {bot.installedStatus ? ` · ${bot.installedStatus}` : ""}
               </p>
               <p className="mt-2 text-sm text-slate-600">{bot.description}</p>
+              {bot.installedStatus ? (
+                <Link href={`/command-centre/bots/${bot.slug}/computer`} className="mt-3 inline-flex text-sm font-semibold text-[#2563EB]">View computer</Link>
+              ) : null}
             </li>
           ))}
         </ul>

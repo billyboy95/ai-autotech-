@@ -25,10 +25,10 @@ export function TeamRecommendationView({
       <div>
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#2563EB]">{recommendation.templateName}</p>
         <h2 className="mt-1 font-display text-xl font-bold text-[#0B1F3A]">Recommended AI team</h2>
-        <p className="mt-1 text-sm text-slate-500">Placeholder prices, to be confirmed by Billy. Sandbox only. Nothing is sent.</p>
+        <p className="mt-1 text-sm text-slate-700">Placeholder prices, to be confirmed by Billy. Sandbox only. Nothing is sent.</p>
       </div>
       {recommendation.start.length === 0 ? (
-        <p className="text-sm text-slate-600">This budget does not cover an agent yet.</p>
+        <p className="text-sm text-slate-700">This budget does not cover an agent yet. Choose a higher monthly budget, then build the team.</p>
       ) : (
         <section className="grid gap-3">
           <div className="flex flex-wrap items-end justify-between gap-2">
@@ -43,7 +43,7 @@ export function TeamRecommendationView({
               <li key={agent.slug} className="rounded-lg border border-slate-200 bg-white px-3 py-3">
                 <p className="font-semibold text-[#0B1F3A]">{agent.name}</p>
                 <p className="text-sm text-slate-600">{agent.why}</p>
-                <p className="mt-1 text-xs font-semibold text-slate-500">{money(agent.monthlyPriceCents)} / month · Placeholder price</p>
+                <p className="mt-1 text-xs font-semibold text-slate-700">{money(agent.monthlyPriceCents)} / month · Placeholder price</p>
               </li>
             ))}
           </ul>
@@ -72,7 +72,7 @@ export function TeamRecommendationView({
           <input type="hidden" name="slug" value={orgSlug} />
           <input type="hidden" name="bots" value={recommendation.start.map((agent) => agent.slug).join(",")} />
           <input type="hidden" name="return_to" value="/command-centre/setup" />
-          <button className="h-10 rounded-md bg-[#2563EB] px-4 text-sm font-semibold text-white">Build my team</button>
+          <button className="inline-flex h-11 items-center rounded-md bg-[#2563EB] px-4 text-sm font-semibold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0B1F3A]">Build my team</button>
         </form>
       ) : null}
     </div>

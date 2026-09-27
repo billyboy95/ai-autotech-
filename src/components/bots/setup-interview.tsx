@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useState } from "react";
 import { polishTeamCopy } from "@/app/actions/bots";
+import { Advanced } from "@/components/ui/advanced";
 import { TeamRecommendationView } from "@/components/bots/team-recommendation";
 import {
   recommendTeam,
@@ -27,17 +28,17 @@ const BUSINESSES = [
   "AI agency",
 ];
 
-const STAGES: { id: SetupStage; label: string }[] = [
-  { id: "idea", label: "Idea" },
-  { id: "starting", label: "Starting" },
-  { id: "running", label: "Running" },
-];
-
 const BUDGETS = [
   { label: "R2,000", cents: 200_000 },
   { label: "R5,000", cents: 500_000 },
   { label: "R8,000", cents: 800_000 },
   { label: "R15,000", cents: 1_500_000 },
+];
+
+const STAGES: { id: SetupStage; label: string }[] = [
+  { id: "idea", label: "Idea" },
+  { id: "starting", label: "Starting" },
+  { id: "running", label: "Running" },
 ];
 
 const GOALS: { id: SetupGoal; label: string }[] = [
@@ -66,62 +67,23 @@ const CHANNELS: { id: SetupChannel; label: string }[] = [
   { id: "walk-in", label: "Walk-in" },
 ];
 
-type Draft = {
-  business: string;
-  note: string;
-  extra: string;
-  stage: SetupStage | "";
-  budgetCents: number | null;
-  budgetText: string;
-  goals: SetupGoal[];
-  teamSize: SetupTeamSize | "";
-  channels: SetupChannel[];
-};
-
-const emptyDraft: Draft = {
-  business: "",
-  note: "",
-  extra: "",
-  stage: "",
-  budgetCents: null,
-  budgetText: "",
-  goals: [],
-  teamSize: "",
-  channels: [],
-};
-
-function budgetFrom(draft: Draft) {
-  const typed = Number(draft.budgetText.replace(/[^\d]/g, ""));
-  if (Number.isFinite(typed) && typed > 0) return Math.round(typed * 100);
-  return draft.budgetCents ?? 0;
-}
-
-function answersFrom(draft: Draft): SetupAnswers {
-  const business = [draft.business, draft.note, draft.extra].map((item) => item.trim()).filter(Boolean).join(" ");
-  return {
-    business: business || "business",
-    stage: draft.stage || "starting",
-    budgetCents: budgetFrom(draft),
-    goals: draft.goals.length ? draft.goals : ["leads"],
-    teamSize: draft.teamSize || "2-5",
-    channels: draft.channels,
-  };
-}
+const chipClass = "inline-flex h-11 items-center rounded-md px-3 text-sm font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0B1F3A]";
 
 function Chip({
-  selected,
+  pressed,
   children,
   onClick,
 }: {
-  selected: boolean;
+  pressed: boolean;
   children: string;
   onClick: () => void;
 }) {
   return (
     <button
       type="button"
+      aria-pressed={pressed}
       onClick={onClick}
-      className={`h-10 rounded-md px-3 text-sm font-semibold ${selected ? "bg-[#0B1F3A] text-white" : "border border-slate-200 bg-white text-[#0B1F3A]"}`}
+      className={`${chipClass} ${pressed ? "bg-[#0B1F3A] text-white" : "border border-slate-300 bg-white text-[#0B1F3A]"}`}
     >
       {children}
     </button>
@@ -137,14 +99,30 @@ export function SetupInterview({
   polishEnabled: boolean;
   notice?: string;
 }) {
-  const [step, setStep] = useState(0);
-  const [draft, setDraft] = useState<Draft>(emptyDraft);
+  const [business, setBusiness] = useState("");
+  const [note, setNote] = useState("");
+  const [budgetCents, setBudgetCents] = useState(500_000);
+  const [stage, setStage] = useState<SetupStage>("starting");
+  const [goals, setGoals] = useState<SetupGoal[]>([]);
+  const [teamSize, setTeamSize] = useState<SetupTeamSize>("2-5");
+  const [channels, setChannels] = useState<SetupChannel[]>([]);
   const [recommendation, setRecommendation] = useState<TeamRecommendation | null>(null);
 
-  function finish(next: Draft) {
-    const team = recommendTeam(answersFrom(next));
+  function answers(next: Partial<SetupAnswers> & { business: string; note?: string }): SetupAnswers {
+    const typed = next.note ?? note;
+    return {
+      business: [next.business, typed].map((item) => item.trim()).filter(Boolean).join(" ") || "business",
+      stage: next.stage ?? stage,
+      budgetCents: next.budgetCents ?? budgetCents,
+      goals: next.goals ?? (goals.length ? goals : ["leads"]),
+      teamSize: next.teamSize ?? teamSize,
+      channels: next.channels ?? channels,
+    };
+  }
+
+  function show(next: SetupAnswers) {
+    const team = recommendTeam(next);
     setRecommendation(team);
-    setStep(7);
     if (!polishEnabled) return;
     const body = new FormData();
     body.set("recommendation", JSON.stringify(team));
@@ -152,155 +130,125 @@ export function SetupInterview({
       if (!whys) return;
       setRecommendation((current) => {
         if (!current) return current;
-        const count = current.start.length + current.later.length;
-        if (whys.length !== count) return current;
+        if (whys.length !== current.start.length + current.later.length) return current;
         return {
           ...current,
-          start: current.start.map((agent, index) => ({ ...agent, why: whys[index] })),
-          later: current.later.map((agent, index) => ({ ...agent, why: whys[current.start.length + index] })),
+          start: current.start.map((agent, index) => ({ ...agent, why: whys[index] ?? agent.why })),
+          later: current.later.map((agent, index) => ({ ...agent, why: whys[current.start.length + index] ?? agent.why })),
         };
       });
     });
+  }
+
+  function pickBusiness(label: string) {
+    setBusiness(label);
+    show(answers({ business: label }));
   }
 
   return (
     <div className="grid gap-4">
       <div>
         <h1 className="font-display text-2xl font-bold text-[#0B1F3A]">Lead Agent</h1>
-        <p className="text-sm text-slate-500">A short interview for any business, including a new channel or a clinic. The recommendation is rules-based. Nothing is sent.</p>
+        <p className="mt-1 max-w-2xl text-sm text-slate-700">Pick the business, then build the team. The R5,000 budget is already selected. That is two clicks. Change the budget first if you need to. Nothing is sent.</p>
       </div>
-      {notice ? <p className="rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-950">{notice}</p> : null}
-      <div className="grid gap-3 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-        {step === 0 ? (
-          <Question title="What kind of business, or what are you starting?" hint="Question 1 of 7">
-            <div className="flex flex-wrap gap-2">
-              {BUSINESSES.map((label) => (
-                <Chip key={label} selected={draft.business === label} onClick={() => setDraft({ ...draft, business: label })}>{label}</Chip>
-              ))}
-            </div>
-            <input
-              value={draft.note}
-              onChange={(event) => setDraft({ ...draft, note: event.target.value })}
-              placeholder="Or type it"
-              className="h-10 rounded-md border border-slate-200 px-3 text-sm"
-            />
-            <Next disabled={!draft.business && !draft.note.trim()} onClick={() => setStep(1)} />
-          </Question>
-        ) : null}
-        {step === 1 ? (
-          <Question title="What stage is it at?" hint="Question 2 of 7">
-            <div className="flex flex-wrap gap-2">
-              {STAGES.map((item) => (
-                <Chip key={item.id} selected={draft.stage === item.id} onClick={() => setDraft({ ...draft, stage: item.id })}>{item.label}</Chip>
-              ))}
-            </div>
-            <Next disabled={!draft.stage} onClick={() => setStep(2)} />
-          </Question>
-        ) : null}
-        {step === 2 ? (
-          <Question title="What can you spend on agents each month?" hint="Question 3 of 7. Rand.">
-            <div className="flex flex-wrap gap-2">
-              {BUDGETS.map((item) => (
-                <Chip key={item.cents} selected={draft.budgetCents === item.cents && !draft.budgetText} onClick={() => setDraft({ ...draft, budgetCents: item.cents, budgetText: "" })}>{item.label}</Chip>
-              ))}
-            </div>
-            <input
-              value={draft.budgetText}
-              onChange={(event) => setDraft({ ...draft, budgetText: event.target.value })}
-              placeholder="Or type a rand amount"
-              inputMode="numeric"
-              className="h-10 rounded-md border border-slate-200 px-3 text-sm"
-            />
-            <Next disabled={!draft.budgetCents && !draft.budgetText.trim()} onClick={() => setStep(3)} />
-          </Question>
-        ) : null}
-        {step === 3 ? (
-          <Question title="What should the team take on first?" hint="Question 4 of 7. Pick any that fit.">
-            <div className="flex flex-wrap gap-2">
-              {GOALS.map((item) => (
-                <Chip
-                  key={item.id}
-                  selected={draft.goals.includes(item.id)}
-                  onClick={() => setDraft({
-                    ...draft,
-                    goals: draft.goals.includes(item.id) ? draft.goals.filter((goal) => goal !== item.id) : [...draft.goals, item.id],
-                  })}
-                >{item.label}</Chip>
-              ))}
-            </div>
-            <Next disabled={draft.goals.length === 0} onClick={() => setStep(4)} />
-          </Question>
-        ) : null}
-        {step === 4 ? (
-          <Question title="How big is the human team?" hint="Question 5 of 7">
-            <div className="flex flex-wrap gap-2">
-              {SIZES.map((item) => (
-                <Chip key={item.id} selected={draft.teamSize === item.id} onClick={() => setDraft({ ...draft, teamSize: item.id })}>{item.label}</Chip>
-              ))}
-            </div>
-            <Next disabled={!draft.teamSize} onClick={() => setStep(5)} />
-          </Question>
-        ) : null}
-        {step === 5 ? (
-          <Question title="Which channels do you already use?" hint="Question 6 of 7. Pick any.">
-            <div className="flex flex-wrap gap-2">
-              {CHANNELS.map((item) => (
-                <Chip
-                  key={item.id}
-                  selected={draft.channels.includes(item.id)}
-                  onClick={() => setDraft({
-                    ...draft,
-                    channels: draft.channels.includes(item.id)
-                      ? draft.channels.filter((channel) => channel !== item.id)
-                      : [...draft.channels, item.id],
-                  })}
-                >{item.label}</Chip>
-              ))}
-            </div>
-            <Next disabled={draft.channels.length === 0} onClick={() => setStep(6)} />
-          </Question>
-        ) : null}
-        {step === 6 ? (
-          <Question title="Anything else the Lead Agent should weigh?" hint="Question 7 of 7. Optional.">
-            <input
-              value={draft.extra}
-              onChange={(event) => setDraft({ ...draft, extra: event.target.value })}
-              placeholder="Optional note"
-              className="h-10 rounded-md border border-slate-200 px-3 text-sm"
-            />
-            <Next disabled={false} onClick={() => finish(draft)} label="See the team" />
-          </Question>
-        ) : null}
-        {step === 7 && recommendation ? (
-          <div className="grid gap-4">
-            <TeamRecommendationView recommendation={recommendation} orgSlug={orgSlug} build />
-            <button type="button" onClick={() => { setStep(0); setRecommendation(null); }} className="h-10 justify-self-start rounded-md border border-slate-200 px-4 text-sm font-semibold text-[#0B1F3A]">
-              Start again
-            </button>
+      {notice ? <p className="rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-950" role="status">{notice}</p> : null}
+      <div className="grid gap-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+        <fieldset className="grid gap-2">
+          <legend className="text-sm font-semibold text-[#0B1F3A]">What are you building?</legend>
+          <div className="flex flex-wrap gap-2">
+            {BUSINESSES.map((label) => (
+              <Chip key={label} pressed={business === label} onClick={() => pickBusiness(label)}>{label}</Chip>
+            ))}
           </div>
-        ) : null}
+          <label className="grid gap-1 text-sm font-semibold text-slate-700" htmlFor="setup-business">
+            Or type it
+            <input
+              id="setup-business"
+              value={note}
+              onChange={(event) => {
+                const value = event.target.value;
+                setNote(value);
+                if (business || value.trim()) show(answers({ business: business || value, note: value }));
+              }}
+              className="h-11 rounded-md border border-slate-300 px-3 text-sm font-normal text-slate-800"
+            />
+          </label>
+        </fieldset>
+
+        <fieldset className="grid gap-2">
+          <legend className="text-sm font-semibold text-[#0B1F3A]">Monthly budget</legend>
+          <div className="flex flex-wrap gap-2">
+            {BUDGETS.map((item) => (
+              <Chip
+                key={item.cents}
+                pressed={budgetCents === item.cents}
+                onClick={() => {
+                  setBudgetCents(item.cents);
+                  if (business || note.trim()) show(answers({ business: business || note, budgetCents: item.cents }));
+                }}
+              >{item.label}</Chip>
+            ))}
+          </div>
+        </fieldset>
+
+        {recommendation ? (
+          <>
+            <TeamRecommendationView recommendation={recommendation} orgSlug={orgSlug} build />
+            <Advanced>
+              <fieldset className="grid gap-2">
+                <legend className="text-sm font-semibold text-[#0B1F3A]">Stage</legend>
+                <div className="flex flex-wrap gap-2">
+                  {STAGES.map((item) => (
+                    <Chip key={item.id} pressed={stage === item.id} onClick={() => { setStage(item.id); show(answers({ business: business || note, stage: item.id })); }}>{item.label}</Chip>
+                  ))}
+                </div>
+              </fieldset>
+              <fieldset className="grid gap-2">
+                <legend className="text-sm font-semibold text-[#0B1F3A]">Goals</legend>
+                <div className="flex flex-wrap gap-2">
+                  {GOALS.map((item) => (
+                    <Chip
+                      key={item.id}
+                      pressed={goals.includes(item.id)}
+                      onClick={() => {
+                        const next = goals.includes(item.id) ? goals.filter((goal) => goal !== item.id) : [...goals, item.id];
+                        setGoals(next);
+                        show(answers({ business: business || note, goals: next.length ? next : ["leads"] }));
+                      }}
+                    >{item.label}</Chip>
+                  ))}
+                </div>
+              </fieldset>
+              <fieldset className="grid gap-2">
+                <legend className="text-sm font-semibold text-[#0B1F3A]">Team size</legend>
+                <div className="flex flex-wrap gap-2">
+                  {SIZES.map((item) => (
+                    <Chip key={item.id} pressed={teamSize === item.id} onClick={() => { setTeamSize(item.id); show(answers({ business: business || note, teamSize: item.id })); }}>{item.label}</Chip>
+                  ))}
+                </div>
+              </fieldset>
+              <fieldset className="grid gap-2">
+                <legend className="text-sm font-semibold text-[#0B1F3A]">Channels</legend>
+                <div className="flex flex-wrap gap-2">
+                  {CHANNELS.map((item) => (
+                    <Chip
+                      key={item.id}
+                      pressed={channels.includes(item.id)}
+                      onClick={() => {
+                        const next = channels.includes(item.id) ? channels.filter((channel) => channel !== item.id) : [...channels, item.id];
+                        setChannels(next);
+                        show(answers({ business: business || note, channels: next }));
+                      }}
+                    >{item.label}</Chip>
+                  ))}
+                </div>
+              </fieldset>
+            </Advanced>
+          </>
+        ) : (
+          <p className="text-sm text-slate-700">Choose a business above. The team shows here, then you build it.</p>
+        )}
       </div>
     </div>
-  );
-}
-
-function Question({ title, hint, children }: { title: string; hint: string; children: ReactNode }) {
-  return (
-    <div className="grid gap-3">
-      <div>
-        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#2563EB]">Lead Agent</p>
-        <h2 className="mt-1 font-display text-lg font-bold text-[#0B1F3A]">{title}</h2>
-        <p className="text-sm text-slate-500">{hint}</p>
-      </div>
-      {children}
-    </div>
-  );
-}
-
-function Next({ disabled, onClick, label = "Continue" }: { disabled: boolean; onClick: () => void; label?: string }) {
-  return (
-    <button type="button" disabled={disabled} onClick={onClick} className="h-10 justify-self-start rounded-md bg-[#0B1F3A] px-4 text-sm font-semibold text-white disabled:opacity-40">
-      {label}
-    </button>
   );
 }

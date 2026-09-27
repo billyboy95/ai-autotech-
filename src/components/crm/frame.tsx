@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { BrandLogo } from "@/components/brand-logo";
 import { WorkspaceSwitcher } from "@/components/workspace-switcher";
+import { AIOS_SECTIONS } from "@/lib/aios-menu";
 import type { WorkspaceOption } from "@/lib/tenant/types";
 
 export type CommandChrome = {
@@ -24,58 +25,9 @@ export type CommandChrome = {
   showPlatformName: boolean;
 };
 
-const sections = [
-  {
-    id: "home",
-    label: "Home",
-    links: [
-      ["/command-centre", "Today"],
-      ["/command-centre/setup", "Setup"],
-    ],
-  },
-  {
-    id: "crm",
-    label: "CRM",
-    links: [
-      ["/command-centre/contacts", "Contacts"],
-      ["/command-centre/pipeline", "Pipeline"],
-      ["/command-centre/inbox", "Inbox"],
-      ["/command-centre/calendars", "Calendars"],
-      ["/command-centre/reviews", "Reviews"],
-      ["/command-centre/outbox", "Outbox"],
-      ["/command-centre/campaigns", "Campaigns"],
-      ["/command-centre/jobs", "Jobs"],
-      ["/command-centre/money", "Money"],
-      ["/command-centre/social", "Social"],
-      ["/command-centre/ai-replies", "AI replies"],
-      ["/command-centre/summary", "Summary"],
-      ["/command-centre/templates", "Message templates"],
-    ],
-  },
-  {
-    id: "agents",
-    label: "Agents",
-    links: [
-      ["/command-centre/agents", "Live agents"],
-      ["/command-centre/bots", "Agent store"],
-      ["/command-centre/agents/mine", "My agents"],
-      ["/command-centre/agents/templates", "Templates"],
-    ],
-  },
-  { id: "team", label: "Team", href: "/command-centre/team" },
-  { id: "automations", label: "Automations", href: "/command-centre/workflows" },
-  { id: "billing", label: "Billing", href: "/command-centre/billing" },
-  {
-    id: "agency",
-    label: "Agency",
-    links: [
-      ["/agency", "Agency"],
-      ["/command-centre/bots/agency", "Agent MRR"],
-      ["/command-centre/clients", "Clients"],
-      ["/command-centre/settings", "Settings"],
-    ],
-  },
-] as const;
+const sections = AIOS_SECTIONS;
+
+const navLink = "inline-flex h-11 shrink-0 items-center rounded-md px-3 text-sm font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#2563EB]";
 
 function linkActive(pathname: string, href: string) {
   if (href === "/command-centre" || href === "/command-centre/agents") return pathname === href;
@@ -146,9 +98,7 @@ export function CrmFrame({
                 <Link
                   key={section.id}
                   href={href}
-                  className={`inline-flex h-10 shrink-0 items-center rounded-md px-3 text-sm font-semibold ${
-                    active ? "bg-[#0B1F3A] text-white" : "text-slate-600 hover:bg-slate-100"
-                  }`}
+                  className={`${navLink} ${active ? "bg-[#0B1F3A] text-white" : "text-slate-700 hover:bg-slate-100"}`}
                 >
                   {section.label}
                 </Link>
@@ -167,9 +117,7 @@ export function CrmFrame({
                     <Link
                       key={href}
                       href={href}
-                      className={`inline-flex h-9 shrink-0 items-center rounded-md px-3 text-sm font-semibold ${
-                        active ? "bg-[#2563EB] text-white" : "text-slate-600 hover:bg-slate-100"
-                      }`}
+                      className={`${navLink} ${active ? "bg-[#2563EB] text-white" : "text-slate-700 hover:bg-slate-100"}`}
                     >
                       {label}
                       {href.endsWith("/inbox") && inboxUnread > 0 ? (

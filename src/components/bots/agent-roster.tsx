@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { PageLead } from "@/components/ui/page-lead";
 import type { StoreBotCard } from "@/lib/bots/preview";
 import { DEPARTMENT_LABELS } from "@/lib/bots/catalog";
 
@@ -13,12 +14,9 @@ export function AgentRoster({
 }) {
   return (
     <div className="grid gap-4">
-      <div>
-        <h1 className="font-display text-2xl font-bold text-[#0B1F3A]">{title}</h1>
-        <p className="text-sm text-slate-500">{intro}</p>
-      </div>
+      <PageLead title={title} body={intro} action="Set up a team" href="/command-centre/setup" />
       {bots.length === 0 ? (
-        <p className="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600">No agents in this list yet. Start a sandbox trial from the agent store. Nothing is sent.</p>
+        <p className="rounded-md border border-slate-200 bg-white px-4 py-4 text-sm text-slate-700">No agents are running yet. Use Set up a team above. It takes two clicks and nothing is sent.</p>
       ) : (
         <ul className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           {bots.map((bot) => (
@@ -26,7 +24,7 @@ export function AgentRoster({
               <h2 className="font-display text-base font-bold text-[#0B1F3A]">
                 <Link href={`/command-centre/bots/${bot.slug}`} className="hover:text-[#2563EB]">{bot.name}</Link>
               </h2>
-              <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
+              <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-slate-700">
                 {DEPARTMENT_LABELS[bot.department as keyof typeof DEPARTMENT_LABELS] || bot.department}
                 {bot.installedStatus ? ` · ${bot.installedStatus}` : ""}
               </p>

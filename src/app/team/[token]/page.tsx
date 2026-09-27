@@ -20,7 +20,7 @@ export default async function PublicTeamPage({ params }: { params: Promise<{ tok
         {recommendation ? (
           <TeamRecommendationView recommendation={recommendation} />
         ) : (
-          <p className="text-sm text-slate-600">This team link is not active.</p>
+          <p className="text-sm text-slate-700">This team link is not active. Ask the person who sent it for a new link.</p>
         )}
       </div>
     </main>

@@ -81,21 +81,21 @@ function ProviderIcon({ id }: { id: AuthProviderId }) {
 export function SocialSignIn({ providers, next }: { providers: AuthProviderId[]; next?: string }) {
   if (!providers.length) return null;
   return (
-    <form action={signInWithProvider} className="grid gap-2">
-      {next ? <input type="hidden" name="next" value={next} /> : null}
+    <div className="grid gap-2">
       {providers.map((id) => (
-        <button
-          key={id}
-          type="submit"
-          name="provider"
-          value={id}
-          data-provider={id}
-          className={`inline-flex h-11 items-center justify-center gap-3 rounded-md px-4 text-sm font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#2563EB] ${buttonClass[id]}`}
-        >
-          <ProviderIcon id={id} />
-          Continue with {authProviderLabel(id)}
-        </button>
+        <form key={id} action={signInWithProvider}>
+          {next ? <input type="hidden" name="next" value={next} /> : null}
+          <input type="hidden" name="provider" value={id} />
+          <button
+            type="submit"
+            data-provider={id}
+            className={`inline-flex h-11 w-full items-center justify-center gap-3 rounded-md px-4 text-sm font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#2563EB] ${buttonClass[id]}`}
+          >
+            <ProviderIcon id={id} />
+            Continue with {authProviderLabel(id)}
+          </button>
+        </form>
       ))}
-    </form>
+    </div>
   );
 }

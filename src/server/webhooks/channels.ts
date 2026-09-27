@@ -4,6 +4,7 @@ import { usageForSend } from "@/lib/compliance/usage";
 import { newId } from "@/lib/automation/ids";
 import { loadConnectionForWebhook } from "@/server/workers/channel-secrets";
 import { withOrg } from "@/server/workers/with-org";
+import { recordInboundThread, recordThreadOutbound } from "@/server/webhooks/inbox";
 
 function missingTable(message: string) {
   const text = message.toLowerCase();
@@ -35,10 +36,32 @@ export async function receiveChannelWebhook(input: {
     return { status: 500, body: { ok: false, error: "Could not store the inbound event." } };
   }
 
-  if (decision.stop) {
-    await applyStop(decision.orgId, decision.connectionId, decision.message.channel, decision.stop);
+  const thread = await recordInboundThread({
+    orgId: decision.orgId,
+    connectionId: decision.connectionId,
+    channel: decision.message.channel,
+    from: decision.message.from,
+    body: decision.message.body,
+    providerMessageId: decision.message.providerMessageId,
+    stop: Boolean(decision.stop),
+  });
+  if (!thread.ok && !thread.missing) {
+    return { status: 500, body: { ok: false, error: "Could not store the inbox message." } };
   }
-  return { status: 200, body: { ok: true, orgId: decision.orgId, stopped: Boolean(decision.stop) } };
+
+  if (decision.stop) {
+    await applyStop(
+      decision.orgId,
+      decision.connectionId,
+      decision.message.channel,
+      decision.stop,
+      thread.ok ? { conversationId: thread.conversationId } : null,
+    );
+  }
+  return {
+    status: 200,
+    body: { ok: true, orgId: decision.orgId, stopped: Boolean(decision.stop), conversationId: thread.ok ? thread.conversationId : null },
+  };
 }
 
 export async function metaWebhookChallenge(input: {
@@ -59,6 +82,7 @@ async function applyStop(
   connectionId: string,
   channel: string,
   stop: { addresses: string[]; ack: string },
+  thread: { conversationId: string } | null,
 ) {
   const consentChannel = channel === "email" ? "email" : channel === "whatsapp" ? "whatsapp" : "sms";
   for (const address of stop.addresses) {
@@ -101,23 +125,41 @@ async function applyStop(
     provider: "dry_run",
     error: sending ? "" : "Held. Sending is off for this workspace.",
     channel_connection_id: connectionId,
+    conversation_id: thread?.conversationId || null,
     cost_cents: usage.costCents,
+    provider_id: id,
   });
+  const outboxChannel = consentChannel === "email" ? "email" : consentChannel === "sms" ? "sms" : "whatsapp";
   if (outbox.error && !missingTable(outbox.error.message)) {
-    if (/check constraint/i.test(outbox.error.message)) {
+    if (/check constraint|conversation_id|provider_id|column/i.test(outbox.error.message)) {
       await withOrg(orgId).from("crm_outbox").insert({
         id,
         lead_id: null,
         template_key: "opt_out_ack",
-        channel: consentChannel === "email" ? "email" : "whatsapp",
+        channel: outboxChannel === "sms" ? "whatsapp" : outboxChannel,
         to_address: address,
         subject: "",
         body: stop.ack,
         status: "queued",
         provider: "dry_run",
+        provider_id: id,
         error: "Held opt-out acknowledgement. Nothing was sent.",
       });
     }
+  }
+  if (thread) {
+    await recordThreadOutbound({
+      orgId,
+      conversationId: thread.conversationId,
+      channel: outboxChannel,
+      body: stop.ack,
+      outboxId: id,
+      providerId: id,
+      status: sending ? "queued" : "held",
+      waCategory: outboxChannel === "whatsapp" ? "service" : "",
+      costCents: usage.costCents,
+      connectionId,
+    });
   }
   const ledger = await withOrg(orgId).from("usage_ledger").insert({
     meter: usage.meter,

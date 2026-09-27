@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { redirect } from "next/navigation";
 import { CrmFrame } from "@/components/crm/frame";
+import { loadInboxUnread } from "@/lib/inbox/load";
 import { recordAgencyView, rememberActiveOrg, safeResolveWorkspace } from "@/lib/tenant/context";
 import { isAgencyRole } from "@/lib/tenant/types";
 
@@ -45,10 +46,13 @@ export async function CommandShell({
       ? `Viewing ${tenant.active.name} as agency`
       : null;
 
+  const inboxUnread = await loadInboxUnread();
+
   return (
     <CrmFrame
       setupError={setupError}
       sendingEnabled={sendingEnabled}
+      inboxUnread={inboxUnread}
       chrome={{
         activeSlug: tenant.active.slug,
         activeName: tenant.active.name,

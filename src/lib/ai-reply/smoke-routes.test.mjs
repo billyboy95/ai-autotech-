@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { test } from "node:test";
 
-test("inbox, conversation AI, calendars, and public booking respond", { timeout: 180_000 }, async () => {
+test("inbox, conversation AI, calendars, reviews, and public pages respond", { timeout: 180_000 }, async () => {
   const port = 4187;
   const root = new URL("../../..", import.meta.url).pathname;
   const nextBin = new URL("../../../node_modules/next/dist/bin/next", import.meta.url).pathname;
@@ -78,6 +78,19 @@ test("inbox, conversation AI, calendars, and public booking respond", { timeout:
     assert.equal(directory.status, 200);
     const directoryHtml = await directory.text();
     assert.match(directoryHtml, /ai-autotech-audit/);
+
+    const reviews = await fetch(`http://127.0.0.1:${port}/command-centre/reviews`, { redirect: "manual" });
+    assert.equal(reviews.status, 200);
+    const reviewsHtml = await reviews.text();
+    assert.match(reviewsHtml, /Reviews/);
+    assert.match(reviewsHtml, /Nothing is sent/);
+    assert.match(reviewsHtml, /review\.received is deferred/);
+
+    const publicReview = await fetch(`http://127.0.0.1:${port}/r/ai-autotech`, { redirect: "manual" });
+    assert.equal(publicReview.status, 200);
+    const publicReviewHtml = await publicReview.text();
+    assert.match(publicReviewHtml, /Leave a review/);
+    assert.match(publicReviewHtml, /No message is sent/);
   } finally {
     stop();
   }

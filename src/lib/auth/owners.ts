@@ -1,4 +1,4 @@
-export const DEFAULT_OWNER_EMAIL = "billyfarber06@gmail.com";
+export const DEFAULT_OWNER_EMAIL = "billyfaber06@gmail.com";
 
 export function parseOwnerEmails(value: string | null | undefined) {
   return String(value ?? "")

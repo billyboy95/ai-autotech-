@@ -21,7 +21,7 @@ function Notice({ state }: { state: AuthActionState }) {
 
 export function LoginForm({
   next,
-  placeholder = "billyfarber06@gmail.com",
+  placeholder = "billyfaber06@gmail.com",
   google = false,
 }: {
   next?: string;
@@ -97,7 +97,7 @@ export function ForgotPasswordForm({ next }: { next?: string }) {
       {next ? <input type="hidden" name="next" value={next} /> : null}
       <label className="grid gap-2 text-sm font-medium text-slate-700">
         Email
-        <input name="email" type="email" required autoComplete="email" className={fieldClass} placeholder="billyfarber06@gmail.com" />
+        <input name="email" type="email" required autoComplete="email" className={fieldClass} placeholder="billyfaber06@gmail.com" />
       </label>
       <button
         type="submit"

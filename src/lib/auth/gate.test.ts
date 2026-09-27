@@ -65,8 +65,8 @@ test("OWNER_EMAILS attaches only a listed address that has no membership", () =>
   assert.deepEqual(parseOwnerEmails(" Owner@Example.com, second@example.com "), ["owner@example.com", "second@example.com"]);
   assert.deepEqual(ownerEmailList(undefined), [DEFAULT_OWNER_EMAIL]);
   assert.deepEqual(ownerEmailList("  "), [DEFAULT_OWNER_EMAIL]);
-  assert.equal(DEFAULT_OWNER_EMAIL, "billyfarber06@gmail.com");
-  assert.equal(shouldAttachOwner({ email: "BillyFarber06@gmail.com", listed: ownerEmailList(""), membershipCount: 0 }), true);
+  assert.equal(DEFAULT_OWNER_EMAIL, "billyfaber06@gmail.com");
+  assert.equal(shouldAttachOwner({ email: "BillyFaber06@gmail.com", listed: ownerEmailList(""), membershipCount: 0 }), true);
   assert.equal(shouldAttachOwner({ email: "Owner@Example.com", listed: ["owner@example.com"], membershipCount: 0 }), true);
   assert.equal(shouldAttachOwner({ email: "Owner@Example.com", listed: ["owner@example.com"], membershipCount: 1 }), false);
   assert.equal(shouldAttachOwner({ email: "other@example.com", listed: ["owner@example.com"], membershipCount: 0 }), false);

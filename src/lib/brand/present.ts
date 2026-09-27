@@ -53,7 +53,7 @@ export function loginCopy(brand: PublicBrand | null) {
       title: "Sign in",
       body: "Agency owners and client teams sign in with Supabase Auth. Use your email and password, or email yourself a magic link. AI AutoTech staff land on the agency view. EASTC and other client users land in their own workspace.",
       showPlatform: true,
-      placeholder: "billyfarber06@gmail.com",
+      placeholder: "billyfaber06@gmail.com",
     };
   }
   return {

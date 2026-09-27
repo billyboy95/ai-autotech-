@@ -78,6 +78,31 @@ test("inbox, conversation AI, calendars, and public booking respond", { timeout:
     assert.equal(directory.status, 200);
     const directoryHtml = await directory.text();
     assert.match(directoryHtml, /ai-autotech-audit/);
+
+    const referrals = await fetch(`http://127.0.0.1:${port}/command-centre/referrals`, { redirect: "manual" });
+    assert.equal(referrals.status, 200);
+    const referralsHtml = await referrals.text();
+    assert.match(referralsHtml, /Refer &amp; earn/);
+    assert.match(referralsHtml, /Copy link/);
+    assert.match(referralsHtml, /WhatsApp/);
+    assert.match(referralsHtml, /placeholder/i);
+
+    const audit = await fetch(`http://127.0.0.1:${port}/audit?ref=BILLY42`, { redirect: "manual" });
+    assert.equal(audit.status, 200);
+    assert.match(audit.headers.get("set-cookie") || "", /aat_ref=BILLY42/);
+    const auditHtml = await audit.text();
+    assert.match(auditHtml, /AI business audit/);
+    assert.match(auditHtml, /60 days/);
+
+    const signup = await fetch(`http://127.0.0.1:${port}/signup?ref=BILLY42`, { redirect: "manual" });
+    assert.equal(signup.status, 200);
+    const signupHtml = await signup.text();
+    assert.match(signupHtml, /Bring your referral with you/);
+
+    const team = await fetch(`http://127.0.0.1:${port}/team/demo-token?ref=BILLY42`, { redirect: "manual" });
+    assert.equal(team.status, 200);
+    const teamHtml = await team.text();
+    assert.match(teamHtml, /Join this workspace/);
   } finally {
     stop();
   }

@@ -2,8 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { nid } from "@/lib/crm-store";
-import { agencyOrgId, insertForOrg } from "@/server/workers/with-org";
-import { openServiceDatabase } from "@/server/workers/service-db";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { saveCampaign } from "@/lib/automation/campaigns";
 import { importConsentCampaign } from "@/lib/compliance/campaign-import";
 import { assertDraftOrg, loadDraftProspectCampaign, readBundledProspectsCsv } from "@/lib/compliance/draft-campaign";
@@ -22,7 +21,7 @@ import {
 } from "@/lib/automation/engine";
 import { approveSocialPost, cancelSocialPost, queueSocialPost } from "@/lib/automation/social";
 import { newId } from "@/lib/automation/ids";
-import { enrollLead, isDemoMode, mutateWorkspace, runAutomationJob } from "@/lib/automation/service";
+import { enrollLeadForViewer, isDemoMode, mutateWorkspace, runViewerAutomationJob } from "@/lib/automation/service";
 import { isWorkflowEngineEnabled } from "@/lib/workflows/flag";
 import { phase1Workflows } from "@/lib/workflows/phase1";
 import { dispatchEvent } from "@/lib/workflows/runner";
@@ -51,11 +50,12 @@ export async function addPipelineLead(formData: FormData) {
     source: "command_centre",
     companySize: String(formData.get("companySize") || "").trim(),
   };
-  const enrolled = await enrollLead(input);
+  const enrolled = await enrollLeadForViewer(input);
   if (!enrolled.ok) {
     if (isDemoMode()) throw new Error(enrolled.error || "Could not save the lead.");
-    const supabase = openServiceDatabase();
-    if (!supabase) throw new Error(enrolled.error || "Lead storage is not configured.");
+    const supabase = await createSupabaseServerClient();
+    const user = await supabase.auth.getUser();
+    if (!user.data.user) throw new Error(enrolled.error || "Sign in to add a lead.");
     const row = {
       id: input.id,
       name: input.name,
@@ -65,13 +65,7 @@ export async function addPipelineLead(formData: FormData) {
       notes: [input.email, input.notes].filter(Boolean).join("\n"),
       ord: -Math.floor(Date.now() / 1000),
     };
-    let orgId: string | null = null;
-    try {
-      orgId = await agencyOrgId();
-    } catch {
-      orgId = null;
-    }
-    const inserted = orgId ? await insertForOrg(orgId, "crm_leads", row) : await supabase.from("crm_leads").insert(row);
+    const inserted = await supabase.from("crm_leads").insert(row);
     if (inserted.error) throw new Error(inserted.error.message);
   }
   refresh();
@@ -226,7 +220,7 @@ export async function saveAutomationSettings(formData: FormData) {
 }
 
 export async function runAutomationsNow() {
-  await runAutomationJob();
+  await runViewerAutomationJob();
   refresh();
 }
 

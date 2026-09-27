@@ -19,11 +19,25 @@ export async function CommandShell({
   requestedSlug?: string | null;
 }) {
   const tenant = await safeResolveWorkspace(requestedSlug);
-  if (tenant.requiresLogin && tenant.requestedSlug) {
-    redirect(`/login?next=${encodeURIComponent(`/command-centre?org=${tenant.requestedSlug}`)}`);
+  if (tenant.requiresLogin) {
+    const next = tenant.requestedSlug
+      ? `/command-centre?org=${encodeURIComponent(tenant.requestedSlug)}`
+      : "/command-centre";
+    redirect(`/login?next=${encodeURIComponent(next)}`);
   }
   if (tenant.mode === "member" && !tenant.role) {
-    redirect("/login?next=/command-centre");
+    return (
+      <main className="grid min-h-screen place-items-center bg-[#F3F4F6] px-4">
+        <section className="w-full max-w-lg rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#2563EB]">Command centre</p>
+          <h1 className="mt-2 font-display text-2xl font-bold text-[#0B1F3A]">This login is not on a workspace yet</h1>
+          <p className="mt-3 text-sm leading-6 text-slate-600">
+            {tenant.userEmail ? `${tenant.userEmail} is signed in. ` : ""}
+            A membership is required before customer records can load. If you are the agency owner, add your email to OWNER_EMAILS and sign in again, or run supabase/owner-bootstrap.sql.
+          </p>
+        </section>
+      </main>
+    );
   }
 
   if (tenant.mode === "member" && tenant.scoped && !tenant.active.id.startsWith("preview-")) {

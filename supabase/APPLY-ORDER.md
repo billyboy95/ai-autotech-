@@ -147,3 +147,13 @@ Filename sort also places `20260926180000_zentrix_shopify.sql` before `outbound_
 ## Not part of this apply
 
 `supabase/owner-bootstrap.sql` is not a migration. Run it only after these files, and only after the agency owner exists in Supabase Auth. `supabase/schema.sql` is the classic Command Centre baseline, not one of these pending files. Do not apply this list until `SUPABASE_DB_URL` is available, and do not turn sending on while applying it.
+
+## Owner login without a manual membership insert
+
+`/command-centre` and `/agency` require a Supabase Auth session once `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` are set. Public routes stay open: `/login`, `/audit`, `/api/public/*`, `/book/*`, `/r/*`, `/team/*`, `/auth/callback`, and static assets. The command centre reads with the signed-in user so row level security applies. The service role stays on public intake and cron/worker routes.
+
+Set `OWNER_EMAILS` in the server environment (see `.env.example`). It is a comma-separated list. The documented default is `billyfaber06@gmail.com`. On first login, a user whose email is in that list and who has no membership row is attached as `agency_owner` of the organisation with slug `ai-autotech`. If the variable is unset or blank, that same address is used. The attach is idempotent (`on conflict (user_id, org_id) do nothing` via upsert ignore-duplicates). It does not update a membership that already exists, and it does not delete anything. If the service role key is missing, the attach is skipped and `supabase/owner-bootstrap.sql` remains the manual path.
+
+Add these redirect URLs in Supabase Authentication → URL configuration so magic links, social sign-in, and password resets return to the app: `https://<your-host>/auth/callback`. The app sends users back to the page they asked for (`next`). Social buttons on `/login` are the providers listed in `NEXT_PUBLIC_AUTH_PROVIDERS` that are also enabled at https://supabase.com/dashboard/project/fnysxlswzufdnlbhndxc/auth/providers. Google stays first. If that list is blank, or a provider is not enabled, its button stays hidden and the email magic link still works. The apps to create are listed in `docs/agency-owner-setup.md`. Do not put provider client secrets in the app env.
+
+Without Supabase keys, and outside Vercel preview/production, the same URLs render fixture data so CI and smoke tests can run.

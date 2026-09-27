@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { requireCrmApiUser } from "@/lib/auth/session";
 import { contactExport, type ContactRecord } from "@/lib/compliance/dsr";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -6,8 +7,10 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET(_request: Request, context: { params: Promise<{ id: string }> }) {
+  const session = await requireCrmApiUser();
+  if (!session.ok) return NextResponse.json({ ok: false, error: session.error }, { status: session.status });
   const { id } = await context.params;
-  const supabase = await createSupabaseServerClient();
+  const supabase = session.supabase ?? (await createSupabaseServerClient());
   const user = await supabase.auth.getUser();
   if (!user.data.user) return NextResponse.json({ ok: false, error: "Sign in to download contact data." }, { status: 401 });
 

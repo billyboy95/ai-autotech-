@@ -134,11 +134,6 @@ function usableOrgId(orgId: string | null | undefined) {
   return orgId;
 }
 
-async function openService() {
-  const { openServiceDatabase } = await import("@/server/workers/service-db");
-  return openServiceDatabase();
-}
-
 async function signedInClient(): Promise<SupabaseClient | null> {
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) return null;
   try {
@@ -154,11 +149,7 @@ async function signedInClient(): Promise<SupabaseClient | null> {
 async function openWriter(): Promise<SupabaseClient> {
   const user = await signedInClient();
   if (user) return user;
-  const service = await openService();
-  if (service) return service;
-  throw new Error(
-    "CRM store requires a signed-in user or a configured Supabase service role. Filesystem JSON is not used.",
-  );
+  throw new Error("Sign in to change the command centre.");
 }
 
 async function resolveWriteOrgId(): Promise<string | null> {
@@ -216,31 +207,16 @@ async function listClassic(client: SupabaseClient, orgId: string | null) {
   ]);
 }
 
-function listsFailed(rows: Array<{ error: QueryError }>) {
-  return rows.some((row) => row.error);
-}
-
 export async function readCrm(orgId?: string | null): Promise<CrmData> {
   const requested = orgId === undefined ? await resolveWriteOrgId() : usableOrgId(orgId);
-  const user = await signedInClient();
-  let reader = user ?? (await openService());
+  const reader = await signedInClient();
   if (!reader) {
-    throw new Error(
-      "CRM store requires a signed-in user or a configured Supabase service role. Filesystem JSON is not used.",
-    );
+    throw new Error("Sign in to read the command centre.");
   }
 
   let rows = await listClassic(reader, requested);
   if (requested && rows.some((row) => missingOrgColumn(row.error))) {
     rows = await listClassic(reader, null);
-  }
-  const schemaGap = rows.some((row) => missingOrgColumn(row.error) || missingTenantTable(row.error));
-  if (listsFailed(rows) && (!user || schemaGap)) {
-    const service = await openService();
-    if (service) {
-      reader = service;
-      rows = await listClassic(service, null);
-    }
   }
 
   const [leads, clients, jobs, invoices] = rows;

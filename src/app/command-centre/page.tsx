@@ -54,7 +54,7 @@ export default async function CommandCentrePage({
           href="/command-centre/setup"
         />
 
-        <AssistantPanel enabled={isBotAssistantEnabled()} orgSlug={tenant.active.slug} />
+        <AssistantPanel enabled={isBotAssistantEnabled()} />
 
         <Advanced>
           <form action={runAutomationsNow}>

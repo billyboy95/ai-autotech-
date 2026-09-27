@@ -12,7 +12,7 @@ const emptyAssistant = { message: "", proposals: [] as { id: string; kind: strin
 const fieldClass = "h-11 rounded-md border border-slate-300 px-3 text-slate-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0B1F3A]";
 const buttonClass = "inline-flex h-11 items-center rounded-md px-4 text-sm font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0B1F3A]";
 
-export function AssistantPanel({ enabled, orgSlug }: { enabled: boolean; orgSlug: string }) {
+export function AssistantPanel({ enabled }: { enabled: boolean }) {
   const [plan, propose] = useActionState(proposeBotAssistant, emptyAssistant);
   const [applied, apply] = useActionState(applyBotAssistant, emptyAssistant);
   const [reply, setReply] = useState<LeadAgentReply | null>(null);
@@ -51,7 +51,7 @@ export function AssistantPanel({ enabled, orgSlug }: { enabled: boolean; orgSlug
               </Link>
             ))}
           </div>
-          {reply.recommendation ? <TeamRecommendationView recommendation={reply.recommendation} orgSlug={orgSlug} build /> : null}
+          {reply.recommendation ? <TeamRecommendationView recommendation={reply.recommendation} /> : null}
         </div>
       ) : null}
       {plan.message ? <p className="mt-3 text-sm text-slate-700">{plan.message}</p> : null}

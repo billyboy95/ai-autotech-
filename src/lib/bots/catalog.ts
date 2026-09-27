@@ -10,6 +10,7 @@ export {
   type BotStatus,
   type CatalogBot,
   type CatalogBundle,
+  type SetupQuestion,
   type TeamTemplate,
   type TemplatePipeline,
   type TemplateStage,

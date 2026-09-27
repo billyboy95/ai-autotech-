@@ -1,13 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { polishTeamCopy } from "@/app/actions/bots";
-import { Advanced } from "@/components/ui/advanced";
+import { buildRecommendedTeam } from "@/app/actions/bots";
 import { TeamRecommendationView } from "@/components/bots/team-recommendation";
+import { agentQuestionSteps, agentProgressLabel } from "@/lib/bots/interview";
 import {
   recommendTeam,
   type SetupAnswers,
-  type SetupChannel,
   type SetupGoal,
   type SetupStage,
   type SetupTeamSize,
@@ -55,200 +54,171 @@ const SIZES: { id: SetupTeamSize; label: string }[] = [
   { id: "20+", label: "20+" },
 ];
 
-const CHANNELS: { id: SetupChannel; label: string }[] = [
-  { id: "whatsapp", label: "WhatsApp" },
-  { id: "email", label: "Email" },
-  { id: "phone", label: "Phone" },
-  { id: "instagram", label: "Instagram" },
-  { id: "facebook", label: "Facebook" },
-  { id: "youtube", label: "YouTube" },
-  { id: "tiktok", label: "TikTok" },
-  { id: "website", label: "Website" },
-  { id: "walk-in", label: "Walk-in" },
-];
-
 const chipClass = "inline-flex h-11 items-center rounded-md px-3 text-sm font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0B1F3A]";
+const primaryClass = "inline-flex h-11 items-center rounded-md bg-[#2563EB] px-4 text-sm font-semibold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0B1F3A]";
 
-function Chip({
-  pressed,
-  children,
-  onClick,
-}: {
-  pressed: boolean;
-  children: string;
-  onClick: () => void;
-}) {
+function Chip({ pressed, children, onClick }: { pressed: boolean; children: string; onClick: () => void }) {
   return (
-    <button
-      type="button"
-      aria-pressed={pressed}
-      onClick={onClick}
-      className={`${chipClass} ${pressed ? "bg-[#0B1F3A] text-white" : "border border-slate-300 bg-white text-[#0B1F3A]"}`}
-    >
+    <button type="button" aria-pressed={pressed} onClick={onClick} className={`${chipClass} ${pressed ? "bg-[#0B1F3A] text-white" : "border border-slate-300 bg-white text-[#0B1F3A]"}`}>
       {children}
     </button>
   );
 }
 
-export function SetupInterview({
-  orgSlug,
-  polishEnabled,
-  notice,
-}: {
-  orgSlug: string;
-  polishEnabled: boolean;
-  notice?: string;
-}) {
+export function SetupInterview({ orgSlug, notice }: { orgSlug: string; notice?: string }) {
   const [business, setBusiness] = useState("");
   const [note, setNote] = useState("");
   const [budgetCents, setBudgetCents] = useState(500_000);
   const [stage, setStage] = useState<SetupStage>("starting");
   const [goals, setGoals] = useState<SetupGoal[]>([]);
   const [teamSize, setTeamSize] = useState<SetupTeamSize>("2-5");
-  const [channels, setChannels] = useState<SetupChannel[]>([]);
   const [recommendation, setRecommendation] = useState<TeamRecommendation | null>(null);
+  const [agentIndex, setAgentIndex] = useState(0);
+  const [phase, setPhase] = useState<"business" | "agents" | "pay">("business");
+  const [answers, setAnswers] = useState<Record<string, string>>({});
 
-  function answers(next: Partial<SetupAnswers> & { business: string; note?: string }): SetupAnswers {
-    const typed = next.note ?? note;
+  const steps = recommendation ? agentQuestionSteps(recommendation.agents.map((agent) => agent.slug)) : [];
+  const step = steps[agentIndex];
+
+  function businessAnswers(nextBusiness: string): SetupAnswers {
     return {
-      business: [next.business, typed].map((item) => item.trim()).filter(Boolean).join(" ") || "business",
-      stage: next.stage ?? stage,
-      budgetCents: next.budgetCents ?? budgetCents,
-      goals: next.goals ?? (goals.length ? goals : ["leads"]),
-      teamSize: next.teamSize ?? teamSize,
-      channels: next.channels ?? channels,
+      business: [nextBusiness, note].map((item) => item.trim()).filter(Boolean).join(" ") || "business",
+      stage,
+      budgetCents,
+      goals: goals.length ? goals : ["leads"],
+      teamSize,
+      channels: [],
     };
   }
 
-  function show(next: SetupAnswers) {
-    const team = recommendTeam(next);
+  function continueFromBusiness() {
+    const team = recommendTeam(businessAnswers(business || note));
     setRecommendation(team);
-    if (!polishEnabled) return;
-    const body = new FormData();
-    body.set("recommendation", JSON.stringify(team));
-    void polishTeamCopy(body).then((whys) => {
-      if (!whys) return;
-      setRecommendation((current) => {
-        if (!current) return current;
-        if (whys.length !== current.start.length + current.later.length) return current;
-        return {
-          ...current,
-          start: current.start.map((agent, index) => ({ ...agent, why: whys[index] ?? agent.why })),
-          later: current.later.map((agent, index) => ({ ...agent, why: whys[current.start.length + index] ?? agent.why })),
-        };
-      });
-    });
+    setAgentIndex(0);
+    setPhase("agents");
   }
 
-  function pickBusiness(label: string) {
-    setBusiness(label);
-    show(answers({ business: label }));
+  function setAnswer(id: string, value: string) {
+    setAnswers((current) => ({ ...current, [id]: value }));
+  }
+
+  function nextAgent() {
+    if (agentIndex + 1 >= steps.length) {
+      setPhase("pay");
+      return;
+    }
+    setAgentIndex((index) => index + 1);
   }
 
   return (
     <div className="grid gap-4">
       <div>
         <h1 className="font-display text-2xl font-bold text-[#0B1F3A]">Lead Agent</h1>
-        <p className="mt-1 max-w-2xl text-sm text-slate-700">Pick the business, then build the team. The R5,000 budget is already selected. That is two clicks. Change the budget first if you need to. Nothing is sent.</p>
+        <p className="mt-1 max-w-2xl text-sm text-slate-700">Answer the business questions, then each agent&apos;s questions. Shared answers are not asked again. The full team is configured after the sandbox payment. Nothing is sent.</p>
       </div>
       {notice ? <p className="rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-950" role="status">{notice}</p> : null}
-      <div className="grid gap-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-        <fieldset className="grid gap-2">
-          <legend className="text-sm font-semibold text-[#0B1F3A]">What are you building?</legend>
-          <div className="flex flex-wrap gap-2">
-            {BUSINESSES.map((label) => (
-              <Chip key={label} pressed={business === label} onClick={() => pickBusiness(label)}>{label}</Chip>
-            ))}
-          </div>
-          <label className="grid gap-1 text-sm font-semibold text-slate-700" htmlFor="setup-business">
-            Or type it
-            <input
-              id="setup-business"
-              value={note}
-              onChange={(event) => {
-                const value = event.target.value;
-                setNote(value);
-                if (business || value.trim()) show(answers({ business: business || value, note: value }));
-              }}
-              className="h-11 rounded-md border border-slate-300 px-3 text-sm font-normal text-slate-800"
-            />
-          </label>
-        </fieldset>
 
-        <fieldset className="grid gap-2">
-          <legend className="text-sm font-semibold text-[#0B1F3A]">Monthly budget</legend>
-          <div className="flex flex-wrap gap-2">
-            {BUDGETS.map((item) => (
-              <Chip
-                key={item.cents}
-                pressed={budgetCents === item.cents}
-                onClick={() => {
-                  setBudgetCents(item.cents);
-                  if (business || note.trim()) show(answers({ business: business || note, budgetCents: item.cents }));
-                }}
-              >{item.label}</Chip>
-            ))}
-          </div>
-        </fieldset>
+      {phase === "business" ? (
+        <div className="grid gap-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+          <fieldset className="grid gap-2">
+            <legend className="text-sm font-semibold text-[#0B1F3A]">What are you building?</legend>
+            <div className="flex flex-wrap gap-2">
+              {BUSINESSES.map((label) => (
+                <Chip key={label} pressed={business === label} onClick={() => setBusiness(label)}>{label}</Chip>
+              ))}
+            </div>
+            <label className="grid gap-1 text-sm font-semibold text-slate-700" htmlFor="setup-business">
+              Or type it
+              <input id="setup-business" value={note} onChange={(event) => setNote(event.target.value)} className="h-11 rounded-md border border-slate-300 px-3 text-sm font-normal text-slate-800" />
+            </label>
+          </fieldset>
+          <fieldset className="grid gap-2">
+            <legend className="text-sm font-semibold text-[#0B1F3A]">Stage</legend>
+            <div className="flex flex-wrap gap-2">
+              {STAGES.map((item) => (
+                <Chip key={item.id} pressed={stage === item.id} onClick={() => setStage(item.id)}>{item.label}</Chip>
+              ))}
+            </div>
+          </fieldset>
+          <fieldset className="grid gap-2">
+            <legend className="text-sm font-semibold text-[#0B1F3A]">Monthly budget</legend>
+            <div className="flex flex-wrap gap-2">
+              {BUDGETS.map((item) => (
+                <Chip key={item.cents} pressed={budgetCents === item.cents} onClick={() => setBudgetCents(item.cents)}>{item.label}</Chip>
+              ))}
+            </div>
+          </fieldset>
+          <fieldset className="grid gap-2">
+            <legend className="text-sm font-semibold text-[#0B1F3A]">Goals</legend>
+            <div className="flex flex-wrap gap-2">
+              {GOALS.map((item) => (
+                <Chip
+                  key={item.id}
+                  pressed={goals.includes(item.id)}
+                  onClick={() => setGoals((current) => current.includes(item.id) ? current.filter((goal) => goal !== item.id) : [...current, item.id])}
+                >{item.label}</Chip>
+              ))}
+            </div>
+          </fieldset>
+          <fieldset className="grid gap-2">
+            <legend className="text-sm font-semibold text-[#0B1F3A]">Team size</legend>
+            <div className="flex flex-wrap gap-2">
+              {SIZES.map((item) => (
+                <Chip key={item.id} pressed={teamSize === item.id} onClick={() => setTeamSize(item.id)}>{item.label}</Chip>
+              ))}
+            </div>
+          </fieldset>
+          {business || note.trim() ? (
+            <button type="button" className={`${primaryClass} w-fit`} onClick={continueFromBusiness}>Continue</button>
+          ) : (
+            <p className="text-sm text-slate-700">Choose a business above. The questions for that team come next.</p>
+          )}
+        </div>
+      ) : null}
 
-        {recommendation ? (
-          <>
-            <TeamRecommendationView recommendation={recommendation} orgSlug={orgSlug} build />
-            <Advanced>
-              <fieldset className="grid gap-2">
-                <legend className="text-sm font-semibold text-[#0B1F3A]">Stage</legend>
-                <div className="flex flex-wrap gap-2">
-                  {STAGES.map((item) => (
-                    <Chip key={item.id} pressed={stage === item.id} onClick={() => { setStage(item.id); show(answers({ business: business || note, stage: item.id })); }}>{item.label}</Chip>
-                  ))}
-                </div>
-              </fieldset>
-              <fieldset className="grid gap-2">
-                <legend className="text-sm font-semibold text-[#0B1F3A]">Goals</legend>
-                <div className="flex flex-wrap gap-2">
-                  {GOALS.map((item) => (
-                    <Chip
-                      key={item.id}
-                      pressed={goals.includes(item.id)}
-                      onClick={() => {
-                        const next = goals.includes(item.id) ? goals.filter((goal) => goal !== item.id) : [...goals, item.id];
-                        setGoals(next);
-                        show(answers({ business: business || note, goals: next.length ? next : ["leads"] }));
-                      }}
-                    >{item.label}</Chip>
-                  ))}
-                </div>
-              </fieldset>
-              <fieldset className="grid gap-2">
-                <legend className="text-sm font-semibold text-[#0B1F3A]">Team size</legend>
-                <div className="flex flex-wrap gap-2">
-                  {SIZES.map((item) => (
-                    <Chip key={item.id} pressed={teamSize === item.id} onClick={() => { setTeamSize(item.id); show(answers({ business: business || note, teamSize: item.id })); }}>{item.label}</Chip>
-                  ))}
-                </div>
-              </fieldset>
-              <fieldset className="grid gap-2">
-                <legend className="text-sm font-semibold text-[#0B1F3A]">Channels</legend>
-                <div className="flex flex-wrap gap-2">
-                  {CHANNELS.map((item) => (
-                    <Chip
-                      key={item.id}
-                      pressed={channels.includes(item.id)}
-                      onClick={() => {
-                        const next = channels.includes(item.id) ? channels.filter((channel) => channel !== item.id) : [...channels, item.id];
-                        setChannels(next);
-                        show(answers({ business: business || note, channels: next }));
-                      }}
-                    >{item.label}</Chip>
-                  ))}
-                </div>
-              </fieldset>
-            </Advanced>
-          </>
-        ) : (
-          <p className="text-sm text-slate-700">Choose a business above. The team shows here, then you build it.</p>
-        )}
-      </div>
+      {phase === "agents" && step && recommendation ? (
+        <div className="grid gap-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+          <p className="text-sm font-semibold text-[#0B1F3A]" aria-live="polite">{agentProgressLabel(agentIndex, steps.length, step.name)}</p>
+          {step.questions.length ? (
+            <div className="grid gap-3">
+              {step.questions.map((question) => (
+                <fieldset key={question.id} className="grid gap-2">
+                  <legend className="text-sm font-semibold text-slate-700">{question.label}</legend>
+                  {question.kind === "choice" && question.options ? (
+                    <div className="flex flex-wrap gap-2">
+                      {question.options.map((option) => (
+                        <Chip key={option} pressed={answers[question.id] === option} onClick={() => setAnswer(question.id, option)}>{option}</Chip>
+                      ))}
+                    </div>
+                  ) : (
+                    <input id={`setup-${question.id}`} aria-label={question.label} value={answers[question.id] ?? ""} onChange={(event) => setAnswer(question.id, event.target.value)} className="h-11 rounded-md border border-slate-300 px-3 text-sm text-slate-800" />
+                  )}
+                </fieldset>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-slate-700">{step.name} uses the answers you already gave. Nothing else to ask.</p>
+          )}
+          {step.questions.length ? <p className="text-sm text-slate-700">Leave a box blank to keep the default.</p> : null}
+          <button type="button" className={`${primaryClass} w-fit`} onClick={nextAgent}>
+            {agentIndex + 1 >= steps.length ? "Review the full team" : "Next agent"}
+          </button>
+        </div>
+      ) : null}
+
+      {phase === "pay" && recommendation ? (
+        <div className="grid gap-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+          <TeamRecommendationView recommendation={recommendation} />
+          <form action={buildRecommendedTeam} className="grid gap-2">
+            <input type="hidden" name="slug" value={orgSlug} />
+            <input type="hidden" name="template" value={recommendation.templateSlug} />
+            <input type="hidden" name="answers" value={JSON.stringify(answers)} />
+            <input type="hidden" name="return_to" value="/command-centre/setup" />
+            <button className={`${primaryClass} w-fit`}>Pay in the sandbox</button>
+          </form>
+          <p className="text-sm text-slate-700">This configures every agent, the pipelines, the workflows, and the templates. Nothing is sent.</p>
+        </div>
+      ) : null}
     </div>
   );
 }

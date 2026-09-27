@@ -20,6 +20,15 @@ export type BotConfig = {
   pipeline: string;
   stage: string;
   channel: string;
+  /** Answers collected in setup. Only the questions this agent asks are stored. */
+  setup?: Record<string, string>;
+};
+
+export type SetupQuestion = {
+  id: string;
+  label: string;
+  kind: "text" | "choice";
+  options?: string[];
 };
 
 export type AgentTouches = {
@@ -45,6 +54,7 @@ export type CatalogBot = {
   engine: BotEngine;
   active: true;
   touches: AgentTouches;
+  setupQuestions: SetupQuestion[];
 };
 
 export type CatalogBundle = {

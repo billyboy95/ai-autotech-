@@ -134,7 +134,7 @@ export function replyToLeadAgent(raw: string): LeadAgentReply {
       channels: [],
     });
     return {
-      message: `${recommendation.templateName} fits a R5,000 monthly budget. Build the team, or open setup to change the budget. Nothing is sent.`,
+      message: `${recommendation.templateName} is the full team. Open setup to answer each agent's questions. Nothing is sent.`,
       links: [{ href: "/command-centre/setup", label: "Set up this business" }],
       recommendation,
     };

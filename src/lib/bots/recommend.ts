@@ -44,8 +44,7 @@ export type RecommendedAgent = {
 export type TeamRecommendation = {
   templateSlug: string;
   templateName: string;
-  start: RecommendedAgent[];
-  later: RecommendedAgent[];
+  agents: RecommendedAgent[];
   separateTotalCents: number;
   monthlyPriceCents: number;
   savingCents: number;
@@ -61,10 +60,8 @@ export type AuditRecommendationInput = {
   companySize?: string;
 };
 
-/** Used when an audit does not include a monthly budget. R5,000 keeps a 3-agent team inside the band. */
+/** Used when an audit does not include a monthly budget. The full team is still recommended. */
 export const DEFAULT_AUDIT_BUDGET_CENTS = 500_000;
-
-const START_LIMIT = 3;
 
 const TEMPLATE_MATCHES: { slug: string; needles: string[] }[] = [
   { slug: "faceless-youtube", needles: ["faceless youtube", "youtube"] },
@@ -194,17 +191,6 @@ function departmentScore(department: string, goals: SetupGoal[]) {
   return goals.reduce((sum, goal) => sum + (GOAL_DEPARTMENTS[goal].includes(department as AgentDepartment) ? 3 : 0), 0);
 }
 
-function agentScore(bot: CatalogBot, index: number, answers: SetupAnswers) {
-  let score = 100 - index * 10;
-  score += departmentScore(bot.department, answers.goals);
-  if (answers.channels.includes("whatsapp") && bot.defaultConfig.channel === "whatsapp") score += 1;
-  if (answers.channels.includes("youtube") && ["scriptwriter", "seo-titles", "video-editor-brief", "thumbnail-brief", "scheduler-poster"].includes(bot.slug)) score += 1;
-  if (answers.channels.includes("facebook") && ["community-manager", "scheduler-poster", "content-calendar"].includes(bot.slug)) score += 1;
-  if (answers.stage === "running" && ["operations", "finance", "reputation", "admin"].includes(bot.department)) score += 1;
-  if (answers.stage === "idea" && ["content", "branding", "social"].includes(bot.department)) score += 1;
-  return score;
-}
-
 function matchTemplate(business: string) {
   const text = ` ${business.toLowerCase()} `;
   return TEMPLATE_MATCHES.find((rule) => rule.needles.some((needle) => text.includes(needle)))?.slug ?? null;
@@ -235,34 +221,19 @@ function toAgent(bot: CatalogBot, templateName: string): RecommendedAgent {
 }
 
 /**
- * Leanest team that fits the budget. Rules only: no model call.
- * The priced team is the first one, two, or three agents in priority order.
- * The rest of the matched template is listed to add later.
+ * The full team for the matched business. Rules only: no model call.
+ * Every agent in the template is included. Nothing is held back for later.
  */
 export function recommendTeam(answers: SetupAnswers): TeamRecommendation {
   const templateSlug = matchTemplate(answers.business) ?? fallbackTemplate(answers);
   const template = templateBySlug(templateSlug);
   const bundle = bundleBySlug(templateSlug);
-  const ranked = botsInBundle(bundle)
-    .map((bot, index) => ({ bot, score: agentScore(bot, index, answers) }))
-    .sort((left, right) => right.score - left.score || left.bot.slug.localeCompare(right.bot.slug));
-  const budgetCents = Number.isFinite(answers.budgetCents) ? Math.max(0, answers.budgetCents) : 0;
-  let startBots: CatalogBot[] = [];
-  for (let count = Math.min(START_LIMIT, ranked.length); count >= 1; count -= 1) {
-    const slice = ranked.slice(0, count).map((item) => item.bot);
-    if (teamPrice(slice.map((bot) => bot.monthlyPriceCents)).monthlyPriceCents <= budgetCents) {
-      startBots = slice;
-      break;
-    }
-  }
-  const startSlugs = new Set(startBots.map((bot) => bot.slug));
-  const laterBots = ranked.map((item) => item.bot).filter((bot) => !startSlugs.has(bot.slug));
-  const price = teamPrice(startBots.map((bot) => bot.monthlyPriceCents));
+  const bots = botsInBundle(bundle);
+  const price = teamPrice(bots.map((bot) => bot.monthlyPriceCents));
   return {
     templateSlug,
     templateName: template.name,
-    start: startBots.map((bot) => toAgent(bot, template.name)),
-    later: laterBots.map((bot) => toAgent(bot, template.name)),
+    agents: bots.map((bot) => toAgent(bot, template.name)),
     separateTotalCents: price.separateTotalCents,
     monthlyPriceCents: price.monthlyPriceCents,
     savingCents: price.savingCents,
@@ -281,7 +252,7 @@ export async function polishRecommendationExplanations(
   recommendation: TeamRecommendation,
   complete: ExplanationPolisher,
 ): Promise<TeamRecommendation> {
-  const originals = [...recommendation.start, ...recommendation.later].map((agent) => agent.why);
+  const originals = recommendation.agents.map((agent) => agent.why);
   if (!originals.length) return recommendation;
   const result = await complete([
     {
@@ -303,10 +274,8 @@ export async function polishRecommendationExplanations(
   if (!Array.isArray(parsed) || parsed.length !== originals.length) return recommendation;
   if (!parsed.every((item) => typeof item === "string" && item.trim().length > 0 && item.length <= 400)) return recommendation;
   const lines = parsed as string[];
-  const apply = (agents: RecommendedAgent[], offset: number) => agents.map((agent, index) => ({ ...agent, why: lines[offset + index].trim() }));
   return {
     ...recommendation,
-    start: apply(recommendation.start, 0),
-    later: apply(recommendation.later, recommendation.start.length),
+    agents: recommendation.agents.map((agent, index) => ({ ...agent, why: lines[index].trim() })),
   };
 }

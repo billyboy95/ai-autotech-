@@ -2,7 +2,8 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { TEAM_TEMPLATES, botBySlug } from "@/lib/bots/catalog";
+import { templateBySlug } from "@/lib/bots/catalog";
+import { configurePaidTeam } from "@/lib/bots/configure";
 import { isBotAssistantEnabled } from "@/lib/bots/flag";
 import { polishRecommendationExplanations, type TeamRecommendation } from "@/lib/bots/recommend";
 import { assistantUnavailableMessage, applyConfirmedActions, proposeAssistantActions, proposalsFromText, type AssistantBook } from "@/lib/bots/assistant";
@@ -229,54 +230,71 @@ export async function applyBotAssistant(
   };
 }
 
-function teamSlugs(value: FormDataEntryValue | null) {
-  const slugs = String(value ?? "").split(",").map((item) => item.trim()).filter(Boolean);
-  return [...new Set(slugs)].slice(0, 8);
-}
-
-function matchingTemplate(slugs: string[]) {
-  const key = [...slugs].sort().join(",");
-  return TEAM_TEMPLATES.find((template) => [...template.bots.map((bot) => bot.slug)].sort().join(",") === key) ?? null;
+function readAnswers(value: FormDataEntryValue | null) {
+  try {
+    const parsed = JSON.parse(String(value ?? "{}")) as unknown;
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return {};
+    const answers: Record<string, string> = {};
+    for (const [key, item] of Object.entries(parsed)) {
+      if (typeof item === "string" && /^[a-z0-9-]{1,40}$/.test(key)) answers[key] = item.slice(0, 500);
+    }
+    return answers;
+  } catch {
+    return {};
+  }
 }
 
 export async function buildRecommendedTeam(formData: FormData) {
   const slug = String(formData.get("slug") ?? "");
-  const slugs = teamSlugs(formData.get("bots"));
+  const templateSlug = String(formData.get("template") ?? "");
   const back = safeReturn(formData.get("return_to"));
   const workspace = await manageable(slug);
   if (!workspace) {
     withNotice(back, "Preview workspace, or sign in as a workspace admin. The team was not applied. Nothing was sent.");
   }
-  if (!slugs.length) withNotice(back, "Pick a team first. Nothing was sent.");
-  for (const bot of slugs) {
-    try {
-      botBySlug(bot);
-    } catch {
-      withNotice(back, "That team is not in the catalogue. Nothing was sent.");
-    }
+  let template: ReturnType<typeof templateBySlug>;
+  try {
+    template = templateBySlug(templateSlug);
+  } catch {
+    withNotice(back, "That team is not in the catalogue. Nothing was sent.");
   }
+  const answers = readAnswers(formData.get("answers"));
   const opened = openBotCheckout({
     orgId: workspace.active.id,
     orgName: workspace.active.name,
-    botSlug: slugs[0],
-    bundleSlug: matchingTemplate(slugs)?.bundleSlug ?? null,
-    intent: "trial",
+    bundleSlug: template.bundleSlug,
+    intent: "buy",
     env: process.env,
   });
-  if (!opened.lines.length) withNotice(back, opened.checkout.message);
+  const configured = configurePaidTeam({
+    orgId: workspace.active.id,
+    orgName: workspace.active.name,
+    templateSlug: template.slug,
+    answers,
+    checkout: opened.checkout,
+    lines: opened.lines,
+    env: process.env,
+  });
+  if (!configured.configured) withNotice(back, configured.reason);
   const supabase = await createSupabaseServerClient();
-  const template = matchingTemplate(slugs);
-  const saved = template
-    ? await supabase.rpc("apply_bot_template", { p_org: workspace.active.id, p_slug: template.slug })
-    : await supabase.rpc("start_recommended_sandbox_team", { p_org: workspace.active.id, p_slugs: slugs });
+  const saved = await supabase.rpc("apply_bot_template", {
+    p_org: workspace.active.id,
+    p_slug: template.slug,
+  });
   if (saved.error) withNotice(back, saved.error.message);
   const payload = saved.data as { charged?: boolean; sending_enabled?: boolean } | null;
   if (payload?.charged === true || payload?.sending_enabled === true) {
     withNotice(back, "The team was refused. Nothing was sent.");
   }
+  for (const bot of configured.book.bots) {
+    const updated = await supabase.from("org_bots").update({ config: bot.config }).eq("org_id", workspace.active.id).eq("bot_slug", bot.botSlug);
+    if (updated.error) withNotice(back, updated.error.message);
+  }
   revalidatePath("/command-centre/bots");
   revalidatePath("/command-centre/agents");
-  withNotice(back, "Sandbox trial recorded for the recommended team. Sending stays off and no charge was sent.");
+  revalidatePath("/command-centre/setup");
+  const notice = "Sandbox checkout succeeded. Every agent, pipeline, workflow, and template is configured. Nothing was sent. Connect your accounts and import your contacts.";
+  redirect(`/command-centre/setup?team=${encodeURIComponent(template.slug)}&paid=1&notice=${encodeURIComponent(notice)}`);
 }
 
 export async function polishTeamCopy(formData: FormData) {
@@ -287,7 +305,7 @@ export async function polishTeamCopy(formData: FormData) {
   } catch {
     return null;
   }
-  if (!recommendation || !Array.isArray(recommendation.start) || !Array.isArray(recommendation.later)) return null;
+  if (!recommendation || !Array.isArray(recommendation.agents)) return null;
   const polished = await polishRecommendationExplanations(recommendation, (messages) => createOpenAiCompatibleProvider(process.env).complete(messages));
-  return [...polished.start, ...polished.later].map((agent) => agent.why);
+  return polished.agents.map((agent) => agent.why);
 }

@@ -1,4 +1,5 @@
 import type { BotCategory, BotConfig, BotEngine, CatalogBot, CatalogBundle, TeamTemplate, TemplatePipeline, TemplateWorkflow } from "@/lib/bots/catalog-types";
+import { questionsForDepartment } from "@/lib/bots/setup-questions";
 
 export const AGENT_DEPARTMENTS = [
   "sales",
@@ -190,6 +191,7 @@ function agent(seed: AgentSeed): CatalogBot {
       reviews: seed.reviews ?? seed.department === "reputation",
       reportsTo: DEPARTMENT_LEADS[seed.department],
     },
+    setupQuestions: questionsForDepartment(seed.department),
   };
 }
 

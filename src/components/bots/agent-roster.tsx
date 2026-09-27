@@ -14,9 +14,9 @@ export function AgentRoster({
 }) {
   return (
     <div className="grid gap-4">
-      <PageLead title={title} body={intro} action="Set up a team" href="/command-centre/setup" />
+      <PageLead title={title} body={intro} action="Build the full team" href="/command-centre/lead-agent" />
       {bots.length === 0 ? (
-        <p className="rounded-md border border-slate-200 bg-white px-4 py-4 text-sm text-slate-700">No agents are running yet. Use Set up a team above. It takes two clicks and nothing is sent.</p>
+        <p className="rounded-md border border-slate-200 bg-white px-4 py-4 text-sm text-slate-700">No agents are running yet. Use Build the full team above. Nothing is sent.</p>
       ) : (
         <ul className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           {bots.map((bot) => (

@@ -10,8 +10,8 @@ export function BotAgencyView({ data }: { data: AgencyBotData }) {
         <PageLead
           title="Agent MRR"
           body="See which workspaces run which agents. The amount is sandbox MRR and is not charged."
-          action="Set up a team"
-          href="/command-centre/setup"
+          action="Build the full team"
+          href="/command-centre/lead-agent"
         />
       </div>
       {data.notice ? <p className="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600">{data.notice}</p> : null}
@@ -30,7 +30,7 @@ export function BotAgencyView({ data }: { data: AgencyBotData }) {
               </thead>
               <tbody>
                 {data.rows.length === 0 ? (
-                  <tr><td className="py-3 text-slate-700" colSpan={4}>No workspace has an agent yet. Use Set up a team above, then come back.</td></tr>
+                  <tr><td className="py-3 text-slate-700" colSpan={4}>No workspace has an agent yet. Use Build the full team above, then come back.</td></tr>
                 ) : null}
                 {data.rows.map((row) => (
                   <tr key={`${row.orgSlug}-${row.botSlug}`} className="border-t border-slate-100">

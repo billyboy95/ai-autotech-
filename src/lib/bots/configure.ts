@@ -22,7 +22,7 @@ function channelFrom(value: string | undefined) {
   return "";
 }
 
-function overlayConfig(slug: string, base: BotConfig, answers: Record<string, string>): BotConfig {
+export function configWithAnswers(slug: string, base: BotConfig, answers: Record<string, string>): BotConfig {
   const bot = botBySlug(slug);
   const ids = new Set(bot.setupQuestions.map((question) => question.id));
   const hours = hoursFrom(answers.hours);
@@ -79,7 +79,7 @@ export function configurePaidTeam(input: {
   });
   const bots = applied.book.bots.map((bot) => ({
     ...bot,
-    config: overlayConfig(bot.botSlug, bot.config, input.answers),
+    config: configWithAnswers(bot.botSlug, bot.config, input.answers),
   }));
   return {
     book: {

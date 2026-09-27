@@ -24,8 +24,8 @@ export function TemplateLibrary({
       <PageLead
         title="Templates"
         body="Apply a ready-made team if you already know the industry. Re-apply does not duplicate it. Sending stays off."
-        action="Set up a team"
-        href="/command-centre/setup"
+        action="Build the full team"
+        href="/command-centre/lead-agent"
       />
       <Advanced defaultOpen={Boolean(industry || department)}>
       <form className="flex flex-wrap items-end gap-2" method="get">
@@ -71,7 +71,7 @@ export function TemplateLibrary({
       </div>
       {templates.length === 0 ? (
         <p className="rounded-md border border-slate-200 bg-white px-4 py-4 text-sm text-slate-700">
-          No template uses that filter. Clear it, or <Link href="/command-centre/setup" className="font-semibold text-[#2563EB]">set up a team</Link>.
+          No template uses that filter. Clear it, or <Link href="/command-centre/lead-agent" className="font-semibold text-[#2563EB]">build the full team</Link>.
         </p>
       ) : null}
     </div>

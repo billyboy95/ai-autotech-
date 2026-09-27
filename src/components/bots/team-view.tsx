@@ -9,8 +9,8 @@ export function TeamView({ departments, bots }: { departments: string[]; bots: S
       <PageLead
         title="Team"
         body="People and agents share a department. Each agent reports to the human lead. Nothing is sent."
-        action="Set up a team"
-        href="/command-centre/setup"
+        action="Build the full team"
+        href="/command-centre/lead-agent"
       />
       {departments.map((department) => {
         const label = DEPARTMENT_LABELS[department as keyof typeof DEPARTMENT_LABELS] || department;

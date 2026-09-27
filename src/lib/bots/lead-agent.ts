@@ -111,7 +111,7 @@ export function replyToLeadAgent(raw: string): LeadAgentReply {
   if (!text) {
     return {
       message: "Name a page, or a business such as a clinic. Nothing is sent.",
-      links: [{ href: "/command-centre/setup", label: "Set up a team" }],
+      links: [{ href: "/command-centre/lead-agent", label: "Build the full team" }],
       recommendation: null,
     };
   }
@@ -135,8 +135,8 @@ export function replyToLeadAgent(raw: string): LeadAgentReply {
       channels: [],
     });
     return {
-      message: `${recommendation.templateName} is the full team. Open setup to answer each agent's questions. Nothing is sent.`,
-      links: [{ href: "/command-centre/setup", label: "Set up this business" }],
+      message: `${recommendation.templateName} is the full team. Open the Lead Agent to answer each agent's questions. Nothing is sent.`,
+      links: [{ href: "/command-centre/lead-agent", label: "Build the full team" }],
       recommendation,
     };
   }
@@ -150,7 +150,7 @@ export function replyToLeadAgent(raw: string): LeadAgentReply {
   }
   return {
     message: "Try a menu name, such as Inbox, Team, or Billing. Or name a business, such as a clinic or a clothing brand. Nothing is sent.",
-    links: [{ href: "/command-centre/setup", label: "Set up a team" }],
+    links: [{ href: "/command-centre/lead-agent", label: "Build the full team" }],
     recommendation: null,
   };
 }

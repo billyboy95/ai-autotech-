@@ -1,5 +1,6 @@
 import { botsInBundle, bundleBySlug, templateBySlug, type CatalogBot } from "@/lib/bots/catalog";
 import { DEPARTMENT_LABELS, type AgentDepartment } from "@/lib/bots/catalog-data";
+import { quoteAgents } from "@/lib/pricing/price-sheet";
 
 export const SETUP_STAGES = ["idea", "starting", "running"] as const;
 export type SetupStage = (typeof SETUP_STAGES)[number];
@@ -37,6 +38,8 @@ export type RecommendedAgent = {
   slug: string;
   name: string;
   department: string;
+  tier: string;
+  includedHours: number;
   why: string;
   monthlyPriceCents: number;
 };
@@ -46,9 +49,13 @@ export type TeamRecommendation = {
   templateName: string;
   agents: RecommendedAgent[];
   separateTotalCents: number;
+  agentTotalCents: number;
+  platformFeeCents: number;
   monthlyPriceCents: number;
   savingCents: number;
   savingPercent: number;
+  pooledHours: number;
+  setupFeeCents: number;
   currency: "ZAR";
   pricePlaceholder: true;
 };
@@ -97,17 +104,6 @@ const GOAL_DEPARTMENTS: Record<SetupGoal, AgentDepartment[]> = {
   content: ["content", "social", "branding", "ads"],
   admin: ["admin", "operations", "finance", "booking", "onboarding"],
 };
-
-export function teamPrice(amounts: number[]) {
-  const separateTotalCents = amounts.reduce((sum, amount) => sum + amount, 0);
-  if (amounts.length <= 1) {
-    return { separateTotalCents, monthlyPriceCents: separateTotalCents, savingCents: 0, savingPercent: 0 };
-  }
-  const savingCents = Math.round(separateTotalCents * 0.2);
-  const monthlyPriceCents = separateTotalCents - savingCents;
-  const savingPercent = separateTotalCents === 0 ? 0 : Math.round((savingCents * 100) / separateTotalCents);
-  return { separateTotalCents, monthlyPriceCents, savingCents, savingPercent };
-}
 
 function textOf(value: unknown): string {
   if (typeof value === "string") return value;
@@ -215,6 +211,8 @@ function toAgent(bot: CatalogBot, templateName: string): RecommendedAgent {
     slug: bot.slug,
     name: bot.name,
     department: bot.department,
+    tier: bot.tier,
+    includedHours: bot.includedHours,
     why: whyFor(bot, templateName),
     monthlyPriceCents: bot.monthlyPriceCents,
   };
@@ -229,15 +227,22 @@ export function recommendTeam(answers: SetupAnswers): TeamRecommendation {
   const template = templateBySlug(templateSlug);
   const bundle = bundleBySlug(templateSlug);
   const bots = botsInBundle(bundle);
-  const price = teamPrice(bots.map((bot) => bot.monthlyPriceCents));
+  const quote = quoteAgents(
+    bots.map((bot) => ({ cents: bot.monthlyPriceCents, hours: bot.includedHours })),
+    template.slug,
+  );
   return {
     templateSlug,
     templateName: template.name,
     agents: bots.map((bot) => toAgent(bot, template.name)),
-    separateTotalCents: price.separateTotalCents,
-    monthlyPriceCents: price.monthlyPriceCents,
-    savingCents: price.savingCents,
-    savingPercent: price.savingPercent,
+    separateTotalCents: quote.agentSubtotalCents,
+    agentTotalCents: quote.agentTotalCents,
+    platformFeeCents: quote.platformFeeCents,
+    monthlyPriceCents: quote.monthlyTotalCents,
+    savingCents: quote.savingCents,
+    savingPercent: quote.discountPercent,
+    pooledHours: quote.pooledHours,
+    setupFeeCents: quote.setupFeeCents,
     currency: "ZAR",
     pricePlaceholder: true,
   };

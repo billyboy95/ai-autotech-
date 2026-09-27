@@ -47,6 +47,8 @@ export type CatalogBot = {
   department: string;
   description: string;
   monthlyPriceCents: number;
+  tier: "starter" | "pro" | "always_on";
+  includedHours: number;
   currency: "ZAR";
   pricePlaceholder: true;
   capabilities: string[];

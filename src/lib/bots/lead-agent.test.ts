@@ -22,7 +22,11 @@ test("the Lead Agent opens every menu item and does not send", () => {
 test("the Lead Agent recommends a team without an API key", () => {
   const clinic = replyToLeadAgent("clinic");
   assert.equal(clinic.recommendation?.templateSlug, "healthcare-clinic");
-  assert.equal(clinic.recommendation?.monthlyPriceCents, bundleBySlug("healthcare-clinic").bundlePriceCents);
+  assert.equal(clinic.recommendation?.agentTotalCents, bundleBySlug("healthcare-clinic").bundlePriceCents);
+  assert.equal(
+    clinic.recommendation?.monthlyPriceCents,
+    (clinic.recommendation?.platformFeeCents ?? 0) + (clinic.recommendation?.agentTotalCents ?? 0),
+  );
   assert.deepEqual(clinic.recommendation?.agents.map((agent) => agent.slug), bundleBySlug("healthcare-clinic").botSlugs);
   const youtube = replyToLeadAgent("faceless youtube");
   assert.equal(youtube.recommendation?.templateSlug, "faceless-youtube");

@@ -57,12 +57,17 @@ export function BotStoreView({ data }: { data: BotStoreData }) {
               <p className="mt-2 text-sm text-slate-600">{bundle.description}</p>
               <p className="mt-2 text-sm text-slate-700">{bundle.botNames.join(", ")}</p>
               <p className="mt-3 text-sm text-slate-700">
-                <span className="line-through">{rands(bundle.separateTotalCents)}</span>
-                {" "}
+                {bundle.savingPercent > 0 ? (
+                  <span className="line-through">{rands(bundle.separateTotalCents)} </span>
+                ) : null}
                 <span className="font-display text-xl font-bold text-[#0B1F3A]">{rands(bundle.bundlePriceCents)}</span>
                 <span> / month</span>
               </p>
-              <p className="text-sm font-semibold text-emerald-700">{`Save ${bundle.savingPercent}% vs buying separately`}</p>
+              {bundle.savingPercent > 0 ? (
+                <p className="text-sm font-semibold text-emerald-700">{`Save ${bundle.savingPercent}% vs buying separately`}</p>
+              ) : (
+                <p className="text-sm text-slate-700">Full price. A team discount starts at 3 agents.</p>
+              )}
               <div className="mt-3">
                 <TrialForm slug={data.orgSlug} bundle={bundle.slug} intent="trial" label="Start trial" />
               </div>

@@ -209,6 +209,7 @@ begin
       b.slug,
       b.bundle_price_cents,
       b.discount_percent,
+      count(c.slug)::integer as bot_count,
       coalesce(sum(c.monthly_price_cents), 0)::integer as separate_total,
       coalesce(max(c.monthly_price_cents), 0)::integer as max_bot
     from public.bot_bundles b
@@ -220,7 +221,16 @@ begin
       continue;
     end if;
     quoted := public.bot_bundle_quoted_price(rec.bundle_price_cents, rec.discount_percent, rec.separate_total);
-    if quoted is null or quoted <= rec.max_bot or quoted >= rec.separate_total then
+    if rec.bot_count < 3 then
+      if quoted is null or quoted <> rec.separate_total then
+        raise exception 'bundle discount rule: % has no team discount until 3 agents', rec.slug
+          using errcode = '23514';
+      end if;
+      if rec.bot_count > 1 and quoted <= rec.max_bot then
+        raise exception 'bundle discount rule: % total must be greater than the most expensive bot', rec.slug
+          using errcode = '23514';
+      end if;
+    elsif quoted is null or quoted <= rec.max_bot or quoted >= rec.separate_total then
       raise exception 'bundle discount rule: % total must be greater than the most expensive bot and less than the sum of its bots', rec.slug
         using errcode = '23514';
     end if;
@@ -985,10 +995,10 @@ begin
     raise exception 'team required';
   end if;
 
-  if n = 1 then
+  if n < 3 then
     bundle_price := separate_total;
   else
-    bundle_price := separate_total - round(separate_total * 0.2)::integer;
+    bundle_price := separate_total - round(separate_total * public.team_discount_percent(n) / 100.0)::integer;
     if bundle_price <= max_price or bundle_price >= separate_total then
       raise exception 'bundle discount rule';
     end if;
@@ -1077,10 +1087,70 @@ begin
 end
 $service_grants$;
 
+-- Price sheet. Numbers are seeded from src/lib/pricing/price-sheet.ts. All rows stay placeholders.
+create table if not exists public.pricing_sheet (
+  key text primary key,
+  amount_cents integer,
+  quantity numeric,
+  percent numeric,
+  price_placeholder boolean not null default true,
+  note text not null default ''
+);
+
+alter table public.pricing_sheet enable row level security;
+drop policy if exists pricing_sheet_read on public.pricing_sheet;
+create policy pricing_sheet_read on public.pricing_sheet
+  for select to authenticated
+  using (true);
+
+revoke all on public.pricing_sheet from public, anon;
+grant select on public.pricing_sheet to authenticated;
+
+create or replace function public.team_discount_percent(p_count integer)
+returns numeric
+language sql
+stable
+set search_path = public
+as $$
+  select coalesce((
+    select percent
+    from public.pricing_sheet
+    where key = case
+      when p_count >= 10 then 'discount_10'
+      when p_count >= 5 then 'discount_5'
+      when p_count >= 3 then 'discount_3'
+      else ''
+    end
+  ), 0);
+$$;
+
+revoke all on function public.team_discount_percent(integer) from public, anon;
+grant execute on function public.team_discount_percent(integer) to authenticated;
+
 -- Placeholder prices, to be confirmed by Billy.
--- Seed is generated from src/lib/bots/catalog-data.ts. Agents and bots are the same catalogue.
+-- Seed is generated from src/lib/pricing/price-sheet.ts. Agents and bots are the same catalogue.
 do $seed$
 begin
+  insert into public.pricing_sheet (key, amount_cents, quantity, percent, price_placeholder, note)
+  values
+    ('platform_fee', 29900, 2, null, true, 'Platform fee. CRM, Lead Agent, and the hour pool.'),
+    ('tier_starter', 69900, 5, null, true, 'Starter agent.'),
+    ('tier_pro', 149900, 12, null, true, 'Pro agent.'),
+    ('tier_always_on', 499900, 40, null, true, 'Always-On agent. 24/7, active hours capped.'),
+    ('discount_3', null, 3, 10, true, 'Team discount from 3 agents.'),
+    ('discount_5', null, 5, 15, true, 'Team discount from 5 agents.'),
+    ('discount_10', null, 10, 20, true, 'Team discount from 10 agents.'),
+    ('topup_10h', 79900, 10, null, true, 'Computer-time top-up.'),
+    ('premium_model_multiplier', null, 2.5, null, true, 'Premium models use hours faster, or bring your own key.'),
+    ('send_markup', null, null, 0, true, 'Per-send markup on WhatsApp, SMS, and email.'),
+    ('setup_fee', 0, null, null, true, 'Once-off setup fee. Per template in the price sheet.')
+  on conflict (key) do update set
+    amount_cents = excluded.amount_cents,
+    quantity = excluded.quantity,
+    percent = excluded.percent,
+    price_placeholder = true,
+    note = excluded.note;
+
   insert into public.bot_catalog (
     slug, name, category, department, description, monthly_price_cents, currency, price_placeholder,
     capabilities, default_config, engine, active
@@ -1088,7 +1158,7 @@ begin
     (
       $q$inbound-lead$q$, $q$Inbound Lead$q$, $q$sales$q$, $q$sales$q$,
       $q$Assigns a new lead and saves an AI reply draft. Nothing is sent.$q$,
-      150000, 'ZAR', true,
+      149900, 'ZAR', true,
       $q$["assign-lead","ai-draft","workflow"]$q$::jsonb,
       $q${"tone":"warm and plain","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:sales-team","stage":"stage:bot:sales-team:new","channel":"whatsapp"}$q$::jsonb,
       $q$ai_reply$q$, true
@@ -1096,7 +1166,7 @@ begin
     (
       $q$outbound-sales$q$, $q$Outbound Sales$q$, $q$sales$q$, $q$sales$q$,
       $q$Drafts outreach after consent and suppression checks. Nothing is sent.$q$,
-      200000, 'ZAR', true,
+      149900, 'ZAR', true,
       $q$["outbox-draft","consent-check"]$q$::jsonb,
       $q${"tone":"direct","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:sales-team","stage":"stage:bot:sales-team:contacted","channel":"whatsapp"}$q$::jsonb,
       $q$outbox_draft$q$, true
@@ -1104,7 +1174,7 @@ begin
     (
       $q$proposal-writer$q$, $q$Proposal Writer$q$, $q$sales$q$, $q$sales$q$,
       $q$Drafts a proposal note for the open deal. Nothing is sent.$q$,
-      140000, 'ZAR', true,
+      149900, 'ZAR', true,
       $q$["ai-draft"]$q$::jsonb,
       $q${"tone":"clear","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:sales-team","stage":"stage:bot:sales-team:proposal","channel":"email"}$q$::jsonb,
       $q$ai_reply$q$, true
@@ -1112,7 +1182,7 @@ begin
     (
       $q$campaign-planner$q$, $q$Campaign Planner$q$, $q$marketing$q$, $q$marketing$q$,
       $q$Plans a campaign and saves a task. Nothing is sent.$q$,
-      150000, 'ZAR', true,
+      69900, 'ZAR', true,
       $q$["task","workflow"]$q$::jsonb,
       $q${"tone":"clear","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:marketing-team","stage":"stage:bot:marketing-team:idea","channel":"email"}$q$::jsonb,
       $q$workflows$q$, true
@@ -1120,7 +1190,7 @@ begin
     (
       $q$email-nurture$q$, $q$Email Nurture$q$, $q$marketing$q$, $q$marketing$q$,
       $q$Drafts a nurture email after consent checks. Nothing is sent.$q$,
-      130000, 'ZAR', true,
+      69900, 'ZAR', true,
       $q$["outbox-draft","consent-check"]$q$::jsonb,
       $q${"tone":"helpful","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:marketing-team","stage":"stage:bot:marketing-team:draft","channel":"email"}$q$::jsonb,
       $q$outbox_draft$q$, true
@@ -1128,7 +1198,7 @@ begin
     (
       $q$offer-manager$q$, $q$Offer Manager$q$, $q$marketing$q$, $q$marketing$q$,
       $q$Drafts an offer for the current campaign. Nothing is published.$q$,
-      140000, 'ZAR', true,
+      69900, 'ZAR', true,
       $q$["ai-draft"]$q$::jsonb,
       $q${"tone":"direct","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:marketing-team","stage":"stage:bot:marketing-team:review","channel":"email"}$q$::jsonb,
       $q$ai_reply$q$, true
@@ -1136,7 +1206,7 @@ begin
     (
       $q$brand-voice$q$, $q$Brand Voice$q$, $q$marketing$q$, $q$branding$q$,
       $q$Drafts lines in the brand voice. Nothing is published.$q$,
-      160000, 'ZAR', true,
+      69900, 'ZAR', true,
       $q$["ai-draft"]$q$::jsonb,
       $q${"tone":"on brand","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:branding","stage":"stage:bot:branding:new","channel":"social"}$q$::jsonb,
       $q$ai_reply$q$, true
@@ -1144,7 +1214,7 @@ begin
     (
       $q$visual-brief$q$, $q$Visual Brief$q$, $q$marketing$q$, $q$branding$q$,
       $q$Writes a visual brief as a task. Nothing is published.$q$,
-      140000, 'ZAR', true,
+      69900, 'ZAR', true,
       $q$["task"]$q$::jsonb,
       $q${"tone":"precise","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:branding","stage":"stage:bot:branding:new","channel":"email"}$q$::jsonb,
       $q$workflows$q$, true
@@ -1152,7 +1222,7 @@ begin
     (
       $q$brand-guidelines$q$, $q$Brand Guidelines$q$, $q$marketing$q$, $q$branding$q$,
       $q$Keeps a guidelines checklist as a task. Nothing is sent.$q$,
-      120000, 'ZAR', true,
+      69900, 'ZAR', true,
       $q$["task"]$q$::jsonb,
       $q${"tone":"plain","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:branding","stage":"stage:bot:branding:new","channel":"email"}$q$::jsonb,
       $q$workflows$q$, true
@@ -1160,7 +1230,7 @@ begin
     (
       $q$inbox-clerk$q$, $q$Inbox Clerk$q$, $q$ops$q$, $q$admin$q$,
       $q$Sorts the inbox into a task list. Nothing is sent.$q$,
-      110000, 'ZAR', true,
+      69900, 'ZAR', true,
       $q$["task"]$q$::jsonb,
       $q${"tone":"plain","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:admin","stage":"stage:bot:admin:new","channel":"email"}$q$::jsonb,
       $q$workflows$q$, true
@@ -1168,7 +1238,7 @@ begin
     (
       $q$document-admin$q$, $q$Document Admin$q$, $q$ops$q$, $q$admin$q$,
       $q$Tracks missing documents as tasks. Nothing is sent.$q$,
-      120000, 'ZAR', true,
+      69900, 'ZAR', true,
       $q$["task"]$q$::jsonb,
       $q${"tone":"careful","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:admin","stage":"stage:bot:admin:new","channel":"email"}$q$::jsonb,
       $q$workflows$q$, true
@@ -1176,7 +1246,7 @@ begin
     (
       $q$calendar-admin$q$, $q$Calendar Admin$q$, $q$ops$q$, $q$admin$q$,
       $q$Drafts a scheduling note and a task. Nothing is sent.$q$,
-      130000, 'ZAR', true,
+      69900, 'ZAR', true,
       $q$["task","calendar-link"]$q$::jsonb,
       $q${"tone":"helpful","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:admin","stage":"stage:bot:admin:new","channel":"email"}$q$::jsonb,
       $q$calendar$q$, true
@@ -1184,7 +1254,7 @@ begin
     (
       $q$ops-coordinator$q$, $q$Operations Coordinator$q$, $q$ops$q$, $q$operations$q$,
       $q$Opens an operations task for the next handoff. Nothing is sent.$q$,
-      150000, 'ZAR', true,
+      69900, 'ZAR', true,
       $q$["task","workflow"]$q$::jsonb,
       $q${"tone":"direct","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:operations","stage":"stage:bot:operations:new","channel":"email"}$q$::jsonb,
       $q$workflows$q$, true
@@ -1192,7 +1262,7 @@ begin
     (
       $q$vendor-followup$q$, $q$Vendor Follow-up$q$, $q$ops$q$, $q$operations$q$,
       $q$Drafts a vendor follow-up after consent checks. Nothing is sent.$q$,
-      130000, 'ZAR', true,
+      69900, 'ZAR', true,
       $q$["outbox-draft","consent-check"]$q$::jsonb,
       $q${"tone":"brief","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:operations","stage":"stage:bot:operations:new","channel":"email"}$q$::jsonb,
       $q$outbox_draft$q$, true
@@ -1200,7 +1270,7 @@ begin
     (
       $q$sop-keeper$q$, $q$SOP Keeper$q$, $q$ops$q$, $q$operations$q$,
       $q$Turns a repeat job into a checklist task. Nothing is sent.$q$,
-      120000, 'ZAR', true,
+      69900, 'ZAR', true,
       $q$["task"]$q$::jsonb,
       $q${"tone":"plain","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:operations","stage":"stage:bot:operations:new","channel":"email"}$q$::jsonb,
       $q$workflows$q$, true
@@ -1208,7 +1278,7 @@ begin
     (
       $q$support-replies$q$, $q$Support Replies$q$, $q$support$q$, $q$customer-service$q$,
       $q$Drafts a support reply. Nothing is sent.$q$,
-      140000, 'ZAR', true,
+      499900, 'ZAR', true,
       $q$["ai-draft"]$q$::jsonb,
       $q${"tone":"calm","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:customer-service","stage":"stage:bot:customer-service:new","channel":"whatsapp"}$q$::jsonb,
       $q$ai_reply$q$, true
@@ -1216,7 +1286,7 @@ begin
     (
       $q$complaint-handler$q$, $q$Complaint Handler$q$, $q$support$q$, $q$customer-service$q$,
       $q$Drafts a complaint reply and a task for a person. Nothing is sent.$q$,
-      150000, 'ZAR', true,
+      69900, 'ZAR', true,
       $q$["ai-draft","task"]$q$::jsonb,
       $q${"tone":"careful","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:customer-service","stage":"stage:bot:customer-service:new","channel":"email"}$q$::jsonb,
       $q$ai_reply$q$, true
@@ -1224,7 +1294,7 @@ begin
     (
       $q$faq-drafts$q$, $q$FAQ Drafts$q$, $q$support$q$, $q$customer-service$q$,
       $q$Drafts an answer from the usual questions. Nothing is sent.$q$,
-      110000, 'ZAR', true,
+      69900, 'ZAR', true,
       $q$["ai-draft"]$q$::jsonb,
       $q${"tone":"plain","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:customer-service","stage":"stage:bot:customer-service:new","channel":"email"}$q$::jsonb,
       $q$ai_reply$q$, true
@@ -1232,7 +1302,7 @@ begin
     (
       $q$receptionist$q$, $q$Receptionist$q$, $q$support$q$, $q$booking$q$,
       $q$Drafts a booking reply and a front-desk task. Nothing is sent.$q$,
-      140000, 'ZAR', true,
+      499900, 'ZAR', true,
       $q$["calendar-link","task","ai-draft"]$q$::jsonb,
       $q${"tone":"warm","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:booking","stage":"stage:bot:booking:new","channel":"whatsapp"}$q$::jsonb,
       $q$calendar$q$, true
@@ -1240,7 +1310,7 @@ begin
     (
       $q$reminder-drafts$q$, $q$Reminder Drafts$q$, $q$support$q$, $q$booking$q$,
       $q$Drafts an appointment reminder after consent checks. Nothing is sent.$q$,
-      120000, 'ZAR', true,
+      69900, 'ZAR', true,
       $q$["outbox-draft","consent-check","calendar-link"]$q$::jsonb,
       $q${"tone":"friendly","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:booking","stage":"stage:bot:booking:new","channel":"whatsapp"}$q$::jsonb,
       $q$outbox_draft$q$, true
@@ -1248,7 +1318,7 @@ begin
     (
       $q$waitlist$q$, $q$Waitlist$q$, $q$support$q$, $q$booking$q$,
       $q$Keeps a waitlist task when the diary is full. Nothing is sent.$q$,
-      100000, 'ZAR', true,
+      69900, 'ZAR', true,
       $q$["task"]$q$::jsonb,
       $q${"tone":"brief","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:booking","stage":"stage:bot:booking:new","channel":"whatsapp"}$q$::jsonb,
       $q$workflows$q$, true
@@ -1256,7 +1326,7 @@ begin
     (
       $q$invoice-drafts$q$, $q$Invoice Drafts$q$, $q$ops$q$, $q$finance$q$,
       $q$Drafts an invoice note as a task. Nothing is charged and nothing is sent.$q$,
-      140000, 'ZAR', true,
+      69900, 'ZAR', true,
       $q$["task"]$q$::jsonb,
       $q${"tone":"formal","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:finance","stage":"stage:bot:finance:new","channel":"email"}$q$::jsonb,
       $q$workflows$q$, true
@@ -1264,7 +1334,7 @@ begin
     (
       $q$bookkeeping-notes$q$, $q$Bookkeeping Notes$q$, $q$ops$q$, $q$finance$q$,
       $q$Files a bookkeeping task for the month. Nothing is sent.$q$,
-      150000, 'ZAR', true,
+      69900, 'ZAR', true,
       $q$["task"]$q$::jsonb,
       $q${"tone":"precise","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:finance","stage":"stage:bot:finance:new","channel":"email"}$q$::jsonb,
       $q$workflows$q$, true
@@ -1272,7 +1342,7 @@ begin
     (
       $q$payment-chase$q$, $q$Payment Chase$q$, $q$ops$q$, $q$finance$q$,
       $q$Drafts a payment reminder after consent checks. Nothing is sent.$q$,
-      130000, 'ZAR', true,
+      69900, 'ZAR', true,
       $q$["outbox-draft","consent-check"]$q$::jsonb,
       $q${"tone":"polite","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:finance","stage":"stage:bot:finance:new","channel":"email"}$q$::jsonb,
       $q$outbox_draft$q$, true
@@ -1280,7 +1350,7 @@ begin
     (
       $q$recruiter-screen$q$, $q$Recruiter Screen$q$, $q$ops$q$, $q$hr$q$,
       $q$Drafts a screening note and a task. Nothing is sent.$q$,
-      150000, 'ZAR', true,
+      69900, 'ZAR', true,
       $q$["ai-draft","task"]$q$::jsonb,
       $q${"tone":"neutral","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:hr","stage":"stage:bot:hr:new","channel":"email"}$q$::jsonb,
       $q$ai_reply$q$, true
@@ -1288,7 +1358,7 @@ begin
     (
       $q$interview-scheduler$q$, $q$Interview Scheduler$q$, $q$ops$q$, $q$hr$q$,
       $q$Drafts an interview time and a booking link. Nothing is sent.$q$,
-      130000, 'ZAR', true,
+      69900, 'ZAR', true,
       $q$["calendar-link","task"]$q$::jsonb,
       $q${"tone":"warm","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:hr","stage":"stage:bot:hr:new","channel":"email"}$q$::jsonb,
       $q$calendar$q$, true
@@ -1296,7 +1366,7 @@ begin
     (
       $q$people-onboarding$q$, $q$People Onboarding$q$, $q$ops$q$, $q$hr$q$,
       $q$Creates a new-hire checklist task. Nothing is sent.$q$,
-      120000, 'ZAR', true,
+      69900, 'ZAR', true,
       $q$["task"]$q$::jsonb,
       $q${"tone":"helpful","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:hr","stage":"stage:bot:hr:new","channel":"email"}$q$::jsonb,
       $q$workflows$q$, true
@@ -1304,7 +1374,7 @@ begin
     (
       $q$onboarding$q$, $q$Onboarding$q$, $q$sales$q$, $q$onboarding$q$,
       $q$Creates onboarding tasks and a booking-link draft. Nothing is sent.$q$,
-      100000, 'ZAR', true,
+      69900, 'ZAR', true,
       $q$["task","calendar-link","workflow"]$q$::jsonb,
       $q${"tone":"helpful","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:sales-team","stage":"stage:bot:sales-team:won","channel":"email"}$q$::jsonb,
       $q$calendar$q$, true
@@ -1312,7 +1382,7 @@ begin
     (
       $q$kickoff-tasks$q$, $q$Kickoff Tasks$q$, $q$sales$q$, $q$onboarding$q$,
       $q$Opens the kickoff task list for a new client. Nothing is sent.$q$,
-      120000, 'ZAR', true,
+      69900, 'ZAR', true,
       $q$["task","workflow"]$q$::jsonb,
       $q${"tone":"clear","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:onboarding","stage":"stage:bot:onboarding:new","channel":"email"}$q$::jsonb,
       $q$workflows$q$, true
@@ -1320,7 +1390,7 @@ begin
     (
       $q$handover-checklist$q$, $q$Handover Checklist$q$, $q$sales$q$, $q$onboarding$q$,
       $q$Writes the handover checklist as a task. Nothing is sent.$q$,
-      110000, 'ZAR', true,
+      69900, 'ZAR', true,
       $q$["task"]$q$::jsonb,
       $q${"tone":"plain","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:onboarding","stage":"stage:bot:onboarding:new","channel":"email"}$q$::jsonb,
       $q$workflows$q$, true
@@ -1328,7 +1398,7 @@ begin
     (
       $q$review-requests$q$, $q$Review Requests$q$, $q$support$q$, $q$reputation$q$,
       $q$Drafts a review request after consent checks. Nothing is sent.$q$,
-      120000, 'ZAR', true,
+      69900, 'ZAR', true,
       $q$["outbox-draft","consent-check"]$q$::jsonb,
       $q${"tone":"grateful","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:reputation","stage":"stage:bot:reputation:new","channel":"whatsapp"}$q$::jsonb,
       $q$outbox_draft$q$, true
@@ -1336,7 +1406,7 @@ begin
     (
       $q$review-replies$q$, $q$Review Replies$q$, $q$support$q$, $q$reputation$q$,
       $q$Drafts a reply to a public review. Nothing is posted.$q$,
-      130000, 'ZAR', true,
+      69900, 'ZAR', true,
       $q$["ai-draft"]$q$::jsonb,
       $q${"tone":"grateful","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:reputation","stage":"stage:bot:reputation:new","channel":"social"}$q$::jsonb,
       $q$ai_reply$q$, true
@@ -1344,7 +1414,7 @@ begin
     (
       $q$rating-watch$q$, $q$Rating Watch$q$, $q$support$q$, $q$reputation$q$,
       $q$Opens a task when a rating needs a person. Nothing is posted.$q$,
-      110000, 'ZAR', true,
+      69900, 'ZAR', true,
       $q$["task"]$q$::jsonb,
       $q${"tone":"calm","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:reputation","stage":"stage:bot:reputation:new","channel":"email"}$q$::jsonb,
       $q$workflows$q$, true
@@ -1352,7 +1422,7 @@ begin
     (
       $q$social-posting$q$, $q$Social Media Posting$q$, $q$marketing$q$, $q$social$q$,
       $q$Drafts social posts only. Nothing is published.$q$,
-      120000, 'ZAR', true,
+      69900, 'ZAR', true,
       $q$["social-post-draft"]$q$::jsonb,
       $q${"tone":"friendly","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:marketing-team","stage":"stage:bot:marketing-team:idea","channel":"social"}$q$::jsonb,
       $q$workflows$q$, true
@@ -1360,7 +1430,7 @@ begin
     (
       $q$community-replies$q$, $q$Community Replies$q$, $q$marketing$q$, $q$social$q$,
       $q$Drafts a reply to a comment. Nothing is published.$q$,
-      130000, 'ZAR', true,
+      69900, 'ZAR', true,
       $q$["ai-draft"]$q$::jsonb,
       $q${"tone":"friendly","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:social","stage":"stage:bot:social:new","channel":"social"}$q$::jsonb,
       $q$ai_reply$q$, true
@@ -1368,7 +1438,7 @@ begin
     (
       $q$content-calendar$q$, $q$Content Calendar$q$, $q$marketing$q$, $q$social$q$,
       $q$Files the week's posts as tasks. Nothing is published.$q$,
-      140000, 'ZAR', true,
+      69900, 'ZAR', true,
       $q$["task"]$q$::jsonb,
       $q${"tone":"bright","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:social","stage":"stage:bot:social:new","channel":"social"}$q$::jsonb,
       $q$workflows$q$, true
@@ -1376,7 +1446,7 @@ begin
     (
       $q$ads$q$, $q$Ads$q$, $q$marketing$q$, $q$ads$q$,
       $q$Drafts ad copy only. Nothing is published.$q$,
-      180000, 'ZAR', true,
+      149900, 'ZAR', true,
       $q$["ad-copy-draft"]$q$::jsonb,
       $q${"tone":"clear","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:marketing-team","stage":"stage:bot:marketing-team:draft","channel":"ads"}$q$::jsonb,
       $q$outbox_draft$q$, true
@@ -1384,7 +1454,7 @@ begin
     (
       $q$search-copy$q$, $q$Search Copy$q$, $q$marketing$q$, $q$ads$q$,
       $q$Drafts search ad lines. Nothing is published.$q$,
-      150000, 'ZAR', true,
+      149900, 'ZAR', true,
       $q$["ad-copy-draft"]$q$::jsonb,
       $q${"tone":"tight","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:ads","stage":"stage:bot:ads:new","channel":"ads"}$q$::jsonb,
       $q$outbox_draft$q$, true
@@ -1392,7 +1462,7 @@ begin
     (
       $q$retargeting-copy$q$, $q$Retargeting Copy$q$, $q$marketing$q$, $q$ads$q$,
       $q$Drafts retargeting copy. Nothing is published.$q$,
-      150000, 'ZAR', true,
+      149900, 'ZAR', true,
       $q$["ad-copy-draft"]$q$::jsonb,
       $q${"tone":"direct","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:ads","stage":"stage:bot:ads:new","channel":"ads"}$q$::jsonb,
       $q$outbox_draft$q$, true
@@ -1400,7 +1470,7 @@ begin
     (
       $q$blog-drafts$q$, $q$Blog Drafts$q$, $q$marketing$q$, $q$content$q$,
       $q$Drafts a short article. Nothing is published.$q$,
-      140000, 'ZAR', true,
+      149900, 'ZAR', true,
       $q$["content-draft"]$q$::jsonb,
       $q${"tone":"useful","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:content","stage":"stage:bot:content:new","channel":"email"}$q$::jsonb,
       $q$workflows$q$, true
@@ -1408,7 +1478,7 @@ begin
     (
       $q$newsletter-drafts$q$, $q$Newsletter Drafts$q$, $q$marketing$q$, $q$content$q$,
       $q$Drafts a newsletter after consent checks. Nothing is sent.$q$,
-      140000, 'ZAR', true,
+      149900, 'ZAR', true,
       $q$["outbox-draft","consent-check"]$q$::jsonb,
       $q${"tone":"warm","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:content","stage":"stage:bot:content:new","channel":"email"}$q$::jsonb,
       $q$outbox_draft$q$, true
@@ -1416,7 +1486,7 @@ begin
     (
       $q$case-study$q$, $q$Case Study$q$, $q$marketing$q$, $q$content$q$,
       $q$Drafts a case study outline as a task. Nothing is published.$q$,
-      160000, 'ZAR', true,
+      149900, 'ZAR', true,
       $q$["task","content-draft"]$q$::jsonb,
       $q${"tone":"specific","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:content","stage":"stage:bot:content:new","channel":"email"}$q$::jsonb,
       $q$workflows$q$, true
@@ -1424,7 +1494,7 @@ begin
     (
       $q$order-status$q$, $q$Order Status$q$, $q$ops$q$, $q$ecommerce$q$,
       $q$Drafts an order update. Nothing is sent.$q$,
-      130000, 'ZAR', true,
+      69900, 'ZAR', true,
       $q$["ai-draft"]$q$::jsonb,
       $q${"tone":"clear","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:ecommerce","stage":"stage:bot:ecommerce:new","channel":"email"}$q$::jsonb,
       $q$ai_reply$q$, true
@@ -1432,7 +1502,7 @@ begin
     (
       $q$fulfilment-tasks$q$, $q$Fulfilment Tasks$q$, $q$ops$q$, $q$ecommerce$q$,
       $q$Opens a fulfilment task for an order. Nothing is sent.$q$,
-      140000, 'ZAR', true,
+      69900, 'ZAR', true,
       $q$["task"]$q$::jsonb,
       $q${"tone":"brief","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:ecommerce","stage":"stage:bot:ecommerce:new","channel":"email"}$q$::jsonb,
       $q$workflows$q$, true
@@ -1440,7 +1510,7 @@ begin
     (
       $q$returns-drafts$q$, $q$Returns Drafts$q$, $q$ops$q$, $q$ecommerce$q$,
       $q$Drafts a returns reply. Nothing is sent.$q$,
-      120000, 'ZAR', true,
+      69900, 'ZAR', true,
       $q$["ai-draft"]$q$::jsonb,
       $q${"tone":"fair","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:ecommerce","stage":"stage:bot:ecommerce:new","channel":"email"}$q$::jsonb,
       $q$ai_reply$q$, true
@@ -1448,7 +1518,7 @@ begin
     (
       $q$ticket-triage$q$, $q$Ticket Triage$q$, $q$support$q$, $q$it-support$q$,
       $q$Turns a support note into a task. Nothing is sent.$q$,
-      140000, 'ZAR', true,
+      69900, 'ZAR', true,
       $q$["task"]$q$::jsonb,
       $q${"tone":"calm","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:it-support","stage":"stage:bot:it-support:new","channel":"email"}$q$::jsonb,
       $q$workflows$q$, true
@@ -1456,7 +1526,7 @@ begin
     (
       $q$password-help$q$, $q$Password Help$q$, $q$support$q$, $q$it-support$q$,
       $q$Drafts password-reset steps. Nothing is sent and no secret is stored.$q$,
-      110000, 'ZAR', true,
+      69900, 'ZAR', true,
       $q$["ai-draft"]$q$::jsonb,
       $q${"tone":"plain","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:it-support","stage":"stage:bot:it-support:new","channel":"email"}$q$::jsonb,
       $q$ai_reply$q$, true
@@ -1464,7 +1534,7 @@ begin
     (
       $q$status-notes$q$, $q$Status Notes$q$, $q$support$q$, $q$it-support$q$,
       $q$Writes an internal status task. Nothing is sent.$q$,
-      100000, 'ZAR', true,
+      69900, 'ZAR', true,
       $q$["task"]$q$::jsonb,
       $q${"tone":"plain","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:it-support","stage":"stage:bot:it-support:new","channel":"email"}$q$::jsonb,
       $q$workflows$q$, true
@@ -1472,7 +1542,7 @@ begin
     (
       $q$scriptwriter$q$, $q$Scriptwriter$q$, $q$marketing$q$, $q$content$q$,
       $q$Drafts a script. Nothing is published.$q$,
-      150000, 'ZAR', true,
+      149900, 'ZAR', true,
       $q$["content-draft"]$q$::jsonb,
       $q${"tone":"clear","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:content","stage":"stage:bot:content:new","channel":"email"}$q$::jsonb,
       $q$workflows$q$, true
@@ -1480,7 +1550,7 @@ begin
     (
       $q$video-editor-brief$q$, $q$Video Editor Brief$q$, $q$marketing$q$, $q$content$q$,
       $q$Writes an editor brief as a task. Nothing is published.$q$,
-      140000, 'ZAR', true,
+      149900, 'ZAR', true,
       $q$["task"]$q$::jsonb,
       $q${"tone":"precise","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:content","stage":"stage:bot:content:new","channel":"email"}$q$::jsonb,
       $q$workflows$q$, true
@@ -1488,7 +1558,7 @@ begin
     (
       $q$thumbnail-brief$q$, $q$Thumbnail Brief$q$, $q$marketing$q$, $q$content$q$,
       $q$Writes a thumbnail and design brief as a task. Nothing is published.$q$,
-      120000, 'ZAR', true,
+      149900, 'ZAR', true,
       $q$["task"]$q$::jsonb,
       $q${"tone":"visual","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:content","stage":"stage:bot:content:new","channel":"email"}$q$::jsonb,
       $q$workflows$q$, true
@@ -1496,7 +1566,7 @@ begin
     (
       $q$seo-titles$q$, $q$SEO Titles$q$, $q$marketing$q$, $q$content$q$,
       $q$Drafts titles and search lines. Nothing is published.$q$,
-      130000, 'ZAR', true,
+      149900, 'ZAR', true,
       $q$["content-draft"]$q$::jsonb,
       $q${"tone":"tight","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:content","stage":"stage:bot:content:new","channel":"email"}$q$::jsonb,
       $q$ai_reply$q$, true
@@ -1504,7 +1574,7 @@ begin
     (
       $q$scheduler-poster$q$, $q$Scheduler$q$, $q$marketing$q$, $q$social$q$,
       $q$Files a posting slot and a draft. Nothing is published.$q$,
-      120000, 'ZAR', true,
+      69900, 'ZAR', true,
       $q$["social-post-draft","task"]$q$::jsonb,
       $q${"tone":"brief","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:social","stage":"stage:bot:social:new","channel":"social"}$q$::jsonb,
       $q$workflows$q$, true
@@ -1512,7 +1582,7 @@ begin
     (
       $q$community-manager$q$, $q$Community Manager$q$, $q$marketing$q$, $q$social$q$,
       $q$Drafts a community reply. Nothing is published.$q$,
-      140000, 'ZAR', true,
+      69900, 'ZAR', true,
       $q$["ai-draft"]$q$::jsonb,
       $q${"tone":"friendly","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:social","stage":"stage:bot:social:new","channel":"social"}$q$::jsonb,
       $q$ai_reply$q$, true
@@ -1520,7 +1590,7 @@ begin
     (
       $q$content-analytics$q$, $q$Content Analytics$q$, $q$marketing$q$, $q$content$q$,
       $q$Writes a performance note as a task. Nothing is sent.$q$,
-      130000, 'ZAR', true,
+      149900, 'ZAR', true,
       $q$["task"]$q$::jsonb,
       $q${"tone":"plain","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:content","stage":"stage:bot:content:new","channel":"email"}$q$::jsonb,
       $q$workflows$q$, true
@@ -1543,117 +1613,117 @@ begin
     (
       $q$sales-team$q$, $q$Sales Team$q$,
       $q$Inbound Lead, Outbound Sales, and Onboarding as one team. Placeholder price, to be confirmed by Billy.$q$,
-      360000, 20, 'ZAR', true
+      332730, 10, 'ZAR', true
     ),
     (
       $q$marketing-team$q$, $q$Marketing Team$q$,
       $q$Ads and Social Media Posting as one team. Placeholder price, to be confirmed by Billy.$q$,
-      240000, 20, 'ZAR', true
+      219800, null, 'ZAR', true
     ),
     (
       $q$admin-team$q$, $q$Admin Team$q$,
       $q$Inbox, documents, and calendar admin as one team. Placeholder price, to be confirmed by Billy.$q$,
-      288000, 20, 'ZAR', true
+      188730, 10, 'ZAR', true
     ),
     (
       $q$operations-team$q$, $q$Operations Team$q$,
       $q$Coordination, vendors, and SOPs as one team. Placeholder price, to be confirmed by Billy.$q$,
-      320000, 20, 'ZAR', true
+      188730, 10, 'ZAR', true
     ),
     (
       $q$full-business$q$, $q$Full Business$q$,
       $q$Sales and marketing agents together. Placeholder price, to be confirmed by Billy.$q$,
-      600000, 20, 'ZAR', true
+      501075, 15, 'ZAR', true
     ),
     (
       $q$healthcare-clinic$q$, $q$Healthcare / clinic$q$,
       $q$Reception, reminders, patient admin, reviews, operations, and billing. Not a sales team. Placeholder price, to be confirmed by Billy.$q$,
-      632000, 20, 'ZAR', true
+      721990, 15, 'ZAR', true
     ),
     (
       $q$fashion-brand$q$, $q$Clothing / fashion$q$,
       $q$Branding, sales, marketing, social, ads, fulfilment, and customer service. Placeholder price, to be confirmed by Billy.$q$,
-      824000, 20, 'ZAR', true
+      917405, 15, 'ZAR', true
     ),
     (
       $q$restaurant-food$q$, $q$Restaurant / food$q$,
       $q$Reception, reminders, reviews, social, and offers. Placeholder price, to be confirmed by Billy.$q$,
-      520000, 20, 'ZAR', true
+      662575, 15, 'ZAR', true
     ),
     (
       $q$real-estate$q$, $q$Real estate$q$,
       $q$Inbound, outbound, proposals, reminders, and reviews. Placeholder price, to be confirmed by Billy.$q$,
-      584000, 20, 'ZAR', true
+      501075, 15, 'ZAR', true
     ),
     (
       $q$education-school$q$, $q$Education / school$q$,
       $q$Admissions desk, documents, reminders, onboarding, and reviews. Uses the Education admissions stages. Placeholder price, to be confirmed by Billy.$q$,
-      480000, 20, 'ZAR', true
+      662575, 15, 'ZAR', true
     ),
     (
       $q$beauty-salon$q$, $q$Beauty / salon / spa$q$,
       $q$Reception, reminders, reviews, social, and brand voice. Placeholder price, to be confirmed by Billy.$q$,
-      528000, 20, 'ZAR', true
+      662575, 15, 'ZAR', true
     ),
     (
       $q$fitness-gym$q$, $q$Fitness / gym$q$,
       $q$Leads, reception, reminders, social, and reviews. Placeholder price, to be confirmed by Billy.$q$,
-      520000, 20, 'ZAR', true
+      730575, 15, 'ZAR', true
     ),
     (
       $q$legal-services$q$, $q$Legal / professional services$q$,
       $q$Intake, documents, diary, invoices, and onboarding. Placeholder price, to be confirmed by Billy.$q$,
-      512000, 20, 'ZAR', true
+      365075, 15, 'ZAR', true
     ),
     (
       $q$trades-home$q$, $q$Trades / home services$q$,
       $q$Leads, reception, reminders, invoices, and reviews. Placeholder price, to be confirmed by Billy.$q$,
-      536000, 20, 'ZAR', true
+      730575, 15, 'ZAR', true
     ),
     (
       $q$automotive$q$, $q$Automotive$q$,
       $q$Leads, reception, reminders, reviews, and invoices. Placeholder price, to be confirmed by Billy.$q$,
-      536000, 20, 'ZAR', true
+      730575, 15, 'ZAR', true
     ),
     (
       $q$ecommerce-store$q$, $q$Ecommerce store$q$,
       $q$Orders, fulfilment, returns, support, ads, and social. Placeholder price, to be confirmed by Billy.$q$,
-      664000, 20, 'ZAR', true
+      789990, 15, 'ZAR', true
     ),
     (
       $q$agency-consulting$q$, $q$Agency / consulting$q$,
       $q$Inbound, outbound, proposals, onboarding, invoices, and content. Placeholder price, to be confirmed by Billy.$q$,
-      696000, 20, 'ZAR', true
+      628490, 15, 'ZAR', true
     ),
     (
       $q$faceless-youtube$q$, $q$Faceless YouTube$q$,
       $q$Scripts, edit briefs, thumbnails, titles, scheduling, and analytics. Placeholder price, to be confirmed by Billy.$q$,
-      632000, 20, 'ZAR', true
+      696490, 15, 'ZAR', true
     ),
     (
       $q$facebook-community$q$, $q$Facebook page / community$q$,
       $q$Community, scheduling, scripts, titles, analytics, and a content calendar. Placeholder price, to be confirmed by Billy.$q$,
-      648000, 20, 'ZAR', true
+      560490, 15, 'ZAR', true
     ),
     (
       $q$tiktok-reels$q$, $q$TikTok / Reels$q$,
       $q$Scripts, edit briefs, thumbnails, scheduling, and community replies. Placeholder price, to be confirmed by Billy.$q$,
-      536000, 20, 'ZAR', true
+      501075, 15, 'ZAR', true
     ),
     (
       $q$podcast$q$, $q$Podcast$q$,
       $q$Scripts, titles, scheduling, community, and analytics. Placeholder price, to be confirmed by Billy.$q$,
-      536000, 20, 'ZAR', true
+      501075, 15, 'ZAR', true
     ),
     (
       $q$personal-brand$q$, $q$Personal brand$q$,
       $q$Scripts, brand voice, scheduling, community, and titles. Placeholder price, to be confirmed by Billy.$q$,
-      560000, 20, 'ZAR', true
+      433075, 15, 'ZAR', true
     ),
     (
       $q$ai-automation-agency$q$, $q$AI agency / automation agency$q$,
       $q$The AI AutoTech shape: inbound, outbound, proposals, onboarding, ads, social, support, and content. Placeholder price, to be confirmed by Billy.$q$,
-      936000, 20, 'ZAR', true
+      1180820, 15, 'ZAR', true
     )
   on conflict (slug) do update set
     name = excluded.name,
@@ -1981,4 +2051,3 @@ begin
     payload = excluded.payload;
 end
 $seed$;
-

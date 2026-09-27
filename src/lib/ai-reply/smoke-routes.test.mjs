@@ -73,7 +73,9 @@ test("inbox, conversation AI, calendars, and public booking respond", { timeout:
     const botsHtml = await bots.text();
     assert.match(botsHtml, /Agent store/);
     assert.match(botsHtml, /Placeholder price/);
-    assert.match(botsHtml, /Save 20% vs buying separately/);
+    assert.match(botsHtml, /Save 10% vs buying separately/);
+    assert.match(botsHtml, /Save 15% vs buying separately/);
+    assert.doesNotMatch(botsHtml, /Save 0%/);
 
     const bot = await fetch(`http://127.0.0.1:${port}/command-centre/bots/inbound-lead`, { redirect: "manual" });
     assert.equal(bot.status, 200);

@@ -99,19 +99,32 @@ test("phase 4a keeps sandbox billing, the bundle discount, and draft-only outbox
     from bot_bundle_savings
     order by slug
   `);
+  const counts = await db.query(`
+    select b.slug, count(i.bot_slug)::int as n
+    from bot_bundles b
+    join bot_bundle_items i on i.bundle_id = b.id
+    group by b.slug
+  `);
+  const countBySlug = Object.fromEntries(counts.rows.map((row) => [row.slug, row.n]));
+  const expectPercent = (count) => (count >= 10 ? 20 : count >= 5 ? 15 : count >= 3 ? 10 : 0);
   const bySlug = Object.fromEntries(savings.rows.map((row) => [row.slug, row]));
-  assert.equal(bySlug["sales-team"].separate_total_cents, 450000);
-  assert.equal(bySlug["sales-team"].bundle_price_cents, 360000);
-  assert.equal(bySlug["sales-team"].saving_percent, 20);
-  assert.ok(bySlug["sales-team"].bundle_price_cents > bySlug["sales-team"].max_bot_cents);
-  assert.ok(bySlug["sales-team"].bundle_price_cents < bySlug["sales-team"].separate_total_cents);
-  assert.equal(bySlug["marketing-team"].saving_percent, 20);
-  assert.equal(bySlug["full-business"].bundle_price_cents, 600000);
-  assert.equal(bySlug["full-business"].separate_total_cents, 750000);
+  assert.equal(bySlug["sales-team"].saving_percent, 10);
+  assert.equal(bySlug["marketing-team"].saving_percent, 0);
+  assert.equal(bySlug["marketing-team"].bundle_price_cents, bySlug["marketing-team"].separate_total_cents);
+  assert.equal(bySlug["full-business"].saving_percent, 15);
+  const sheet = await db.query(`select bool_and(price_placeholder) as ok, count(*)::int as n from pricing_sheet`);
+  assert.equal(sheet.rows[0].ok, true);
+  assert.ok(sheet.rows[0].n >= 11);
+  const platform = await db.query(`select amount_cents::int as amount from pricing_sheet where key = 'platform_fee'`);
+  assert.equal(platform.rows[0].amount, 29900);
   for (const row of savings.rows) {
-    assert.equal(row.saving_percent, 20, row.slug);
+    const percent = expectPercent(countBySlug[row.slug]);
+    const expected = row.separate_total_cents - Math.round((row.separate_total_cents * percent) / 100);
+    assert.equal(row.saving_percent, percent, row.slug);
+    assert.equal(row.bundle_price_cents, expected, row.slug);
     assert.ok(row.bundle_price_cents > row.max_bot_cents, row.slug);
-    assert.ok(row.bundle_price_cents < row.separate_total_cents, row.slug);
+    if (percent === 0) assert.equal(row.bundle_price_cents, row.separate_total_cents, row.slug);
+    else assert.ok(row.bundle_price_cents < row.separate_total_cents, row.slug);
   }
   const templates = await db.query(`select slug from bot_templates`);
   assert.ok(templates.rows.length >= 17);
@@ -121,11 +134,11 @@ test("phase 4a keeps sandbox billing, the bundle discount, and draft-only outbox
   assert.match(education.rows[0].payload, /stage:admissions:enquiry/);
 
   await assert.rejects(
-    db.query(`update bot_bundles set bundle_price_cents = 450000 where slug = 'sales-team'`),
+    db.query(`update bot_bundles set bundle_price_cents = $1 where slug = 'sales-team'`, [bySlug["sales-team"].separate_total_cents]),
     /bundle discount rule/i,
   );
   await assert.rejects(
-    db.query(`update bot_bundles set bundle_price_cents = 200000 where slug = 'sales-team'`),
+    db.query(`update bot_bundles set bundle_price_cents = $1 where slug = 'sales-team'`, [bySlug["sales-team"].max_bot_cents]),
     /bundle discount rule/i,
   );
 
@@ -156,7 +169,7 @@ test("phase 4a keeps sandbox billing, the bundle discount, and draft-only outbox
      from org_bot_billing_lines where org_id = $1`,
     [EASTC_ORG],
   );
-  assert.equal(lines.rows[0].total, 360000);
+  assert.equal(lines.rows[0].total, bySlug["sales-team"].bundle_price_cents);
   assert.equal(lines.rows[0].sandbox, true);
   assert.equal(lines.rows[0].uncharged, true);
   assert.equal(lines.rows[0].n, 3);
@@ -220,14 +233,20 @@ test("phase 4a keeps sandbox billing, the bundle discount, and draft-only outbox
   assert.equal(recommended.rows[0].result.charged, false);
   assert.equal(recommended.rows[0].result.sandbox, true);
   assert.equal(recommended.rows[0].result.sending_enabled, false);
-  assert.equal(recommended.rows[0].result.amount_cents, 304000);
+  const teamPrices = await db.query(
+    `select coalesce(sum(monthly_price_cents), 0)::int as total
+     from bot_catalog
+     where slug in ('receptionist', 'reminder-drafts', 'document-admin')`,
+  );
+  const teamDiscounted = teamPrices.rows[0].total - Math.round((teamPrices.rows[0].total * 10) / 100);
+  assert.equal(recommended.rows[0].result.amount_cents, teamDiscounted);
   const recommendedLines = await db.query(
     `select coalesce(sum(amount_cents), 0)::int as total, bool_and(charged = false) as uncharged
      from org_bot_billing_lines
      where org_id = $1 and bot_slug in ('receptionist', 'reminder-drafts', 'document-admin')`,
     [EASTC_ORG],
   );
-  assert.equal(recommendedLines.rows[0].total, 304000);
+  assert.equal(recommendedLines.rows[0].total, teamDiscounted);
   assert.equal(recommendedLines.rows[0].uncharged, true);
   const sendingAfterTeam = await db.query(`select sending_enabled from organizations where id = $1`, [EASTC_ORG]);
   assert.equal(sendingAfterTeam.rows[0].sending_enabled, false);

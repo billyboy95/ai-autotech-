@@ -1,5 +1,16 @@
 import { BOT_BUNDLES, BOT_CATALOG, TEAM_TEMPLATES } from "@/lib/bots/catalog-data";
 import type { TeamTemplate } from "@/lib/bots/catalog-types";
+import {
+  AGENT_TIERS,
+  DEFAULT_SETUP_FEE_CENTS,
+  PLATFORM_FEE_CENTS,
+  PLATFORM_INCLUDED_HOURS,
+  PREMIUM_MODEL_MULTIPLIER,
+  SEND_MARKUP_PERCENT,
+  TEAM_DISCOUNT_BANDS,
+  TOPUP_CENTS,
+  TOPUP_HOURS,
+} from "@/lib/pricing/price-sheet";
 
 function q(value: string) {
   return `$q$${value}$q$`;
@@ -45,7 +56,7 @@ export function agentSeedSql() {
   const bundles = BOT_BUNDLES.map((bundle) => `    (
       ${q(bundle.slug)}, ${q(bundle.name)},
       ${q(bundle.description)},
-      ${bundle.bundlePriceCents}, ${bundle.discountPercent}, 'ZAR', true
+      ${bundle.bundlePriceCents}, ${bundle.discountPercent > 0 ? bundle.discountPercent : "null"}, 'ZAR', true
     )`).join(",\n");
 
   const items = BOT_BUNDLES.flatMap((bundle) => bundle.botSlugs.map((slug, index) =>
@@ -61,10 +72,32 @@ export function agentSeedSql() {
       ${q(JSON.stringify(payloadOf(template)))}::jsonb
     )`).join(",\n");
 
+  const sheet = [
+    `('platform_fee', ${PLATFORM_FEE_CENTS}, ${PLATFORM_INCLUDED_HOURS}, null, true, 'Platform fee. CRM, Lead Agent, and the hour pool.')`,
+    `('tier_starter', ${AGENT_TIERS.starter.cents}, ${AGENT_TIERS.starter.hours}, null, true, 'Starter agent.')`,
+    `('tier_pro', ${AGENT_TIERS.pro.cents}, ${AGENT_TIERS.pro.hours}, null, true, 'Pro agent.')`,
+    `('tier_always_on', ${AGENT_TIERS.always_on.cents}, ${AGENT_TIERS.always_on.hours}, null, true, 'Always-On agent. 24/7, active hours capped.')`,
+    ...TEAM_DISCOUNT_BANDS.map((band) => `('${band.key}', null, ${band.minAgents}, ${band.percent}, true, 'Team discount from ${band.minAgents} agents.')`),
+    `('topup_10h', ${TOPUP_CENTS}, ${TOPUP_HOURS}, null, true, 'Computer-time top-up.')`,
+    `('premium_model_multiplier', null, ${PREMIUM_MODEL_MULTIPLIER}, null, true, 'Premium models use hours faster, or bring your own key.')`,
+    `('send_markup', null, null, ${SEND_MARKUP_PERCENT}, true, 'Per-send markup on WhatsApp, SMS, and email.')`,
+    `('setup_fee', ${DEFAULT_SETUP_FEE_CENTS}, null, null, true, 'Once-off setup fee. Per template in the price sheet.')`,
+  ].map((row) => `    ${row}`).join(",\n");
+
   return `-- Placeholder prices, to be confirmed by Billy.
--- Seed is generated from src/lib/bots/catalog-data.ts. Agents and bots are the same catalogue.
+-- Seed is generated from src/lib/pricing/price-sheet.ts. Agents and bots are the same catalogue.
 do $seed$
 begin
+  insert into public.pricing_sheet (key, amount_cents, quantity, percent, price_placeholder, note)
+  values
+${sheet}
+  on conflict (key) do update set
+    amount_cents = excluded.amount_cents,
+    quantity = excluded.quantity,
+    percent = excluded.percent,
+    price_placeholder = true,
+    note = excluded.note;
+
   insert into public.bot_catalog (
     slug, name, category, department, description, monthly_price_cents, currency, price_placeholder,
     capabilities, default_config, engine, active

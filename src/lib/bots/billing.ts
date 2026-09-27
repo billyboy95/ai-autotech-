@@ -4,6 +4,7 @@ import { createPayfastProvider } from "@/lib/billing/payfast";
 import type { CheckoutResult } from "@/lib/billing/types";
 import { bundleBySlug, botBySlug, botsInBundle, type BotStatus } from "@/lib/bots/catalog";
 import { allocateBundlePrice, assertBundleDiscount, lineAmountForBot } from "@/lib/bots/pricing";
+import { PLATFORM_FEE_CENTS } from "@/lib/pricing/price-sheet";
 
 export type BotBillingLine = {
   orgId: string;
@@ -97,7 +98,7 @@ export function openBotCheckout(input: {
   const code = input.bundleSlug || input.botSlug || "bot";
   const name = input.bundleSlug ? bundleBySlug(input.bundleSlug).name : botBySlug(input.botSlug || "").name;
   const priced = linesFor(input.orgId, input.botSlug ?? null, input.bundleSlug ?? null, input.intent === "trial" ? "trial" : "active");
-  const amountCents = priced.reduce((sum, line) => sum + line.amountCents, 0);
+  const amountCents = priced.reduce((sum, line) => sum + line.amountCents, 0) + PLATFORM_FEE_CENTS;
   const checkout = createPayfastProvider(emptyBook(), env).createCheckout(
     { id: input.orgId, name: input.orgName, email: input.email, slug: code },
     { code, name, priceCents: amountCents, interval: "month", currency: "ZAR" },

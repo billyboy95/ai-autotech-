@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { bundleBySlug } from "@/lib/bots/catalog";
+import { teamDiscountPercent } from "@/lib/pricing/price-sheet";
 import {
   auditToSetup,
   polishRecommendationExplanations,
@@ -18,13 +19,18 @@ function priced(recommendation: TeamRecommendation) {
 
 function assertFullDiscount(recommendation: TeamRecommendation) {
   const { separate, max } = priced(recommendation);
+  const percent = teamDiscountPercent(recommendation.agents.length);
+  const saving = Math.round((separate * percent) / 100);
   assert.ok(recommendation.agents.length >= 2);
-  assert.equal(recommendation.savingPercent, 20);
+  assert.equal(recommendation.savingPercent, percent);
   assert.equal(recommendation.separateTotalCents, separate);
-  assert.ok(recommendation.monthlyPriceCents > max);
-  assert.ok(recommendation.monthlyPriceCents < separate);
-  assert.equal(recommendation.monthlyPriceCents, separate - Math.round(separate * 0.2));
-  assert.equal(recommendation.monthlyPriceCents, bundleBySlug(recommendation.templateSlug).bundlePriceCents);
+  assert.equal(recommendation.agentTotalCents, separate - saving);
+  assert.equal(recommendation.monthlyPriceCents, recommendation.platformFeeCents + recommendation.agentTotalCents);
+  assert.equal(recommendation.agentTotalCents, bundleBySlug(recommendation.templateSlug).bundlePriceCents);
+  assert.ok(recommendation.agentTotalCents > max);
+  if (percent > 0) assert.ok(recommendation.agentTotalCents < separate);
+  else assert.equal(recommendation.agentTotalCents, separate);
+  assert.equal(recommendation.pooledHours, 2 + recommendation.agents.reduce((sum, agent) => sum + agent.includedHours, 0));
   assert.equal(Object.hasOwn(recommendation, "later"), false);
   assert.equal(Object.hasOwn(recommendation, "start"), false);
 }

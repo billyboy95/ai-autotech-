@@ -24,8 +24,12 @@ export function bundleSaving(bundle: CatalogBundle, bots: CatalogBot[] = botsInB
 
 export function assertBundleDiscount(bundle: CatalogBundle, bots: CatalogBot[] = botsInBundle(bundle)) {
   const saving = bundleSaving(bundle, bots);
-  if (saving.bundlePriceCents <= saving.maxBotCents || saving.bundlePriceCents >= saving.separateTotalCents) {
-    throw new Error("bundle discount rule: bundle total must be greater than the most expensive bot and less than the sum of its bots");
+  if (bots.length >= 3) {
+    if (saving.bundlePriceCents <= saving.maxBotCents || saving.bundlePriceCents >= saving.separateTotalCents) {
+      throw new Error("bundle discount rule: bundle total must be greater than the most expensive bot and less than the sum of its bots");
+    }
+  } else if (saving.bundlePriceCents !== saving.separateTotalCents || (bots.length > 1 && saving.bundlePriceCents <= saving.maxBotCents)) {
+    throw new Error("bundle discount rule: a team under 3 agents has no discount");
   }
   return saving;
 }

@@ -8,6 +8,7 @@ import { AGENT_DEPARTMENTS, BOT_CATALOG, BOT_BUNDLES, EDUCATION_ADMISSIONS_PIPEL
 import { EDUCATION_PAYLOAD } from "@/lib/snapshots/catalog";
 import { isBotAssistantEnabled } from "@/lib/bots/flag";
 import { allocateBundlePrice, assertBundleDiscount, bundleSaving } from "@/lib/bots/pricing";
+import { PLATFORM_FEE_CENTS, teamDiscountPercent } from "@/lib/pricing/price-sheet";
 import { runBot } from "@/lib/bots/runtime";
 import { applyTeamTemplate, emptyTemplateBook } from "@/lib/bots/templates";
 
@@ -23,9 +24,12 @@ test("catalogue prices are placeholders and every bundle is a real group discoun
   assert.equal(BOT_CATALOG.every((bot) => bot.pricePlaceholder && bot.currency === "ZAR"), true);
   for (const bundle of BOT_BUNDLES) {
     const saving = assertBundleDiscount(bundle);
-    assert.equal(saving.savingPercent, 20);
+    const percent = teamDiscountPercent(bundle.botSlugs.length);
+    assert.equal(saving.savingPercent, percent);
+    assert.equal(bundle.pricePlaceholder, true);
     assert.ok(saving.bundlePriceCents > saving.maxBotCents);
-    assert.ok(saving.bundlePriceCents < saving.separateTotalCents);
+    if (percent === 0) assert.equal(saving.bundlePriceCents, saving.separateTotalCents);
+    else assert.ok(saving.bundlePriceCents < saving.separateTotalCents);
     const shares = allocateBundlePrice(
       bundle.botSlugs.map((slug) => BOT_CATALOG.find((bot) => bot.slug === slug)!),
       saving.bundlePriceCents,
@@ -33,8 +37,9 @@ test("catalogue prices are placeholders and every bundle is a real group discoun
     assert.equal(shares.reduce((sum, line) => sum + line.amountCents, 0), saving.bundlePriceCents);
   }
   const sales = bundleBySlug("sales-team");
-  assert.equal(sales.bundlePriceCents, 360_000);
-  assert.equal(bundleBySlug("full-business").bundlePriceCents, 600_000);
+  assert.equal(sales.discountPercent, 10);
+  assert.equal(bundleBySlug("marketing-team").discountPercent, 0);
+  assert.equal(bundleBySlug("full-business").discountPercent, 15);
   assert.ok(BOT_CATALOG.length >= 40);
   assert.equal(new Set(BOT_CATALOG.map((bot) => bot.slug)).size, BOT_CATALOG.length);
   for (const department of AGENT_DEPARTMENTS) {
@@ -68,6 +73,8 @@ test("sandbox checkout never charges and does not add a second subscription", ()
   assert.equal(ledger.subscriptions.length, 1);
   assert.equal(ledger.lines.length, 3);
   assert.equal(ledger.lines.every((line) => line.sandbox && line.charged === false), true);
+  assert.equal(ledger.lines.reduce((sum, line) => sum + line.amountCents, 0), bundleBySlug("sales-team").bundlePriceCents);
+  assert.equal(trial.checkout.fields?.amount, ((bundleBySlug("sales-team").bundlePriceCents + PLATFORM_FEE_CENTS) / 100).toFixed(2));
 
   const again = addSandboxBotLines(ledger, trial.lines);
   assert.equal(again.lines.length, 3);

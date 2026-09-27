@@ -21,6 +21,7 @@ export type CommandChrome = {
 
 const links = [
   ["/command-centre", "Today"],
+  ["/command-centre/inbox", "Inbox"],
   ["/command-centre/pipeline", "Pipeline"],
   ["/command-centre/outbox", "Outbox"],
   ["/command-centre/campaigns", "Campaigns"],
@@ -39,11 +40,13 @@ export function CrmFrame({
   children,
   setupError,
   sendingEnabled = false,
+  inboxUnread = 0,
   chrome,
 }: {
   children: ReactNode;
   setupError?: string | null;
   sendingEnabled?: boolean;
+  inboxUnread?: number;
   chrome?: CommandChrome | null;
 }) {
   const pathname = usePathname();
@@ -92,6 +95,11 @@ export function CrmFrame({
                 }`}
               >
                 {label}
+                {href.endsWith("/inbox") && inboxUnread > 0 ? (
+                  <span className={`ml-2 rounded-full px-1.5 text-xs ${active ? "bg-white/20 text-white" : "bg-[#2563EB] text-white"}`}>
+                    {inboxUnread}
+                  </span>
+                ) : null}
               </Link>
             );
           })}

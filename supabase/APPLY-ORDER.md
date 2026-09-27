@@ -30,6 +30,7 @@ PR #3 is merged. Its files are on `main` and are still unapplied. Run them after
 9. `supabase/migrations/20261015140000_phase2b_channels_popia.sql`
 10. `supabase/migrations/20261016120000_phase2c_snapshots.sql`
 11. `supabase/migrations/20261017120000_phase2d_workflows.sql`
+12. `supabase/migrations/20261018120000_phase2e_inbox.sql`
 
 Why this order:
 
@@ -43,6 +44,7 @@ Why this order:
 - `phase2b_channels_popia` adds channel connections, the vault secret RPCs, POPIA contacts, rate cards, and the usage ledger. It alters `crm_outbox` when that table exists, so it follows the automation and compliance files. It does not turn sending on and it does not put provider secrets in the migration.
 - `phase2c_snapshots` adds pipelines, pipeline stages, message templates, sequences, custom fields, and workspace snapshots. It adds `crm_leads.stage_id` only where the stage name matches exactly one stage in that organisation, and it adds `asset_key` on the phase 1 sequence tables. It follows phase 2b. Snapshot payloads do not include contacts, messages, or secrets. Applying a snapshot does not turn sending on.
 - `phase2d_workflows` adds the workflow engine tables (`events`, `workflows`, `workflow_runs`, `workflow_run_logs`, `workflow_alerts`, `contact_tags`) and seeds one workflow row per organisation for the phase 1 assignment, stage, and sequence behaviour. It follows phase 2c because snapshot export and apply grow a `workflows` array. `workflow_engine_enabled` stays false, and `sending_enabled` stays false. Leave `WORKFLOW_ENGINE_ENABLED` unset until this file has been applied. Snapshot export then includes workflows and still excludes contacts, messages, and secrets.
+- `phase2e_inbox` adds `conversations`, `messages`, and `conversation_notes`, with org indexes and RLS. A `client_user` with `assigned_only` only sees conversations assigned to them. Inbound WhatsApp opens a 24-hour window; free-form replies after that are rejected unless the row points at an approved template. The monthly free service-message counter is `wa_service_sends_this_month` (1,000 per WhatsApp number from 1 Oct 2026). Realtime tables are added to `supabase_realtime` when that publication already exists. This file does not turn `sending_enabled` on. Inbound messages call `record_workflow_event` for `message.inbound`. Apply it after phase 2d.
 
 ## Workflow runner schedule
 

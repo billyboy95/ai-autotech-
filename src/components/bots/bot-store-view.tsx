@@ -15,7 +15,7 @@ export function BotStoreView({ data }: { data: BotStoreData }) {
     <div data-testid="bot-store" className="grid gap-4">
       <PageLead
         title="Agent store"
-        body="Agents and bots are the same thing. The fastest start is a whole team. Prices are placeholders until Billy confirms them. Sandbox only."
+        body="Agents and bots are the same thing. Platform is R299/mo, then Starter, Pro, or Always-On. The Lead Agent is included. Prices exclude VAT and stay placeholders until Billy publishes them. Sandbox only."
         action="Set up a team"
         href="/command-centre/setup"
       />
@@ -34,7 +34,11 @@ export function BotStoreView({ data }: { data: BotStoreData }) {
                   <span className="rounded-full bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-900">Placeholder price</span>
                 </div>
                 <p className="mt-2 text-sm text-slate-600">{bot.description}</p>
-                <p className="mt-3 font-display text-xl font-bold text-[#0B1F3A]">{rands(bot.monthlyPriceCents)} <span className="text-sm font-semibold text-slate-700">/ month</span></p>
+                <p className="mt-3 font-display text-xl font-bold text-[#0B1F3A]">
+                  {bot.tier === "included" ? "Included" : rands(bot.monthlyPriceCents)}{" "}
+                  <span className="text-sm font-semibold text-slate-700">{bot.tier === "included" ? "with platform" : "/ month"}</span>
+                </p>
+                <p className="text-xs font-semibold text-slate-700">{bot.tierLabel} · {bot.includedHours}h computer time</p>
                 <p className="text-xs text-slate-700">{bot.installedStatus ? `Installed · ${bot.installedStatus}` : "Not installed"} · {bot.engine}</p>
                 <div className="mt-3">
                   <TrialForm slug={data.orgSlug} bot={bot.slug} intent="trial" label="Start trial" />

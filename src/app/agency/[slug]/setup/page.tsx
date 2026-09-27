@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { ProvisionChecklist } from "@/components/provision-checklist";
-import { PLAN_OPTIONS } from "@/lib/snapshots/catalog";
+import { planLabel } from "@/lib/snapshots/catalog";
 import { resolveWorkspace } from "@/lib/tenant/context";
 import { findOrgBySlug, listStages } from "@/lib/tenant/data";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -49,7 +49,7 @@ export default async function WorkspaceSetupPage({
   if (!org) notFound();
   const stages = await listStages(org.id);
   const plan = await readPlan(org.id);
-  const planLabel = PLAN_OPTIONS.find((item) => item.key === plan)?.label ?? plan;
+  const label = planLabel(plan);
   const invite = typeof query.invite === "string" && /^[0-9a-f]+$/i.test(query.invite) ? `/invite/${query.invite}` : null;
 
   return (
@@ -59,7 +59,7 @@ export default async function WorkspaceSetupPage({
         <ProvisionChecklist
           name={org.name}
           sendingEnabled={org.sendingEnabled}
-          planLabel={planLabel}
+          planLabel={label}
           stages={stages}
           invitePath={invite}
           settingsHref={`/agency/${slug}/settings`}

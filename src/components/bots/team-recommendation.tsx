@@ -1,7 +1,7 @@
 "use client";
 
 import { formatZar } from "@/lib/automation/ids";
-import { AGENT_TIERS, PREMIUM_MODEL_MULTIPLIER, SEND_MARKUP_PERCENT, TOPUP_CENTS, TOPUP_HOURS, type AgentTier } from "@/lib/pricing/price-sheet";
+import { PREMIUM_MODEL_NOTE, SEND_MARKUP_MULTIPLIER, SETUP_LINES, TOPUP_CENTS, TOPUP_HOURS, tierLabel } from "@/lib/pricing/price-sheet";
 import type { TeamRecommendation } from "@/lib/bots/recommend";
 
 function money(cents: number) {
@@ -15,10 +15,6 @@ function moneyExact(cents: number) {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(cents / 100);
-}
-
-function tierLabel(tier: string) {
-  return tier in AGENT_TIERS ? AGENT_TIERS[tier as AgentTier].label : tier;
 }
 
 export function TeamRecommendationView({
@@ -64,9 +60,9 @@ export function TeamRecommendationView({
         <h3 className="font-display text-lg font-bold text-[#0B1F3A]">Extras</h3>
         <ul className="grid gap-1 text-sm text-slate-700">
           <li>Computer-time top-up {money(TOPUP_CENTS)} per {TOPUP_HOURS} hours.</li>
-          <li>Claude or GPT-class models use hours {PREMIUM_MODEL_MULTIPLIER}× faster, or bring your own key.</li>
-          <li>Per-send markup on WhatsApp, SMS, and email: {SEND_MARKUP_PERCENT}% · placeholder.</li>
-          <li>Once-off setup fee {money(recommendation.setupFeeCents)} · placeholder.</li>
+          <li>{PREMIUM_MODEL_NOTE}</li>
+          <li>WhatsApp, SMS, and email sends at {SEND_MARKUP_MULTIPLIER}× provider cost. Placeholder. Not part of the monthly total.</li>
+          <li>Once-off {SETUP_LINES.quick_start.label} {money(SETUP_LINES.quick_start.cents)}, or {SETUP_LINES.team_setup.label} {money(SETUP_LINES.team_setup.cents)}. Placeholder. Not part of the monthly total.</li>
         </ul>
       </section>
       {publicPath ? (

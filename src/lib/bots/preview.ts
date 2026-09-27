@@ -9,7 +9,8 @@ import {
   type AgentTouches,
   type BotConfig,
 } from "@/lib/bots/catalog";
-import { bundleSaving } from "@/lib/bots/pricing";
+import { allocateBundlePrice, bundleSaving } from "@/lib/bots/pricing";
+import { tierLabel } from "@/lib/pricing/price-sheet";
 
 export type StoreBotCard = {
   slug: string;
@@ -18,6 +19,9 @@ export type StoreBotCard = {
   department: string;
   description: string;
   monthlyPriceCents: number;
+  tier: string;
+  tierLabel: string;
+  includedHours: number;
   pricePlaceholder: true;
   engine: string;
   installedStatus: string | null;
@@ -75,6 +79,9 @@ export type BotDetailData = {
   engine: string;
   pricePlaceholder: true;
   monthlyPriceCents: number;
+  tier: string;
+  tierLabel: string;
+  includedHours: number;
   departmentLabel: string;
   touches: AgentTouches | null;
   config: BotConfig;
@@ -124,6 +131,9 @@ export function previewBotStore(orgSlug: string, notice: string | null, canSeeAg
       department: bot.department,
       description: bot.description,
       monthlyPriceCents: bot.monthlyPriceCents,
+      tier: bot.tier,
+      tierLabel: tierLabel(bot.tier),
+      includedHours: bot.includedHours,
       pricePlaceholder: true,
       engine: bot.engine,
       installedStatus: previewInstalled(orgSlug, bot.slug),
@@ -167,6 +177,9 @@ export function previewBotDetail(orgSlug: string, slug: string, notice: string |
       engine: "",
       pricePlaceholder: true,
       monthlyPriceCents: 0,
+      tier: "",
+      tierLabel: "",
+      includedHours: 0,
       departmentLabel: "",
       touches: null,
       config: botBySlug("inbound-lead").defaultConfig,
@@ -187,6 +200,9 @@ export function previewBotDetail(orgSlug: string, slug: string, notice: string |
     engine: bot.engine,
     pricePlaceholder: true,
     monthlyPriceCents: bot.monthlyPriceCents,
+    tier: bot.tier,
+    tierLabel: tierLabel(bot.tier),
+    includedHours: bot.includedHours,
     departmentLabel: DEPARTMENT_LABELS[bot.department as keyof typeof DEPARTMENT_LABELS] || bot.department,
     touches: bot.touches,
     config: bot.defaultConfig,
@@ -200,13 +216,22 @@ export function previewBotDetail(orgSlug: string, slug: string, notice: string |
   };
 }
 
+function previewShares(bundleSlug: string) {
+  const bundle = BOT_BUNDLES.find((item) => item.slug === bundleSlug);
+  if (!bundle) return new Map<string, number>();
+  const saving = bundleSaving(bundle);
+  return new Map(allocateBundlePrice(botsInBundle(bundle), saving.bundlePriceCents).map((line) => [line.slug, line.amountCents]));
+}
+
 export function previewAgencyBots(): AgencyBotData {
+  const eastc = previewShares("sales-team");
+  const zentrix = previewShares("marketing-team");
   const source: [string, string, string, string, number][] = [
-    ["EASTC", "eastc", "inbound-lead", "trial", 120_000],
-    ["EASTC", "eastc", "outbound-sales", "trial", 160_000],
-    ["EASTC", "eastc", "onboarding", "trial", 80_000],
-    ["Zentrix Online", "zentrix", "ads", "active", 144_000],
-    ["Zentrix Online", "zentrix", "social-posting", "active", 96_000],
+    ["EASTC", "eastc", "inbound-lead", "trial", eastc.get("inbound-lead") ?? 0],
+    ["EASTC", "eastc", "outbound-sales", "trial", eastc.get("outbound-sales") ?? 0],
+    ["EASTC", "eastc", "onboarding", "trial", eastc.get("onboarding") ?? 0],
+    ["Zentrix Online", "zentrix", "ads", "active", zentrix.get("ads") ?? 0],
+    ["Zentrix Online", "zentrix", "social-posting", "active", zentrix.get("social-posting") ?? 0],
   ];
   const rows: AgencyBotRow[] = source.map(([orgName, orgSlug, botSlug, status, mrr]) => ({
     orgName,

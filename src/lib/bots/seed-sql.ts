@@ -6,7 +6,8 @@ import {
   PLATFORM_FEE_CENTS,
   PLATFORM_INCLUDED_HOURS,
   PREMIUM_MODEL_MULTIPLIER,
-  SEND_MARKUP_PERCENT,
+  SEND_MARKUP_MULTIPLIER,
+  SETUP_LINES,
   TEAM_DISCOUNT_BANDS,
   TOPUP_CENTS,
   TOPUP_HOURS,
@@ -47,7 +48,7 @@ export function agentSeedSql() {
   const bots = BOT_CATALOG.map((bot) => `    (
       ${q(bot.slug)}, ${q(bot.name)}, ${q(bot.category)}, ${q(bot.department)},
       ${q(bot.description)},
-      ${bot.monthlyPriceCents}, 'ZAR', true,
+      ${bot.monthlyPriceCents}, 'ZAR', true, ${q(bot.tier)},
       ${q(JSON.stringify(bot.capabilities))}::jsonb,
       ${q(JSON.stringify(bot.defaultConfig))}::jsonb,
       ${q(bot.engine)}, true
@@ -79,9 +80,12 @@ export function agentSeedSql() {
     `('tier_always_on', ${AGENT_TIERS.always_on.cents}, ${AGENT_TIERS.always_on.hours}, null, true, 'Always-On agent. 24/7, active hours capped.')`,
     ...TEAM_DISCOUNT_BANDS.map((band) => `('${band.key}', null, ${band.minAgents}, ${band.percent}, true, 'Team discount from ${band.minAgents} agents.')`),
     `('topup_10h', ${TOPUP_CENTS}, ${TOPUP_HOURS}, null, true, 'Computer-time top-up.')`,
-    `('premium_model_multiplier', null, ${PREMIUM_MODEL_MULTIPLIER}, null, true, 'Premium models use hours faster, or bring your own key.')`,
-    `('send_markup', null, null, ${SEND_MARKUP_PERCENT}, true, 'Per-send markup on WhatsApp, SMS, and email.')`,
-    `('setup_fee', ${DEFAULT_SETUP_FEE_CENTS}, null, null, true, 'Once-off setup fee. Per template in the price sheet.')`,
+    `('tier_included', 0, 0, null, true, 'Lead Agent. Included in the platform fee. Not billed separately.')`,
+    `('premium_model_multiplier', null, ${PREMIUM_MODEL_MULTIPLIER}, null, true, 'Premium models use the hour pool 2.5x faster. Bring your own key to skip that.')`,
+    `('send_markup', null, ${SEND_MARKUP_MULTIPLIER}, null, true, 'WhatsApp, SMS, and email sends at 1.5x provider cost. Not part of the monthly total.')`,
+    `('setup_fee', ${DEFAULT_SETUP_FEE_CENTS}, null, null, true, 'Once-off setup is a suggested extra. See Quick Start and Team Setup.')`,
+    `('setup_quick_start', ${SETUP_LINES.quick_start.cents}, null, null, true, 'Once-off Quick Start. Suggested. Not part of the monthly total.')`,
+    `('setup_team_setup', ${SETUP_LINES.team_setup.cents}, null, null, true, 'Once-off Team Setup. Suggested. Not part of the monthly total.')`,
   ].map((row) => `    ${row}`).join(",\n");
 
   return `-- Placeholder prices, to be confirmed by Billy.
@@ -99,7 +103,7 @@ ${sheet}
     note = excluded.note;
 
   insert into public.bot_catalog (
-    slug, name, category, department, description, monthly_price_cents, currency, price_placeholder,
+    slug, name, category, department, description, monthly_price_cents, currency, price_placeholder, tier,
     capabilities, default_config, engine, active
   ) values
 ${bots}
@@ -111,6 +115,7 @@ ${bots}
     monthly_price_cents = excluded.monthly_price_cents,
     currency = excluded.currency,
     price_placeholder = true,
+    tier = excluded.tier,
     capabilities = excluded.capabilities,
     default_config = excluded.default_config,
     engine = excluded.engine,

@@ -1,5 +1,6 @@
 import { isBillingSandboxEnabled, mockItnAllowed } from "@/lib/billing/flag";
 import { billingBanner } from "@/lib/billing/guard";
+import { CRM_PLANS, isLegacyPlanCode } from "@/lib/pricing/price-sheet";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { isAgencyRole, type MembershipRole } from "@/lib/tenant/types";
 
@@ -37,6 +38,15 @@ export type BillingPageModel = {
 function missingRelation(error: { message?: string } | null) {
   const message = error?.message?.toLowerCase() ?? "";
   return message.includes("does not exist") || message.includes("schema cache") || message.includes("could not find");
+}
+
+function sheetPlans(): BillingPlanView[] {
+  return CRM_PLANS.map((plan) => ({
+    code: plan.code,
+    name: plan.name,
+    priceCents: plan.priceCents,
+    interval: plan.interval,
+  }));
 }
 
 function monthWindow(now = new Date()) {
@@ -79,7 +89,7 @@ export async function loadBillingPage(input: {
     canManage,
     sandboxEnabled: isBillingSandboxEnabled(),
     mockItn: mockItnAllowed(),
-    plans: [],
+    plans: sheetPlans(),
     subscription: null,
     usageLines: [],
     usageTotalCents: 0,
@@ -90,19 +100,26 @@ export async function loadBillingPage(input: {
 
   const supabase = await createSupabaseServerClient();
   const [plans, subscription] = await Promise.all([
-    supabase.from("plans").select("code, name, price_cents, interval").order("price_cents"),
+    supabase.from("plans").select("code, name, price_cents, interval, features").order("price_cents"),
     supabase.from("org_subscriptions").select("status, plan_code, provider, past_due_at, current_period_end").eq("org_id", input.orgId).maybeSingle(),
   ]);
   if (plans.error && missingRelation(plans.error)) {
     return { ...base, notice: "Billing tables are not in this database yet. Apply step 13 in supabase/APPLY-ORDER.md. No charge was sent." };
   }
   if (!plans.error) {
-    base.plans = (plans.data ?? []).map((row) => ({
-      code: String(row.code),
-      name: String(row.name),
-      priceCents: Number(row.price_cents),
-      interval: String(row.interval),
-    }));
+    const current = (plans.data ?? []).flatMap((row) => {
+      const code = String(row.code);
+      const features = row.features;
+      const legacy = isLegacyPlanCode(code) || Boolean(features && typeof features === "object" && (features as { legacy?: boolean }).legacy);
+      if (legacy) return [];
+      return [{
+        code,
+        name: String(row.name),
+        priceCents: Number(row.price_cents),
+        interval: String(row.interval),
+      }];
+    });
+    if (current.length > 0) base.plans = current;
   }
   if (!subscription.error && subscription.data) {
     base.subscription = {

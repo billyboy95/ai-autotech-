@@ -51,17 +51,17 @@ Already required for the live CRM:
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY`
 
-Sign-in uses Supabase Auth (email and password, or an email magic link). Password reset is `/login/forgot`.
+Sign-in uses Supabase Auth: email and password, an email magic link, or Continue with Google. Password reset is `/login/forgot`. The Google button is hidden until Authentication → Providers → Google is enabled. No Google client secret belongs in this app's env file.
 
-`OWNER_EMAILS` is optional and server-side. It is a comma-separated list. On first login, an address in that list with no membership is attached as `agency_owner` of the AI AutoTech organisation. The attach is idempotent and does not change a membership that already exists. Leave it unset if you prefer to run `supabase/owner-bootstrap.sql` by hand. Do not put a live provider key in this variable.
+`OWNER_EMAILS` is server-side. It is a comma-separated list. The default, and the value in `.env.example`, is `billyfarber06@gmail.com`. On first login, an address in that list with no membership is attached as `agency_owner` of the AI AutoTech organisation. If the variable is unset or blank, that same address is used. The attach is idempotent and does not change a membership that already exists. `supabase/owner-bootstrap.sql` remains the manual path. Do not put a live provider key in this variable.
 
-In Supabase Authentication → URL configuration, allow `https://<your-host>/auth/callback` so the magic link and the reset link can finish signing in and return to the page that was requested.
+In Supabase Authentication → URL configuration, allow `https://<your-host>/auth/callback` so the magic link, Google sign-in, and the reset link can finish signing in and return to the page that was requested.
 
 ## 3. Create the agency owner login
 
 1. Supabase Dashboard → Authentication → Users → Add user.
 2. Use the email and password you want for yourself. Turn on "Auto Confirm" so you can sign in immediately.
-3. Run `supabase/owner-bootstrap.sql` after replacing `you@aiautotech.co.za` with that email.
+3. Or skip the SQL and sign in as `billyfarber06@gmail.com` (the `OWNER_EMAILS` default). To attach a different address by hand, run `supabase/owner-bootstrap.sql` after replacing that email.
 
 That inserts one `memberships` row: your user, the AI AutoTech organisation, role `agency_owner`.
 

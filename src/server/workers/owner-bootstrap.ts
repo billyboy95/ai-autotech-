@@ -1,5 +1,5 @@
 import { AGENCY_SLUG } from "@/lib/tenant/types";
-import { shouldAttachOwner } from "@/lib/auth/owners";
+import { ownerEmailList, shouldAttachOwner } from "@/lib/auth/owners";
 import { openServiceDatabase } from "@/server/workers/service-db";
 
 /**
@@ -8,10 +8,7 @@ import { openServiceDatabase } from "@/server/workers/service-db";
  * as they are. The insert is idempotent (unique user_id, org_id). Nothing is deleted.
  */
 export async function ensureOwnerMembership(user: { id: string; email?: string | null }) {
-  const listed = (process.env.OWNER_EMAILS ?? "")
-    .split(",")
-    .map((item) => item.trim().toLowerCase())
-    .filter(Boolean);
+  const listed = ownerEmailList();
   if (!user.email || !listed.includes(user.email.trim().toLowerCase())) {
     return { attached: false as const, reason: "not-listed" as const };
   }

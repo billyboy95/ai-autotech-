@@ -3,6 +3,7 @@
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { supabaseAuthConfigured } from "@/lib/auth/gate";
+import { googleSignInAvailable } from "@/lib/auth/google";
 import { safeNextPath } from "@/lib/auth/redirect";
 import { BRAND_HOST_COOKIE } from "@/lib/brand/host";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -66,6 +67,27 @@ export async function signIn(
 
   await afterPasswordSession(data.user.email, data.user.id, String(formData.get("next") ?? ""));
   return { ok: true, message: "" };
+}
+
+export async function signInWithGoogle(formData: FormData) {
+  const next = safeNextPath(String(formData.get("next") ?? "") || "/command-centre");
+  const back = `/login?next=${encodeURIComponent(next)}`;
+  if (!supabaseAuthConfigured() || !(await googleSignInAvailable())) {
+    redirect(`${back}&error=${encodeURIComponent("Google sign-in is not configured.")}`);
+  }
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: {
+      redirectTo: callbackUrl(await redirectOrigin(), next),
+      skipBrowserRedirect: true,
+      queryParams: { prompt: "select_account" },
+    },
+  });
+  if (error || !data.url) {
+    redirect(`${back}&error=${encodeURIComponent(error?.message || "Google sign-in could not start.")}`);
+  }
+  redirect(data.url);
 }
 
 export async function sendMagicLink(

@@ -2,7 +2,7 @@
 
 import { useActionState } from "react";
 import Link from "next/link";
-import { sendMagicLink, sendPasswordReset, signIn, updatePassword, type AuthActionState } from "@/app/actions/auth";
+import { sendMagicLink, sendPasswordReset, signIn, signInWithGoogle, updatePassword, type AuthActionState } from "@/app/actions/auth";
 
 const initialState: AuthActionState = {
   ok: false,
@@ -19,7 +19,15 @@ function Notice({ state }: { state: AuthActionState }) {
   );
 }
 
-export function LoginForm({ next, placeholder = "admin@ai-autotech.co.za" }: { next?: string; placeholder?: string }) {
+export function LoginForm({
+  next,
+  placeholder = "billyfarber06@gmail.com",
+  google = false,
+}: {
+  next?: string;
+  placeholder?: string;
+  google?: boolean;
+}) {
   const [state, formAction, pending] = useActionState(signIn, initialState);
   const [magic, magicAction, magicPending] = useActionState(sendMagicLink, initialState);
   const forgotHref = next ? `/login/forgot?next=${encodeURIComponent(next)}` : "/login/forgot";
@@ -49,22 +57,35 @@ export function LoginForm({ next, placeholder = "admin@ai-autotech.co.za" }: { n
         </Link>
       </form>
 
-      <form action={magicAction} className="grid gap-4 border-t border-slate-200 pt-6">
-        {next ? <input type="hidden" name="next" value={next} /> : null}
-        <p className="text-sm font-medium text-slate-700">Or email yourself a magic link</p>
-        <label className="grid gap-2 text-sm font-medium text-slate-700">
-          Email
-          <input name="email" type="email" required autoComplete="email" className={fieldClass} placeholder={placeholder} />
-        </label>
-        <button
-          type="submit"
-          disabled={magicPending}
-          className="h-11 rounded-md border border-[#2563EB] px-4 text-sm font-semibold text-[#2563EB] transition hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          {magicPending ? "Sending..." : "Email me a sign-in link"}
-        </button>
-        <Notice state={magic} />
-      </form>
+      <div className="grid gap-4 border-t border-slate-200 pt-6">
+        {google ? (
+          <form action={signInWithGoogle} className="grid gap-3">
+            {next ? <input type="hidden" name="next" value={next} /> : null}
+            <button
+              type="submit"
+              className="h-11 rounded-md border border-slate-200 bg-white px-4 text-sm font-semibold text-[#0B1F3A] transition hover:border-[#2563EB] hover:text-[#2563EB]"
+            >
+              Continue with Google
+            </button>
+          </form>
+        ) : null}
+        <form action={magicAction} className="grid gap-4">
+          {next ? <input type="hidden" name="next" value={next} /> : null}
+          <p className="text-sm font-medium text-slate-700">Or email yourself a magic link</p>
+          <label className="grid gap-2 text-sm font-medium text-slate-700">
+            Email
+            <input name="email" type="email" required autoComplete="email" className={fieldClass} placeholder={placeholder} />
+          </label>
+          <button
+            type="submit"
+            disabled={magicPending}
+            className="h-11 rounded-md border border-[#2563EB] px-4 text-sm font-semibold text-[#2563EB] transition hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {magicPending ? "Sending..." : "Email me a sign-in link"}
+          </button>
+          <Notice state={magic} />
+        </form>
+      </div>
     </div>
   );
 }
@@ -76,7 +97,7 @@ export function ForgotPasswordForm({ next }: { next?: string }) {
       {next ? <input type="hidden" name="next" value={next} /> : null}
       <label className="grid gap-2 text-sm font-medium text-slate-700">
         Email
-        <input name="email" type="email" required autoComplete="email" className={fieldClass} placeholder="you@aiautotech.co.za" />
+        <input name="email" type="email" required autoComplete="email" className={fieldClass} placeholder="billyfarber06@gmail.com" />
       </label>
       <button
         type="submit"

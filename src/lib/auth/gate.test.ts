@@ -3,7 +3,8 @@ import test from "node:test";
 import { NextRequest } from "next/server";
 import { decideAccess, isPublicPath, requiresSession } from "@/lib/auth/gate";
 import { safeNextPath } from "@/lib/auth/redirect";
-import { parseOwnerEmails, shouldAttachOwner } from "@/lib/auth/owners";
+import { googleProviderEnabled, googleSignInAvailable } from "@/lib/auth/google";
+import { DEFAULT_OWNER_EMAIL, ownerEmailList, parseOwnerEmails, shouldAttachOwner } from "@/lib/auth/owners";
 import { expandAccessibleOrgs, roleForOrg, visibleWorkspace } from "@/lib/tenant/access";
 import { previewWorkspaces } from "@/lib/tenant/blueprints";
 import type { Membership, WorkspaceSummary } from "@/lib/tenant/types";
@@ -62,9 +63,47 @@ test("login next paths stay on this site", () => {
 
 test("OWNER_EMAILS attaches only a listed address that has no membership", () => {
   assert.deepEqual(parseOwnerEmails(" Owner@Example.com, second@example.com "), ["owner@example.com", "second@example.com"]);
+  assert.deepEqual(ownerEmailList(undefined), [DEFAULT_OWNER_EMAIL]);
+  assert.deepEqual(ownerEmailList("  "), [DEFAULT_OWNER_EMAIL]);
+  assert.equal(DEFAULT_OWNER_EMAIL, "billyfarber06@gmail.com");
+  assert.equal(shouldAttachOwner({ email: "BillyFarber06@gmail.com", listed: ownerEmailList(""), membershipCount: 0 }), true);
   assert.equal(shouldAttachOwner({ email: "Owner@Example.com", listed: ["owner@example.com"], membershipCount: 0 }), true);
   assert.equal(shouldAttachOwner({ email: "Owner@Example.com", listed: ["owner@example.com"], membershipCount: 1 }), false);
   assert.equal(shouldAttachOwner({ email: "other@example.com", listed: ["owner@example.com"], membershipCount: 0 }), false);
+});
+
+test("Continue with Google stays hidden unless the provider is enabled", async () => {
+  assert.equal(googleProviderEnabled({ external: { google: false } }), false);
+  assert.equal(googleProviderEnabled({ external: { google: true } }), true);
+  assert.equal(googleProviderEnabled(null), false);
+
+  const previous = {
+    url: process.env.NEXT_PUBLIC_SUPABASE_URL,
+    key: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+  };
+  const originalFetch = globalThis.fetch;
+  try {
+    delete process.env.NEXT_PUBLIC_SUPABASE_URL;
+    delete process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    assert.equal(await googleSignInAvailable(), false);
+
+    process.env.NEXT_PUBLIC_SUPABASE_URL = "https://example.supabase.co";
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "test-anon-key";
+    globalThis.fetch = (async () => new Response(JSON.stringify({ external: { google: false } }), { status: 200 })) as typeof fetch;
+    assert.equal(await googleSignInAvailable(), false);
+    globalThis.fetch = (async () => new Response(JSON.stringify({ external: { google: true } }), { status: 200 })) as typeof fetch;
+    assert.equal(await googleSignInAvailable(), true);
+    globalThis.fetch = (async () => {
+      throw new Error("settings unavailable");
+    }) as typeof fetch;
+    assert.equal(await googleSignInAvailable(), false);
+  } finally {
+    globalThis.fetch = originalFetch;
+    if (previous.url === undefined) delete process.env.NEXT_PUBLIC_SUPABASE_URL;
+    else process.env.NEXT_PUBLIC_SUPABASE_URL = previous.url;
+    if (previous.key === undefined) delete process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    else process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = previous.key;
+  }
 });
 
 test("a member of org A cannot view org B", () => {

@@ -1,3 +1,5 @@
+export const DEFAULT_OWNER_EMAIL = "billyfarber06@gmail.com";
+
 export function parseOwnerEmails(value: string | null | undefined) {
   return String(value ?? "")
     .split(",")
@@ -5,7 +7,14 @@ export function parseOwnerEmails(value: string | null | undefined) {
     .filter(Boolean);
 }
 
-export function isOwnerEmail(email: string | null | undefined, listed = parseOwnerEmails(process.env.OWNER_EMAILS)) {
+/** Blank or missing OWNER_EMAILS uses the agency owner address. */
+export function ownerEmailList(raw: string | null | undefined = process.env.OWNER_EMAILS) {
+  if (raw === undefined || raw.trim() === "") return [DEFAULT_OWNER_EMAIL];
+  const parsed = parseOwnerEmails(raw);
+  return parsed.length ? parsed : [DEFAULT_OWNER_EMAIL];
+}
+
+export function isOwnerEmail(email: string | null | undefined, listed = ownerEmailList()) {
   const normalized = email?.trim().toLowerCase() ?? "";
   return Boolean(normalized && listed.includes(normalized));
 }

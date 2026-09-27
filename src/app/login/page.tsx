@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { AuthCard } from "@/components/auth-card";
 import { LoginForm } from "@/components/login-form";
+import { googleSignInAvailable } from "@/lib/auth/google";
 import { loginCopy } from "@/lib/brand/present";
 import { safeNextPath } from "@/lib/auth/redirect";
 import { resolveRequestBrand } from "@/lib/brand/request";
@@ -31,11 +32,16 @@ export default async function LoginPage({
   const brand = await resolveRequestBrand();
   const copy = loginCopy(brand);
   const destination = next || (copy.showPlatform ? undefined : "/command-centre");
+  const google = await googleSignInAvailable();
+  const body =
+    google && copy.showPlatform
+      ? "Agency owners and client teams sign in with Supabase Auth. Use your email and password, Continue with Google, or email yourself a magic link. AI AutoTech staff land on the agency view. EASTC and other client users land in their own workspace."
+      : undefined;
 
   return (
-    <AuthCard>
+    <AuthCard body={body}>
       {params.error ? <p className="mb-4 text-sm font-medium text-rose-700">{params.error}</p> : null}
-      <LoginForm next={destination} placeholder={copy.placeholder} />
+      <LoginForm next={destination} placeholder={copy.placeholder} google={google} />
     </AuthCard>
   );
 }

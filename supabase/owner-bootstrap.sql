@@ -11,5 +11,5 @@ insert into public.memberships (user_id, org_id, role)
 select u.id, o.id, 'agency_owner'
 from auth.users u
 join public.organizations o on o.slug = 'ai-autotech'
-where lower(u.email) = lower('you@aiautotech.co.za')
+where lower(u.email) = lower('billyfarber06@gmail.com')
 on conflict (user_id, org_id) do update set role = 'agency_owner';

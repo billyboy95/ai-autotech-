@@ -5,6 +5,7 @@ export const AIOS_SECTIONS = [
     label: "Home",
     links: [
       ["/command-centre", "Today"],
+      ["/command-centre/assistant", "Assistant"],
       ["/command-centre/lead-agent", "Lead Agent"],
       ["/command-centre/setup", "Setup"],
       ["/command-centre/connect-accounts", "Connect accounts"],

@@ -36,3 +36,7 @@ Apply it after step 23. Do not run it until `SUPABASE_DB_URL` is available. It d
 With Supabase keys empty, open `/command-centre/connect-accounts`. The page should load, list the six accounts, and name Connect, Needs keys, and Connected. Open `/command-centre/import-contacts`. The page should load, show `consent_basis`, and offer Import to sandbox. Nothing is sent.
 
 With Supabase keys set and no session, both URLs redirect to `/login`.
+
+## After import
+
+The home assistant is the next step. See `docs/home-chat.md`. It stays fixture-only until `HOME_CHAT_ENABLED` is the string `true`. Nothing is sent.

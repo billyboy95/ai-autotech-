@@ -134,6 +134,25 @@ test("inbox, conversation AI, calendars, reviews, referrals, and public pages re
     assert.doesNotMatch(leadHtml, /Connect your accounts/);
     assert.doesNotMatch(leadHtml, /Import your contacts/);
 
+    const home = await fetch(`http://127.0.0.1:${port}/command-centre`, { redirect: "manual" });
+    assert.equal(home.status, 200);
+    const homeHtml = await home.text();
+    assert.match(homeHtml, /Assistant/);
+    assert.match(homeHtml, /Fixture only/);
+    assert.match(homeHtml, /What do you want to do\?/);
+    assert.match(homeHtml, /Nothing is sent/);
+    assert.match(homeHtml, /Ask the assistant/);
+    assert.doesNotMatch(homeHtml, /start with (these )?(3|three)/i);
+
+    const assistant = await fetch(`http://127.0.0.1:${port}/command-centre/assistant`, { redirect: "manual" });
+    assert.equal(assistant.status, 200);
+    const assistantHtml = await assistant.text();
+    assert.match(assistantHtml, /Assistant/);
+    assert.match(assistantHtml, /Fixture only/);
+    assert.match(assistantHtml, /Open the pipeline/);
+    assert.match(assistantHtml, /Nothing is sent/);
+    assert.doesNotMatch(assistantHtml, /start with (these )?(3|three)/i);
+
     const connectAccounts = await fetch(`http://127.0.0.1:${port}/command-centre/connect-accounts`, { redirect: "manual" });
     assert.equal(connectAccounts.status, 200);
     const connectHtml = await connectAccounts.text();

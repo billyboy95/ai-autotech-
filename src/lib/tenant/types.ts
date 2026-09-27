@@ -82,6 +82,7 @@ export type ClientMetric = {
   conversions: number;
   won: number;
   stages: string[];
+  subscriptionStatus?: string | null;
 };
 
 export type PipelineStage = {

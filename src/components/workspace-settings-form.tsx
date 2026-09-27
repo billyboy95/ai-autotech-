@@ -13,6 +13,7 @@ export function WorkspaceSettingsForm({
   stores,
   canEdit,
   canToggleSending,
+  readOnly = false,
 }: {
   workspace: WorkspaceSummary;
   stages: string[];
@@ -20,6 +21,7 @@ export function WorkspaceSettingsForm({
   stores: ShopifyStoreRecord[];
   canEdit: boolean;
   canToggleSending: boolean;
+  readOnly?: boolean;
 }) {
   const [saved, save, saving] = useActionState(saveWorkspaceSettings, initial);
   const [added, add, adding] = useActionState(addWorkspaceMember, initial);
@@ -32,19 +34,19 @@ export function WorkspaceSettingsForm({
         <input type="hidden" name="slug" value={workspace.slug} />
         <h2 className="font-display text-lg font-bold text-[#0B1F3A]">Branding</h2>
         <div className="grid gap-3 sm:grid-cols-2">
-          <Field name="name" label="Name" defaultValue={workspace.name} />
-          <Field name="legalName" label="Legal name" defaultValue={workspace.legalName} />
-          <Field name="location" label="Location" defaultValue={workspace.location} />
-          <Field name="domain" label="Domain" defaultValue={workspace.domain} />
-          <Field name="logoUrl" label="Logo URL" defaultValue={workspace.logoUrl} />
-          <Field name="primaryColor" label="Primary colour" defaultValue={workspace.primaryColor} />
-          <Field name="accentColor" label="Accent colour" defaultValue={workspace.accentColor} />
-          <Field name="senderName" label="Sender name" defaultValue={workspace.senderName} />
-          <Field name="informationOfficerName" label="Information officer" defaultValue="" />
-          <Field name="informationOfficerEmail" label="Information officer email" defaultValue="" />
+          <Field name="name" label="Name" defaultValue={workspace.name} disabled={readOnly} />
+          <Field name="legalName" label="Legal name" defaultValue={workspace.legalName} disabled={readOnly} />
+          <Field name="location" label="Location" defaultValue={workspace.location} disabled={readOnly} />
+          <Field name="domain" label="Domain" defaultValue={workspace.domain} disabled={readOnly} />
+          <Field name="logoUrl" label="Logo URL" defaultValue={workspace.logoUrl} disabled={readOnly} />
+          <Field name="primaryColor" label="Primary colour" defaultValue={workspace.primaryColor} disabled={readOnly} />
+          <Field name="accentColor" label="Accent colour" defaultValue={workspace.accentColor} disabled={readOnly} />
+          <Field name="senderName" label="Sender name" defaultValue={workspace.senderName} disabled={readOnly} />
+          <Field name="informationOfficerName" label="Information officer" defaultValue="" disabled={readOnly} />
+          <Field name="informationOfficerEmail" label="Information officer email" defaultValue="" disabled={readOnly} />
         </div>
         <label className="flex items-center gap-2 text-sm text-slate-700">
-          <input name="sendingEnabled" type="checkbox" defaultChecked={workspace.sendingEnabled} disabled={!canToggleSending} />
+          <input name="sendingEnabled" type="checkbox" defaultChecked={workspace.sendingEnabled} disabled={!canToggleSending || readOnly} />
           Sending enabled
         </label>
         <p className="text-sm text-slate-500">
@@ -53,22 +55,22 @@ export function WorkspaceSettingsForm({
         <h2 className="mt-2 font-display text-lg font-bold text-[#0B1F3A]">Channel placeholders</h2>
         <p className="text-sm text-slate-500">Stored on the workspace. Nothing is sent until a channel adapter is switched on.</p>
         <div className="grid gap-3 sm:grid-cols-2">
-          <Field name="whatsappPhoneNumberId" label="WhatsApp phone number id" defaultValue={workspace.settings.channels.whatsapp.phoneNumberId} />
-          <Field name="whatsappDisplayPhone" label="WhatsApp display number" defaultValue={workspace.settings.channels.whatsapp.displayPhone} />
-          <Field name="emailFrom" label="Email from address" defaultValue={workspace.settings.channels.email.fromAddress} />
-          <Field name="emailProvider" label="Email provider" defaultValue={workspace.settings.channels.email.provider} />
-          <Field name="smsSenderId" label="SMS sender id" defaultValue={workspace.settings.channels.sms.senderId} />
+          <Field name="whatsappPhoneNumberId" label="WhatsApp phone number id" defaultValue={workspace.settings.channels.whatsapp.phoneNumberId} disabled={readOnly} />
+          <Field name="whatsappDisplayPhone" label="WhatsApp display number" defaultValue={workspace.settings.channels.whatsapp.displayPhone} disabled={readOnly} />
+          <Field name="emailFrom" label="Email from address" defaultValue={workspace.settings.channels.email.fromAddress} disabled={readOnly} />
+          <Field name="emailProvider" label="Email provider" defaultValue={workspace.settings.channels.email.provider} disabled={readOnly} />
+          <Field name="smsSenderId" label="SMS sender id" defaultValue={workspace.settings.channels.sms.senderId} disabled={readOnly} />
         </div>
         <h2 className="mt-2 font-display text-lg font-bold text-[#0B1F3A]">Shopify</h2>
         <p className="text-sm text-slate-500">
           Placeholders only. Saving these does not call Shopify. When the webhook secret is set, orders, customers, and checkouts posted to /api/shopify/webhook land in this workspace.
         </p>
         <div className="grid gap-3 sm:grid-cols-2">
-          <Field name="shopifyAdminAccessToken" label="Admin API access token" defaultValue={workspace.settings.shopify.adminAccessToken} />
-          <Field name="shopifyWebhookSecret" label="Webhook secret" defaultValue={workspace.settings.shopify.webhookSecret} />
-          <Field name="shopifyApiVersion" label="API version" defaultValue={workspace.settings.shopify.apiVersion} />
+          <Field name="shopifyAdminAccessToken" label="Admin API access token" defaultValue={workspace.settings.shopify.adminAccessToken} disabled={readOnly} />
+          <Field name="shopifyWebhookSecret" label="Webhook secret" defaultValue={workspace.settings.shopify.webhookSecret} disabled={readOnly} />
+          <Field name="shopifyApiVersion" label="API version" defaultValue={workspace.settings.shopify.apiVersion} disabled={readOnly} />
         </div>
-        <button disabled={!canEdit || saving} className="h-10 rounded-md bg-[#2563EB] text-sm font-semibold text-white disabled:opacity-60">
+        <button disabled={!canEdit || saving || readOnly} className="h-10 rounded-md bg-[#2563EB] text-sm font-semibold text-white disabled:opacity-60">
           {saving ? "Saving…" : "Save settings"}
         </button>
         {saved.message ? <p className={`text-sm ${saved.ok ? "text-emerald-700" : "text-rose-700"}`}>{saved.message}</p> : null}
@@ -135,7 +137,7 @@ export function WorkspaceSettingsForm({
             <option value="client_admin">Client admin</option>
             <option value="client_user">Client user</option>
           </select>
-          <button disabled={!canEdit || adding} className="h-10 rounded-md bg-[#0B1F3A] px-3 text-sm font-semibold text-white disabled:opacity-60">
+          <button disabled={!canEdit || adding || readOnly} className="h-10 rounded-md bg-[#0B1F3A] px-3 text-sm font-semibold text-white disabled:opacity-60">
             {adding ? "Adding…" : "Add user"}
           </button>
         </form>
@@ -149,7 +151,7 @@ export function WorkspaceSettingsForm({
             <option value="client_admin">Client admin</option>
             <option value="client_user">Client user</option>
           </select>
-          <button disabled={!canEdit || inviting} className="h-10 rounded-md border border-slate-200 px-3 text-sm font-semibold text-[#0B1F3A] disabled:opacity-60">
+          <button disabled={!canEdit || inviting || readOnly} className="h-10 rounded-md border border-slate-200 px-3 text-sm font-semibold text-[#0B1F3A] disabled:opacity-60">
             {inviting ? "Creating…" : "Create invite link"}
           </button>
         </form>
@@ -159,11 +161,11 @@ export function WorkspaceSettingsForm({
   );
 }
 
-function Field({ name, label, defaultValue }: { name: string; label: string; defaultValue: string }) {
+function Field({ name, label, defaultValue, disabled = false }: { name: string; label: string; defaultValue: string; disabled?: boolean }) {
   return (
     <label className="grid gap-1 text-xs font-semibold text-slate-600">
       {label}
-      <input name={name} defaultValue={defaultValue} className="h-10 rounded-md border border-slate-200 px-3 text-sm font-medium text-slate-900" />
+      <input name={name} defaultValue={defaultValue} disabled={disabled} className="h-10 rounded-md border border-slate-200 px-3 text-sm font-medium text-slate-900 disabled:bg-slate-50" />
     </label>
   );
 }

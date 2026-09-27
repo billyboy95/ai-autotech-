@@ -17,7 +17,7 @@ function CheckoutButton() {
       className="flex h-10 items-center justify-center gap-2 rounded-md bg-[#2563EB] px-4 text-sm font-semibold text-white transition hover:bg-[#1d4ed8] disabled:cursor-not-allowed disabled:opacity-60"
     >
       <CreditCard size={16} />
-      {pending ? "Opening checkout..." : "Start subscription"}
+      {pending ? "Checking…" : "Stripe checkout is off"}
     </button>
   );
 }
@@ -29,18 +29,10 @@ export function BillingPanel() {
     <section className="rounded-md border border-slate-200 bg-white p-5 shadow-sm">
       <h2 className="font-display text-lg font-bold text-[#0B1F3A]">Subscriptions and PDF Output</h2>
       <p className="mt-1 text-sm leading-6 text-slate-500">
-        Stripe Checkout is wired for subscription billing. Proposal and invoice PDF endpoints are available for rendering client-ready documents.
+        Workspace billing uses the PayFast sandbox. Stripe checkout is disabled so this screen cannot start a live charge. Proposal and invoice PDF endpoints still render sample documents.
       </p>
 
       <form action={action} className="mt-5 grid gap-4">
-        <label className="grid gap-2 text-sm font-medium text-slate-700">
-          Stripe price ID
-          <input
-            name="price_id"
-            className="h-10 rounded-md border border-slate-200 px-3 outline-none transition focus:border-[#2563EB] focus:ring-4 focus:ring-blue-100"
-            placeholder="Defaults to STRIPE_PRICE_ID"
-          />
-        </label>
         <CheckoutButton />
         {state.message ? (
           <p className={`text-sm font-semibold ${state.ok ? "text-emerald-700" : "text-rose-700"}`}>

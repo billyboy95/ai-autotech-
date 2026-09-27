@@ -4,6 +4,7 @@ import { createHash, randomBytes } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { workspaceWriteBlock } from "@/lib/billing/guard";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { resolveWorkspace } from "@/lib/tenant/context";
 import { addMembership, createClientWorkspace, findOrgBySlug, setShopifyPlanStatus, updateWorkspace } from "@/lib/tenant/data";
@@ -91,6 +92,8 @@ export async function saveWorkspaceSettings(
   if (!canEdit(workspace.role, workspace.mode)) {
     return { ok: false, message: "You can view this workspace, but only an admin can change settings." };
   }
+  const blocked = await workspaceWriteBlock(workspace.active.id);
+  if (blocked) return { ok: false, message: blocked };
 
   const current = parseSettings(workspace.active.settings);
   const settings = {

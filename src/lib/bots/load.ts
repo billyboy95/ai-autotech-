@@ -8,6 +8,8 @@ import {
   type BotDetailData,
   type BotStoreData,
 } from "@/lib/bots/preview";
+import { canOpenComputer, computerDetailFields, HIDDEN_COMPUTER } from "@/lib/computers/meter";
+import type { ComputerStatus } from "@/lib/computers/provider";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { safeResolveWorkspace } from "@/lib/tenant/context";
 import { isAgencyRole, type MembershipRole } from "@/lib/tenant/types";
@@ -165,12 +167,26 @@ export async function loadBotDetail(input: { org?: string | null; slug: string; 
           ? "Bot Store tables are not in this database yet. Apply phase 4a before saving. Nothing was stored and nothing was sent."
           : catalog.error.message)
         : "That bot is not in the catalogue.",
+      ...HIDDEN_COMPUTER,
     };
   }
-  const [installed, runs] = await Promise.all([
+  const [installed, runs, computer, user] = await Promise.all([
     supabase.from("org_bots").select("status, config").eq("org_id", tenant.active.id).eq("bot_slug", input.slug).maybeSingle(),
     supabase.from("bot_runs").select("id, kind, status, summary, created_at").eq("org_id", tenant.active.id).eq("bot_slug", input.slug).order("created_at", { ascending: false }).limit(20),
+    supabase.from("agent_computers").select("status, hours_used_seconds, assigned_user_id").eq("org_id", tenant.active.id).eq("bot_slug", input.slug).maybeSingle(),
+    supabase.auth.getUser(),
   ]);
+  const viewerUserId = user.data.user?.id ?? null;
+  let assignedOnly = false;
+  if (viewerUserId && tenant.role === "client_user") {
+    const membership = await supabase.from("memberships").select("assigned_only").eq("user_id", viewerUserId).eq("org_id", tenant.active.id).maybeSingle();
+    if (!membership.error && membership.data) assignedOnly = Boolean(membership.data.assigned_only);
+  }
+  const computerStatus = computer.data?.status;
+  const statusValue: ComputerStatus = computerStatus === "running" || computerStatus === "paused" || computerStatus === "error" || computerStatus === "idle"
+    ? computerStatus
+    : "idle";
+  const department = preview.found ? botBySlug(input.slug).department : "sales";
   const fallback = botBySlug(input.slug).defaultConfig;
   return {
     preview: false,
@@ -198,6 +214,18 @@ export async function loadBotDetail(input: { org?: string | null; slug: string; 
       summary: String(row.summary ?? ""),
       createdAt: String(row.created_at),
     })),
+    ...computerDetailFields({
+      slug: String(catalog.data.slug),
+      department,
+      canViewComputer: canOpenComputer({
+        role: tenant.role,
+        assignedOnly,
+        assignedUserId: computer.data?.assigned_user_id ? String(computer.data.assigned_user_id) : null,
+        viewerUserId,
+      }),
+      usedSeconds: computer.error || !computer.data ? 0 : Number(computer.data.hours_used_seconds ?? 0),
+      status: statusValue,
+    }),
   };
 }
 

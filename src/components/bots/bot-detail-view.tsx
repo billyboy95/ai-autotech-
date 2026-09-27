@@ -3,6 +3,7 @@ import { runInstalledBot, updateInstalledBot } from "@/app/actions/bots";
 import { Advanced } from "@/components/ui/advanced";
 import { formatWhen, formatZar } from "@/lib/automation/ids";
 import type { BotDetailData } from "@/lib/bots/preview";
+import { formatComputerUsage } from "@/lib/computers/meter";
 
 export function BotDetailView({ data }: { data: BotDetailData }) {
   const back = `/command-centre/bots/${data.slug}`;
@@ -36,6 +37,12 @@ export function BotDetailView({ data }: { data: BotDetailData }) {
               <input type="hidden" name="return_to" value={back} />
               <button className="inline-flex h-11 items-center rounded-md bg-[#2563EB] px-4 text-sm font-semibold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0B1F3A]">Run a draft</button>
             </form>
+            {data.canViewComputer ? (
+              <div className="mt-3">
+                <Link href={`/command-centre/bots/${data.slug}/computer`} data-testid="view-computer" className="inline-flex h-11 items-center rounded-md border border-[#2563EB] px-4 text-sm font-semibold text-[#2563EB] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0B1F3A]">View computer</Link>
+                <p className="mt-2 text-sm text-slate-700">Computer hours {formatComputerUsage(data.computerUsedSeconds)} of {data.computerAllowanceHours}h. Sandbox only.</p>
+              </div>
+            ) : null}
           </section>
 
           {data.touches ? (

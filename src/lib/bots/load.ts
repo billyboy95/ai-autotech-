@@ -1,4 +1,5 @@
-import { AGENT_DEPARTMENTS, botBySlug, type BotConfig } from "@/lib/bots/catalog";
+import { AGENT_DEPARTMENTS, BOT_CATALOG, botBySlug, type BotConfig } from "@/lib/bots/catalog";
+import { agentIncludedHours, agentMonthlyCents, quoteAgents, tierForAgent, tierLabel } from "@/lib/pricing/price-sheet";
 import {
   previewAgencyBots,
   previewBotDetail,
@@ -67,17 +68,26 @@ export async function loadBotStore(input: { org?: string | null; notice?: string
     };
   }
   const installedStatus = new Map((installed.data ?? []).map((row) => [String(row.bot_slug), String(row.status)]));
-  const bots = (catalog.data ?? []).map((row) => ({
-    slug: String(row.slug),
-    name: String(row.name),
+  const bots = (catalog.data ?? []).map((row) => {
+    const slug = String(row.slug);
+    const department = String(row.department || "sales");
+    const known = BOT_CATALOG.some((bot) => bot.slug === slug);
+    const tier = known ? tierForAgent(slug, department) : "starter";
+    return {
+      slug,
+      name: String(row.name),
       category: String(row.category),
-      department: String(row.department || "sales"),
+      department,
       description: String(row.description ?? ""),
-    monthlyPriceCents: Number(row.monthly_price_cents),
-    pricePlaceholder: true as const,
-    engine: String(row.engine),
-    installedStatus: installedStatus.get(String(row.slug)) ?? null,
-  }));
+      monthlyPriceCents: known ? agentMonthlyCents(slug, department) : Number(row.monthly_price_cents),
+      tier,
+      tierLabel: tierLabel(tier),
+      includedHours: known ? agentIncludedHours(slug, department) : 0,
+      pricePlaceholder: true as const,
+      engine: String(row.engine),
+      installedStatus: installedStatus.get(slug) ?? null,
+    };
+  });
   const names = new Map(bots.map((bot) => [bot.slug, bot.name]));
   const byBundle = new Map<string, string[]>();
   for (const row of items.data ?? []) {
@@ -89,6 +99,15 @@ export async function loadBotStore(input: { org?: string | null; notice?: string
     byBundle.set(slug, list);
   }
   const savingBySlug = new Map((savings.data ?? []).map((row) => [String(row.slug), row]));
+  const slugsByBundle = new Map<string, string[]>();
+  for (const row of items.data ?? []) {
+    const nested = row.bot_bundles as { slug?: string } | { slug?: string }[] | null;
+    const bundleSlug = Array.isArray(nested) ? nested[0]?.slug : nested?.slug;
+    if (!bundleSlug) continue;
+    const list = slugsByBundle.get(bundleSlug) ?? [];
+    list.push(String(row.bot_slug));
+    slugsByBundle.set(bundleSlug, list);
+  }
   return {
     preview: false,
     notice: input.notice ?? null,
@@ -98,16 +117,23 @@ export async function loadBotStore(input: { org?: string | null; notice?: string
     departments: AGENT_DEPARTMENTS.filter((department) => bots.some((bot) => bot.department === department)),
     bots,
     bundles: (bundles.data ?? []).map((row) => {
-      const saving = savingBySlug.get(String(row.slug));
-      const fallback = preview.bundles.find((bundle) => bundle.slug === String(row.slug));
+      const slug = String(row.slug);
+      const memberSlugs = slugsByBundle.get(slug) ?? [];
+      const members = memberSlugs.flatMap((botSlug) => {
+        const bot = BOT_CATALOG.find((item) => item.slug === botSlug);
+        return bot ? [{ cents: bot.monthlyPriceCents, hours: bot.includedHours }] : [];
+      });
+      const quoted = members.length === memberSlugs.length && members.length > 0 ? quoteAgents(members) : null;
+      const saving = savingBySlug.get(slug);
+      const fallback = preview.bundles.find((bundle) => bundle.slug === slug);
       return {
-        slug: String(row.slug),
+        slug,
         name: String(row.name),
         description: String(row.description ?? ""),
-        botNames: byBundle.get(String(row.slug)) ?? [],
-        separateTotalCents: Number(saving?.separate_total_cents ?? fallback?.separateTotalCents ?? 0),
-        bundlePriceCents: Number(saving?.bundle_price_cents ?? fallback?.bundlePriceCents ?? 0),
-        savingPercent: Number(saving?.saving_percent ?? fallback?.savingPercent ?? 0),
+        botNames: byBundle.get(slug) ?? [],
+        separateTotalCents: quoted?.agentSubtotalCents ?? Number(saving?.separate_total_cents ?? fallback?.separateTotalCents ?? 0),
+        bundlePriceCents: quoted?.agentTotalCents ?? Number(saving?.bundle_price_cents ?? fallback?.bundlePriceCents ?? 0),
+        savingPercent: quoted?.discountPercent ?? Number(saving?.saving_percent ?? fallback?.savingPercent ?? 0),
         pricePlaceholder: true as const,
       };
     }),
@@ -158,7 +184,10 @@ export async function loadBotDetail(input: { org?: string | null; slug: string; 
     status: installed.data ? String(installed.data.status) : "Not installed",
     engine: String(catalog.data.engine),
     pricePlaceholder: true,
-    monthlyPriceCents: Number(catalog.data.monthly_price_cents),
+    monthlyPriceCents: preview.found ? preview.monthlyPriceCents : Number(catalog.data.monthly_price_cents),
+    tier: preview.tier,
+    tierLabel: preview.tierLabel,
+    includedHours: preview.includedHours,
     departmentLabel: preview.departmentLabel,
     touches: preview.touches,
     config: asConfig(installed.data?.config ?? catalog.data.default_config, fallback),

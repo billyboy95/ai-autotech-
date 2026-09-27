@@ -7,12 +7,21 @@ export const AGENCY_DEFAULT_SNAPSHOT_ID = "a2c00000-0000-4000-8000-000000000001"
 export const EDUCATION_SNAPSHOT_ID = "a2c00000-0000-4000-8000-000000000002";
 
 export const PLAN_OPTIONS = [
-  { key: "starter", label: "Starter", detail: "Pipeline and templates. Placeholder only — nothing is charged." },
-  { key: "growth", label: "Growth", detail: "Pipeline, templates, and follow-up sequences. Placeholder only — nothing is charged." },
-  { key: "scale", label: "Scale", detail: "Pipeline, sequences, and custom fields. Placeholder only — nothing is charged." },
+  {
+    key: "platform",
+    label: "Platform R299 + agents",
+    detail: "R299/mo covers the CRM, the Lead Agent, and a small computer-time pool. Agents are Starter, Pro, or Always-On. Placeholder price. Nothing is charged.",
+  },
 ] as const;
 
 export type PlanKey = (typeof PLAN_OPTIONS)[number]["key"];
+
+export function planLabel(key: string) {
+  const match = PLAN_OPTIONS.find((item) => item.key === key);
+  if (match) return match.label;
+  if (key === "starter" || key === "growth" || key === "scale") return "Platform R299 + agents";
+  return key;
+}
 
 export type SnapshotOption = {
   id: string;

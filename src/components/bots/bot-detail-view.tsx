@@ -24,7 +24,11 @@ export function BotDetailView({ data }: { data: BotDetailData }) {
             <div className="flex flex-wrap items-center gap-2">
               <span className="rounded-full bg-slate-100 px-2 py-1 text-xs font-semibold uppercase tracking-wide text-slate-700">{data.status}</span>
               <span className="rounded-full bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-950">Placeholder price</span>
-              <span className="text-sm text-slate-700">{formatZar(data.monthlyPriceCents / 100)} / month</span>
+              <span className="text-sm text-slate-700">
+                {data.tier === "included" ? "Included with platform" : `${formatZar(data.monthlyPriceCents / 100)} / month`}
+                {data.tierLabel ? ` · ${data.tierLabel}` : ""}
+                {data.includedHours != null ? ` · ${data.includedHours}h` : ""}
+              </span>
             </div>
             <form action={runInstalledBot} className="mt-3">
               <input type="hidden" name="slug" value={data.orgSlug} />

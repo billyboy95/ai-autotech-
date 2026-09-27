@@ -36,6 +36,13 @@ test("catalogue prices are placeholders and every bundle is a real group discoun
     );
     assert.equal(shares.reduce((sum, line) => sum + line.amountCents, 0), saving.bundlePriceCents);
   }
+  const inbound = BOT_CATALOG.find((bot) => bot.slug === "inbound-lead");
+  assert.equal(inbound?.tier, "included");
+  assert.equal(inbound?.monthlyPriceCents, 0);
+  assert.equal(BOT_CATALOG.find((bot) => bot.slug === "outbound-sales")?.tier, "pro");
+  assert.equal(BOT_CATALOG.find((bot) => bot.slug === "onboarding")?.tier, "starter");
+  assert.equal(BOT_CATALOG.find((bot) => bot.slug === "ads")?.tier, "pro");
+  assert.equal(BOT_CATALOG.find((bot) => bot.slug === "social-posting")?.tier, "starter");
   const sales = bundleBySlug("sales-team");
   assert.equal(sales.discountPercent, 10);
   assert.equal(bundleBySlug("marketing-team").discountPercent, 0);
@@ -235,6 +242,22 @@ test("the assistant stays off without the flag and key, and confirm does not sen
   assert.equal(book.drafts[0].status, "draft");
   assert.deepEqual(book.activeBots, ["inbound-lead"]);
   assert.equal(proposalsFromText('{"actions":[{"kind":"send","label":"Send"}]}').length, 0);
+});
+
+test("phase 4c pricing migration is additive and keeps sending off", () => {
+  const sql = readFileSync(new URL("../../../supabase/migrations/20261026120000_phase4c_aios_pricing.sql", import.meta.url), "utf8");
+  assert.equal(/sending_enabled\s*=\s*true/i.test(sql), false);
+  assert.equal(/\btruncate\b/i.test(sql), false);
+  assert.equal(/\bdelete from\b/i.test(sql), false);
+  assert.equal(/\bdrop table\b/i.test(sql), false);
+  assert.match(sql, /agent_starter/);
+  assert.match(sql, /agent_always_on/);
+  assert.match(sql, /'included'/);
+  assert.match(sql, /markup_multiplier = 1\.5/);
+  assert.match(sql, /setup_quick_start/);
+  assert.match(sql, /250000/);
+  assert.match(sql, /499900/);
+  assert.match(sql, /price_placeholder/);
 });
 
 test("phase 4a migration does not send, delete, or charge", () => {

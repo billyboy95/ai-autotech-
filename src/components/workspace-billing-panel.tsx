@@ -33,7 +33,7 @@ export function WorkspaceBillingPanel({ billing }: { billing: BillingPageModel }
         <div>
           <h2 className="font-display text-lg font-bold text-[#0B1F3A]">Billing</h2>
           <p className="mt-1 text-sm text-slate-600">
-            {billing.orgName} · plans in ZAR · PayFast sandbox subscriptions. Paystack is stubbed. Yoco is once-off drafts only.
+            {billing.orgName} · Platform R299 plus agents, ZAR, VAT excluded · PayFast sandbox subscriptions. Paystack is stubbed. Yoco is once-off drafts only. Placeholder prices.
           </p>
         </div>
         <p className={`rounded-full px-3 py-1 text-xs font-semibold ${status === "suspended" ? "bg-rose-100 text-rose-900" : status === "past_due" ? "bg-amber-100 text-amber-950" : status === "active" ? "bg-emerald-100 text-emerald-900" : "bg-slate-100 text-slate-700"}`}>
@@ -87,8 +87,8 @@ export function WorkspaceBillingPanel({ billing }: { billing: BillingPageModel }
           <input type="hidden" name="slug" value={billing.slug} />
           <label className="grid gap-1 text-xs font-semibold text-slate-600">
             Plan
-            <select name="plan_code" className="h-10 rounded-md border border-slate-200 px-3 text-sm" defaultValue={billing.plans[0]?.code || "starter"}>
-              {billing.plans.length === 0 ? <option value="starter">Starter</option> : null}
+            <select name="plan_code" className="h-10 rounded-md border border-slate-200 px-3 text-sm" defaultValue={billing.plans[0]?.code || "platform"}>
+              {billing.plans.length === 0 ? <option value="platform">Platform</option> : null}
               {billing.plans.map((plan) => (
                 <option key={plan.code} value={plan.code}>
                   {plan.name} · {zar(plan.priceCents)} / {plan.interval}
@@ -123,7 +123,7 @@ export function WorkspaceBillingPanel({ billing }: { billing: BillingPageModel }
       {billing.canManage && billing.mockItn ? (
         <form action={applyItn} className="grid gap-2 border-t border-slate-200 pt-4">
           <input type="hidden" name="slug" value={billing.slug} />
-          <input type="hidden" name="plan_code" value={billing.plans[0]?.code || "starter"} />
+          <input type="hidden" name="plan_code" value={billing.plans[0]?.code || "platform"} />
           <p className="text-sm text-slate-600">Record a mocked PayFast ITN for the first plan. This marks the subscription active in sandbox and does not call PayFast.</p>
           <button disabled={applyingItn} className="h-10 w-fit rounded-md border border-slate-200 px-4 text-sm font-semibold text-[#0B1F3A] disabled:opacity-60">
             {applyingItn ? "Applying…" : "Apply sandbox ITN"}

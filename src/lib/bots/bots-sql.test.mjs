@@ -44,6 +44,7 @@ async function applyBots(db) {
     );
   `);
   await db.exec(migration("20261024120000_phase4a_bots.sql"));
+  await db.exec(migration("20261026120000_phase4c_aios_pricing.sql"));
 }
 
 async function asUser(db, userId, sql, params = []) {
@@ -133,14 +134,40 @@ test("phase 4a keeps sandbox billing, the bundle discount, and draft-only outbox
   const education = await db.query(`select payload::text as payload from bot_templates where slug = 'education-school'`);
   assert.match(education.rows[0].payload, /stage:admissions:enquiry/);
 
-  await assert.rejects(
-    db.query(`update bot_bundles set bundle_price_cents = $1 where slug = 'sales-team'`, [bySlug["sales-team"].separate_total_cents]),
-    /bundle discount rule/i,
-  );
-  await assert.rejects(
-    db.query(`update bot_bundles set bundle_price_cents = $1 where slug = 'sales-team'`, [bySlug["sales-team"].max_bot_cents]),
-    /bundle discount rule/i,
-  );
+  const tiers = await db.query(`select slug, tier, monthly_price_cents::int as price from bot_catalog where slug in ('inbound-lead', 'outbound-sales', 'onboarding', 'ads', 'social-posting')`);
+  const tierBySlug = Object.fromEntries(tiers.rows.map((row) => [row.slug, row]));
+  assert.equal(tierBySlug["inbound-lead"].tier, "included");
+  assert.equal(tierBySlug["inbound-lead"].price, 0);
+  assert.equal(tierBySlug["outbound-sales"].tier, "pro");
+  assert.equal(tierBySlug["outbound-sales"].price, 149900);
+  assert.equal(tierBySlug["onboarding"].tier, "starter");
+  assert.equal(tierBySlug["onboarding"].price, 69900);
+  assert.equal(tierBySlug["ads"].tier, "pro");
+  assert.equal(tierBySlug["ads"].price, 149900);
+  assert.equal(tierBySlug["social-posting"].tier, "starter");
+  assert.equal(tierBySlug["social-posting"].price, 69900);
+
+  const plans = await db.query(`select code, price_cents::int as price, active from plans order by code`);
+  const planByCode = Object.fromEntries(plans.rows.map((row) => [row.code, row]));
+  assert.equal(planByCode.platform.price, 29900);
+  assert.equal(planByCode.platform.active, true);
+  assert.equal(planByCode.agent_starter.price, 69900);
+  assert.equal(planByCode.agent_pro.price, 149900);
+  assert.equal(planByCode.agent_always_on.price, 499900);
+  assert.equal(planByCode.starter.active, false);
+  assert.equal(planByCode.growth.active, false);
+  assert.equal(planByCode.scale.active, false);
+  const legacy = await db.query(`select bool_and(features->>'legacy' = 'true') as ok from plans where code in ('starter', 'growth', 'scale')`);
+  assert.equal(legacy.rows[0].ok, true);
+
+  const markup = await db.query(`select meter, markup_multiplier::float as markup from rate_cards where org_id is null and meter in ('sms', 'email', 'wa_marketing') order by meter`);
+  assert.ok(markup.rows.every((row) => row.markup === 1.5));
+
+  await db.query(`update bot_bundles set bundle_price_cents = $1 where slug = 'sales-team'`, [bySlug["sales-team"].separate_total_cents]);
+  const stillDiscounted = await db.query(`select saving_percent::int as saving_percent, bundle_price_cents::int as bundle_price_cents from bot_bundle_savings where slug = 'sales-team'`);
+  assert.equal(stillDiscounted.rows[0].saving_percent, 10);
+  assert.equal(stillDiscounted.rows[0].bundle_price_cents, bySlug["sales-team"].bundle_price_cents);
+  await db.query(`update bot_bundles set bundle_price_cents = $1, discount_percent = 10 where slug = 'sales-team'`, [bySlug["sales-team"].bundle_price_cents]);
 
   const subsBefore = await db.query(`select count(*)::int as n from org_subscriptions`);
   const applied = await db.query(`select public.apply_bot_template($1, 'sales-team') as result`, [EASTC_ORG]);
@@ -173,6 +200,11 @@ test("phase 4a keeps sandbox billing, the bundle discount, and draft-only outbox
   assert.equal(lines.rows[0].sandbox, true);
   assert.equal(lines.rows[0].uncharged, true);
   assert.equal(lines.rows[0].n, 3);
+  const inboundLine = await db.query(
+    `select amount_cents::int as amount from org_bot_billing_lines where org_id = $1 and bot_slug = 'inbound-lead'`,
+    [EASTC_ORG],
+  );
+  assert.equal(inboundLine.rows[0].amount, 0);
   const subsAfter = await db.query(`select count(*)::int as n from org_subscriptions`);
   assert.equal(subsAfter.rows[0].n, subsBefore.rows[0].n);
   const sending = await db.query(`select sending_enabled from organizations where id = $1`, [EASTC_ORG]);

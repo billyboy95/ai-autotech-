@@ -4,7 +4,8 @@ import test from "node:test";
 import type { ReplyProvider } from "@/lib/ai-reply/provider";
 import { applyConfirmedActions, proposeAssistantActions, proposalsFromText } from "@/lib/bots/assistant";
 import { addSandboxBotLines, openBotCheckout } from "@/lib/bots/billing";
-import { BOT_CATALOG, BOT_BUNDLES, TEAM_TEMPLATES, bundleBySlug } from "@/lib/bots/catalog";
+import { AGENT_DEPARTMENTS, BOT_CATALOG, BOT_BUNDLES, EDUCATION_ADMISSIONS_PIPELINE, TEAM_TEMPLATES, bundleBySlug } from "@/lib/bots/catalog";
+import { EDUCATION_PAYLOAD } from "@/lib/snapshots/catalog";
 import { isBotAssistantEnabled } from "@/lib/bots/flag";
 import { allocateBundlePrice, assertBundleDiscount, bundleSaving } from "@/lib/bots/pricing";
 import { runBot } from "@/lib/bots/runtime";
@@ -32,8 +33,23 @@ test("catalogue prices are placeholders and every bundle is a real group discoun
     assert.equal(shares.reduce((sum, line) => sum + line.amountCents, 0), saving.bundlePriceCents);
   }
   const sales = bundleBySlug("sales-team");
+  assert.equal(sales.bundlePriceCents, 360_000);
+  assert.equal(bundleBySlug("full-business").bundlePriceCents, 600_000);
+  assert.ok(BOT_CATALOG.length >= 40);
+  assert.equal(new Set(BOT_CATALOG.map((bot) => bot.slug)).size, BOT_CATALOG.length);
+  for (const department of AGENT_DEPARTMENTS) {
+    assert.ok(BOT_CATALOG.some((bot) => bot.department === department), department);
+  }
   assert.throws(() => assertBundleDiscount({ ...sales, bundlePriceCents: bundleSaving(sales).separateTotalCents }));
   assert.throws(() => assertBundleDiscount({ ...sales, bundlePriceCents: bundleSaving(sales).maxBotCents }));
+  const education = EDUCATION_PAYLOAD.pipelines[0];
+  assert.deepEqual(
+    EDUCATION_ADMISSIONS_PIPELINE.stages.map((stage) => stage.assetKey),
+    education.stages.map((stage) => stage.asset_key),
+  );
+  assert.ok(TEAM_TEMPLATES.length >= 17);
+  assert.ok(TEAM_TEMPLATES.some((template) => template.slug === "healthcare-clinic"));
+  assert.ok(TEAM_TEMPLATES.some((template) => template.industry === "education"));
 });
 
 test("sandbox checkout never charges and does not add a second subscription", () => {
@@ -115,7 +131,21 @@ test("team templates apply once and do not duplicate or send", () => {
   assert.equal(full.book.pipelines.length, 2);
   assert.equal(full.book.bots.length, 5);
   assert.equal(full.book.sendingEnabled, false);
-  assert.equal(TEAM_TEMPLATES.length, 3);
+  const clinic = applyTeamTemplate(full.book, {
+    orgId: "org-1",
+    orgName: "EASTC",
+    templateSlug: "healthcare-clinic",
+    env,
+  });
+  assert.equal(clinic.book.sendingEnabled, false);
+  assert.equal(clinic.book.contacts.length, 0);
+  const clinicAgain = applyTeamTemplate(clinic.book, {
+    orgId: "org-1",
+    orgName: "EASTC",
+    templateSlug: "healthcare-clinic",
+    env,
+  });
+  assert.equal(clinicAgain.createdStages, 0);
 });
 
 test("bot runs stay drafts or tasks", () => {
@@ -211,7 +241,10 @@ test("phase 4a migration does not send, delete, or charge", () => {
   assert.match(sql, /check \(sandbox\)/);
   assert.match(sql, /check \(charged = false\)/);
   assert.match(sql, /'draft'/);
-  for (const slug of ["inbound-lead", "outbound-sales", "onboarding", "ads", "social-posting", "sales-team", "marketing-team", "full-business"]) {
+  assert.match(sql, /healthcare-clinic/);
+  assert.match(sql, /stage:admissions:enquiry/);
+  assert.match(sql, /department/);
+  for (const slug of ["inbound-lead", "outbound-sales", "onboarding", "ads", "social-posting", "sales-team", "marketing-team", "full-business", "admin-team", "education-school"]) {
     assert.match(sql, new RegExp(slug));
   }
 });

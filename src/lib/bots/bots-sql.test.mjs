@@ -84,7 +84,13 @@ test("phase 4a keeps sandbox billing, the bundle discount, and draft-only outbox
   await seedMembers(db);
 
   const seeded = await db.query(`select slug from bot_catalog order by slug`);
-  assert.deepEqual(seeded.rows.map((row) => row.slug), ["ads", "inbound-lead", "onboarding", "outbound-sales", "social-posting"]);
+  const slugs = seeded.rows.map((row) => row.slug);
+  assert.ok(slugs.length >= 40);
+  for (const slug of ["ads", "inbound-lead", "onboarding", "outbound-sales", "social-posting"]) {
+    assert.ok(slugs.includes(slug), slug);
+  }
+  const departments = await db.query(`select count(distinct department)::int as n from bot_catalog`);
+  assert.ok(departments.rows[0].n >= 16);
   const placeholders = await db.query(`select bool_and(price_placeholder) as ok from bot_catalog`);
   assert.equal(placeholders.rows[0].ok, true);
 
@@ -102,6 +108,15 @@ test("phase 4a keeps sandbox billing, the bundle discount, and draft-only outbox
   assert.equal(bySlug["marketing-team"].saving_percent, 20);
   assert.equal(bySlug["full-business"].bundle_price_cents, 600000);
   assert.equal(bySlug["full-business"].separate_total_cents, 750000);
+  for (const row of savings.rows) {
+    assert.equal(row.saving_percent, 20, row.slug);
+    assert.ok(row.bundle_price_cents > row.max_bot_cents, row.slug);
+    assert.ok(row.bundle_price_cents < row.separate_total_cents, row.slug);
+  }
+  const templates = await db.query(`select slug from bot_templates`);
+  assert.ok(templates.rows.length >= 17);
+  const education = await db.query(`select payload::text as payload from bot_templates where slug = 'education-school'`);
+  assert.match(education.rows[0].payload, /stage:admissions:enquiry/);
 
   await assert.rejects(
     db.query(`update bot_bundles set bundle_price_cents = 450000 where slug = 'sales-team'`),
@@ -176,7 +191,7 @@ test("phase 4a keeps sandbox billing, the bundle discount, and draft-only outbox
   const visible = await asUser(db, EASTC_USER, `select bot_slug from org_bots where org_id = '${EASTC_ORG}' order by bot_slug`);
   assert.equal(visible.rows.length, 3);
   const catalog = await asUser(db, EASTC_USER, `select slug from bot_catalog`);
-  assert.equal(catalog.rows.length, 5);
+  assert.ok(catalog.rows.length >= 40);
   await assert.rejects(
     asUser(db, EASTC_USER, `insert into org_bots (org_id, bot_slug, sandbox) values ('${EASTC_ORG}', 'ads', true)`),
     /row-level security|permission denied|42501/i,

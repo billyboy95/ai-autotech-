@@ -1,4 +1,4 @@
-import { BOT_CATEGORIES, botBySlug, type BotConfig } from "@/lib/bots/catalog";
+import { AGENT_DEPARTMENTS, botBySlug, type BotConfig } from "@/lib/bots/catalog";
 import {
   previewAgencyBots,
   previewBotDetail,
@@ -48,10 +48,10 @@ export async function loadBotStore(input: { org?: string | null; notice?: string
   }
   const supabase = await createSupabaseServerClient();
   const [catalog, bundles, items, templates, installed, savings] = await Promise.all([
-    supabase.from("bot_catalog").select("slug, name, category, description, monthly_price_cents, price_placeholder, engine, active").eq("active", true),
+    supabase.from("bot_catalog").select("slug, name, category, department, description, monthly_price_cents, price_placeholder, engine, active").eq("active", true),
     supabase.from("bot_bundles").select("slug, name, description, price_placeholder").eq("active", true),
     supabase.from("bot_bundle_items").select("bot_slug, bot_bundles(slug)"),
-    supabase.from("bot_templates").select("slug, name, description"),
+    supabase.from("bot_templates").select("slug, name, description, industry, department"),
     supabase.from("org_bots").select("bot_slug, status").eq("org_id", tenant.active.id),
     supabase.from("bot_bundle_savings").select("slug, separate_total_cents, bundle_price_cents, saving_percent"),
   ]);
@@ -70,8 +70,9 @@ export async function loadBotStore(input: { org?: string | null; notice?: string
   const bots = (catalog.data ?? []).map((row) => ({
     slug: String(row.slug),
     name: String(row.name),
-    category: String(row.category),
-    description: String(row.description ?? ""),
+      category: String(row.category),
+      department: String(row.department || "sales"),
+      description: String(row.description ?? ""),
     monthlyPriceCents: Number(row.monthly_price_cents),
     pricePlaceholder: true as const,
     engine: String(row.engine),
@@ -94,7 +95,7 @@ export async function loadBotStore(input: { org?: string | null; notice?: string
     canManage: canManageRole(tenant.role),
     canSeeAgency: tenant.canManageAgency,
     orgSlug: tenant.active.slug,
-    categories: BOT_CATEGORIES.filter((category) => bots.some((bot) => bot.category === category)),
+    departments: AGENT_DEPARTMENTS.filter((department) => bots.some((bot) => bot.department === department)),
     bots,
     bundles: (bundles.data ?? []).map((row) => {
       const saving = savingBySlug.get(String(row.slug));
@@ -114,6 +115,8 @@ export async function loadBotStore(input: { org?: string | null; notice?: string
       slug: String(row.slug),
       name: String(row.name),
       description: String(row.description ?? ""),
+      industry: row.industry ? String(row.industry) : null,
+      department: row.department ? String(row.department) : null,
     })),
   };
 }
@@ -156,6 +159,8 @@ export async function loadBotDetail(input: { org?: string | null; slug: string; 
     engine: String(catalog.data.engine),
     pricePlaceholder: true,
     monthlyPriceCents: Number(catalog.data.monthly_price_cents),
+    departmentLabel: preview.departmentLabel,
+    touches: preview.touches,
     config: asConfig(installed.data?.config ?? catalog.data.default_config, fallback),
     runs: (runs.data ?? []).map((row) => ({
       id: String(row.id),

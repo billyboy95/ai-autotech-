@@ -22,8 +22,8 @@ function canManage(role: string | null) {
 }
 
 function safeReturn(value: FormDataEntryValue | null) {
-  const path = String(value ?? "");
-  if (path.startsWith("/command-centre/bots")) return path.split("?")[0];
+  const path = String(value ?? "").split("?")[0];
+  if (path.startsWith("/command-centre/bots") || path.startsWith("/command-centre/agents") || path === "/command-centre/team") return path;
   return "/command-centre/bots";
 }
 

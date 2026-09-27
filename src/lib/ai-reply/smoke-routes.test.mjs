@@ -71,7 +71,7 @@ test("inbox, conversation AI, calendars, and public booking respond", { timeout:
     const bots = await fetch(`http://127.0.0.1:${port}/command-centre/bots`, { redirect: "manual" });
     assert.equal(bots.status, 200);
     const botsHtml = await bots.text();
-    assert.match(botsHtml, /Bot Store/);
+    assert.match(botsHtml, /Agent store/);
     assert.match(botsHtml, /Placeholder price/);
     assert.match(botsHtml, /Save 20% vs buying separately/);
 
@@ -80,6 +80,24 @@ test("inbox, conversation AI, calendars, and public booking respond", { timeout:
     const botHtml = await bot.text();
     assert.match(botHtml, /Inbound Lead/);
     assert.match(botHtml, /Activity/);
+    assert.match(botHtml, /Reports to/);
+
+    const templates = await fetch(`http://127.0.0.1:${port}/command-centre/agents/templates`, { redirect: "manual" });
+    assert.equal(templates.status, 200);
+    const templatesHtml = await templates.text();
+    assert.match(templatesHtml, /Templates/);
+    assert.match(templatesHtml, /Healthcare/);
+
+    const team = await fetch(`http://127.0.0.1:${port}/command-centre/team`, { redirect: "manual" });
+    assert.equal(team.status, 200);
+    const teamHtml = await team.text();
+    assert.match(teamHtml, /Team/);
+    assert.match(teamHtml, /reports to/);
+
+    const live = await fetch(`http://127.0.0.1:${port}/command-centre/agents`, { redirect: "manual" });
+    assert.equal(live.status, 200);
+    const liveHtml = await live.text();
+    assert.match(liveHtml, /Live agents/);
 
     const booking = await fetch(`http://127.0.0.1:${port}/book/ai-autotech-audit`, { redirect: "manual" });
     assert.equal(booking.status, 200);

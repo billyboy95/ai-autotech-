@@ -8,9 +8,9 @@ export function BotDetailView({ data }: { data: BotDetailData }) {
   return (
     <div data-testid="bot-detail" className="grid gap-4">
       <div>
-        <Link href="/command-centre/bots" className="text-sm font-semibold text-[#2563EB]">Bot Store</Link>
+        <Link href="/command-centre/bots" className="text-sm font-semibold text-[#2563EB]">Agent store</Link>
         <h1 className="mt-1 font-display text-2xl font-bold text-[#0B1F3A]">{data.name}</h1>
-        <p className="text-sm text-slate-500">{data.description}</p>
+        <p className="text-sm text-slate-500">{data.departmentLabel ? `${data.departmentLabel} · ` : ""}{data.description}</p>
       </div>
       {data.notice ? <p className="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600">{data.notice}</p> : null}
       {!data.found ? null : (
@@ -32,6 +32,39 @@ export function BotDetailView({ data }: { data: BotDetailData }) {
               </form>
             </div>
           </section>
+
+          {data.touches ? (
+            <section className="rounded-md border border-slate-200 bg-white p-4 shadow-sm">
+              <h2 className="font-display text-lg font-bold text-[#0B1F3A]">Where this agent works</h2>
+              <p className="mt-1 text-sm text-slate-500">Agents work across the CRM and the team. This one does not send.</p>
+              <dl className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
+                <div>
+                  <dt className="font-semibold text-[#0B1F3A]">Reports to</dt>
+                  <dd className="text-slate-600">{data.touches.reportsTo}</dd>
+                </div>
+                <div>
+                  <dt className="font-semibold text-[#0B1F3A]">Pipeline</dt>
+                  <dd className="text-slate-600">{data.touches.pipelines.join(", ") || data.config.pipeline}</dd>
+                </div>
+                <div>
+                  <dt className="font-semibold text-[#0B1F3A]">Inbox</dt>
+                  <dd className="text-slate-600">{data.touches.inbox ? "Drafts replies in the inbox" : "Does not sit in the inbox"}</dd>
+                </div>
+                <div>
+                  <dt className="font-semibold text-[#0B1F3A]">Tasks</dt>
+                  <dd className="text-slate-600">{data.touches.tasks ? "Opens tasks for a person" : "Does not open tasks"}</dd>
+                </div>
+                <div>
+                  <dt className="font-semibold text-[#0B1F3A]">Calendar</dt>
+                  <dd className="text-slate-600">{data.touches.calendar ? "Drafts a booking link" : "Does not book"}</dd>
+                </div>
+                <div>
+                  <dt className="font-semibold text-[#0B1F3A]">Reviews</dt>
+                  <dd className="text-slate-600">{data.touches.reviews ? "Drafts review requests or replies" : "Does not touch reviews"}</dd>
+                </div>
+              </dl>
+            </section>
+          ) : null}
 
           <section className="rounded-md border border-slate-200 bg-white p-4 shadow-sm">
             <h2 className="font-display text-lg font-bold text-[#0B1F3A]">Settings</h2>

@@ -27,6 +27,11 @@ create table if not exists public.bot_catalog (
   slug text not null unique,
   name text not null,
   category text not null check (category in ('sales', 'marketing', 'support', 'ops')),
+  department text not null default 'sales' check (department in (
+    'sales', 'marketing', 'branding', 'admin', 'operations', 'customer-service',
+    'booking', 'finance', 'hr', 'onboarding', 'reputation', 'social', 'ads',
+    'content', 'ecommerce', 'it-support'
+  )),
   description text not null default '',
   monthly_price_cents integer not null check (monthly_price_cents >= 0),
   currency text not null default 'ZAR' check (currency = 'ZAR'),
@@ -129,6 +134,8 @@ create table if not exists public.bot_templates (
   name text not null,
   description text not null default '',
   bundle_slug text references public.bot_bundles(slug),
+  industry text,
+  department text,
   payload jsonb not null,
   created_at timestamptz not null default now(),
   constraint bot_templates_catalogue_only check (
@@ -138,6 +145,10 @@ create table if not exists public.bot_templates (
     and not (payload ? 'credentials')
   )
 );
+
+alter table public.bot_catalog add column if not exists department text;
+alter table public.bot_templates add column if not exists industry text;
+alter table public.bot_templates add column if not exists department text;
 
 create or replace function public.bot_bundle_quoted_price(
   p_bundle_price integer,
@@ -963,60 +974,401 @@ end
 $service_grants$;
 
 -- Placeholder prices, to be confirmed by Billy.
+-- Seed is generated from src/lib/bots/catalog-data.ts. Agents and bots are the same catalogue.
 do $seed$
-declare
-  sales_payload jsonb;
-  marketing_payload jsonb;
-  full_payload jsonb;
-  hours jsonb := '{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]}'::jsonb;
 begin
   insert into public.bot_catalog (
-    slug, name, category, description, monthly_price_cents, currency, price_placeholder,
+    slug, name, category, department, description, monthly_price_cents, currency, price_placeholder,
     capabilities, default_config, engine, active
   ) values
     (
-      'inbound-lead', 'Inbound Lead', 'sales',
-      'Assigns a new lead and saves an AI reply draft. Nothing is sent.',
+      $q$inbound-lead$q$, $q$Inbound Lead$q$, $q$sales$q$, $q$sales$q$,
+      $q$Assigns a new lead and saves an AI reply draft. Nothing is sent.$q$,
       150000, 'ZAR', true,
-      '["assign-lead","ai-draft","workflow"]'::jsonb,
-      jsonb_build_object('tone', 'warm and plain', 'workingHours', hours, 'pipeline', 'pipeline:bot:sales-team', 'stage', 'stage:bot:sales-team:new', 'channel', 'whatsapp'),
-      'ai_reply', true
+      $q$["assign-lead","ai-draft","workflow"]$q$::jsonb,
+      $q${"tone":"warm and plain","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:sales-team","stage":"stage:bot:sales-team:new","channel":"whatsapp"}$q$::jsonb,
+      $q$ai_reply$q$, true
     ),
     (
-      'outbound-sales', 'Outbound Sales', 'sales',
-      'Drafts outreach after consent and suppression checks. Nothing is sent.',
+      $q$outbound-sales$q$, $q$Outbound Sales$q$, $q$sales$q$, $q$sales$q$,
+      $q$Drafts outreach after consent and suppression checks. Nothing is sent.$q$,
       200000, 'ZAR', true,
-      '["outbox-draft","consent-check"]'::jsonb,
-      jsonb_build_object('tone', 'direct', 'workingHours', hours, 'pipeline', 'pipeline:bot:sales-team', 'stage', 'stage:bot:sales-team:contacted', 'channel', 'whatsapp'),
-      'outbox_draft', true
+      $q$["outbox-draft","consent-check"]$q$::jsonb,
+      $q${"tone":"direct","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:sales-team","stage":"stage:bot:sales-team:contacted","channel":"whatsapp"}$q$::jsonb,
+      $q$outbox_draft$q$, true
     ),
     (
-      'onboarding', 'Onboarding', 'sales',
-      'Creates onboarding tasks and a booking-link draft. Nothing is sent.',
-      100000, 'ZAR', true,
-      '["task","calendar-link","workflow"]'::jsonb,
-      jsonb_build_object('tone', 'helpful', 'workingHours', hours, 'pipeline', 'pipeline:bot:sales-team', 'stage', 'stage:bot:sales-team:won', 'channel', 'email'),
-      'calendar', true
+      $q$proposal-writer$q$, $q$Proposal Writer$q$, $q$sales$q$, $q$sales$q$,
+      $q$Drafts a proposal note for the open deal. Nothing is sent.$q$,
+      140000, 'ZAR', true,
+      $q$["ai-draft"]$q$::jsonb,
+      $q${"tone":"clear","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:sales-team","stage":"stage:bot:sales-team:proposal","channel":"email"}$q$::jsonb,
+      $q$ai_reply$q$, true
     ),
     (
-      'ads', 'Ads', 'marketing',
-      'Drafts ad copy only. Nothing is published.',
-      180000, 'ZAR', true,
-      '["ad-copy-draft"]'::jsonb,
-      jsonb_build_object('tone', 'clear', 'workingHours', hours, 'pipeline', 'pipeline:bot:marketing-team', 'stage', 'stage:bot:marketing-team:draft', 'channel', 'ads'),
-      'outbox_draft', true
+      $q$campaign-planner$q$, $q$Campaign Planner$q$, $q$marketing$q$, $q$marketing$q$,
+      $q$Plans a campaign and saves a task. Nothing is sent.$q$,
+      150000, 'ZAR', true,
+      $q$["task","workflow"]$q$::jsonb,
+      $q${"tone":"clear","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:marketing-team","stage":"stage:bot:marketing-team:idea","channel":"email"}$q$::jsonb,
+      $q$workflows$q$, true
     ),
     (
-      'social-posting', 'Social Media Posting', 'marketing',
-      'Drafts social posts only. Nothing is published.',
+      $q$email-nurture$q$, $q$Email Nurture$q$, $q$marketing$q$, $q$marketing$q$,
+      $q$Drafts a nurture email after consent checks. Nothing is sent.$q$,
+      130000, 'ZAR', true,
+      $q$["outbox-draft","consent-check"]$q$::jsonb,
+      $q${"tone":"helpful","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:marketing-team","stage":"stage:bot:marketing-team:draft","channel":"email"}$q$::jsonb,
+      $q$outbox_draft$q$, true
+    ),
+    (
+      $q$offer-manager$q$, $q$Offer Manager$q$, $q$marketing$q$, $q$marketing$q$,
+      $q$Drafts an offer for the current campaign. Nothing is published.$q$,
+      140000, 'ZAR', true,
+      $q$["ai-draft"]$q$::jsonb,
+      $q${"tone":"direct","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:marketing-team","stage":"stage:bot:marketing-team:review","channel":"email"}$q$::jsonb,
+      $q$ai_reply$q$, true
+    ),
+    (
+      $q$brand-voice$q$, $q$Brand Voice$q$, $q$marketing$q$, $q$branding$q$,
+      $q$Drafts lines in the brand voice. Nothing is published.$q$,
+      160000, 'ZAR', true,
+      $q$["ai-draft"]$q$::jsonb,
+      $q${"tone":"on brand","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:branding","stage":"stage:bot:branding:new","channel":"social"}$q$::jsonb,
+      $q$ai_reply$q$, true
+    ),
+    (
+      $q$visual-brief$q$, $q$Visual Brief$q$, $q$marketing$q$, $q$branding$q$,
+      $q$Writes a visual brief as a task. Nothing is published.$q$,
+      140000, 'ZAR', true,
+      $q$["task"]$q$::jsonb,
+      $q${"tone":"precise","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:branding","stage":"stage:bot:branding:new","channel":"email"}$q$::jsonb,
+      $q$workflows$q$, true
+    ),
+    (
+      $q$brand-guidelines$q$, $q$Brand Guidelines$q$, $q$marketing$q$, $q$branding$q$,
+      $q$Keeps a guidelines checklist as a task. Nothing is sent.$q$,
       120000, 'ZAR', true,
-      '["social-post-draft"]'::jsonb,
-      jsonb_build_object('tone', 'friendly', 'workingHours', hours, 'pipeline', 'pipeline:bot:marketing-team', 'stage', 'stage:bot:marketing-team:idea', 'channel', 'social'),
-      'workflows', true
+      $q$["task"]$q$::jsonb,
+      $q${"tone":"plain","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:branding","stage":"stage:bot:branding:new","channel":"email"}$q$::jsonb,
+      $q$workflows$q$, true
+    ),
+    (
+      $q$inbox-clerk$q$, $q$Inbox Clerk$q$, $q$ops$q$, $q$admin$q$,
+      $q$Sorts the inbox into a task list. Nothing is sent.$q$,
+      110000, 'ZAR', true,
+      $q$["task"]$q$::jsonb,
+      $q${"tone":"plain","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:admin","stage":"stage:bot:admin:new","channel":"email"}$q$::jsonb,
+      $q$workflows$q$, true
+    ),
+    (
+      $q$document-admin$q$, $q$Document Admin$q$, $q$ops$q$, $q$admin$q$,
+      $q$Tracks missing documents as tasks. Nothing is sent.$q$,
+      120000, 'ZAR', true,
+      $q$["task"]$q$::jsonb,
+      $q${"tone":"careful","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:admin","stage":"stage:bot:admin:new","channel":"email"}$q$::jsonb,
+      $q$workflows$q$, true
+    ),
+    (
+      $q$calendar-admin$q$, $q$Calendar Admin$q$, $q$ops$q$, $q$admin$q$,
+      $q$Drafts a scheduling note and a task. Nothing is sent.$q$,
+      130000, 'ZAR', true,
+      $q$["task","calendar-link"]$q$::jsonb,
+      $q${"tone":"helpful","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:admin","stage":"stage:bot:admin:new","channel":"email"}$q$::jsonb,
+      $q$calendar$q$, true
+    ),
+    (
+      $q$ops-coordinator$q$, $q$Operations Coordinator$q$, $q$ops$q$, $q$operations$q$,
+      $q$Opens an operations task for the next handoff. Nothing is sent.$q$,
+      150000, 'ZAR', true,
+      $q$["task","workflow"]$q$::jsonb,
+      $q${"tone":"direct","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:operations","stage":"stage:bot:operations:new","channel":"email"}$q$::jsonb,
+      $q$workflows$q$, true
+    ),
+    (
+      $q$vendor-followup$q$, $q$Vendor Follow-up$q$, $q$ops$q$, $q$operations$q$,
+      $q$Drafts a vendor follow-up after consent checks. Nothing is sent.$q$,
+      130000, 'ZAR', true,
+      $q$["outbox-draft","consent-check"]$q$::jsonb,
+      $q${"tone":"brief","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:operations","stage":"stage:bot:operations:new","channel":"email"}$q$::jsonb,
+      $q$outbox_draft$q$, true
+    ),
+    (
+      $q$sop-keeper$q$, $q$SOP Keeper$q$, $q$ops$q$, $q$operations$q$,
+      $q$Turns a repeat job into a checklist task. Nothing is sent.$q$,
+      120000, 'ZAR', true,
+      $q$["task"]$q$::jsonb,
+      $q${"tone":"plain","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:operations","stage":"stage:bot:operations:new","channel":"email"}$q$::jsonb,
+      $q$workflows$q$, true
+    ),
+    (
+      $q$support-replies$q$, $q$Support Replies$q$, $q$support$q$, $q$customer-service$q$,
+      $q$Drafts a support reply. Nothing is sent.$q$,
+      140000, 'ZAR', true,
+      $q$["ai-draft"]$q$::jsonb,
+      $q${"tone":"calm","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:customer-service","stage":"stage:bot:customer-service:new","channel":"whatsapp"}$q$::jsonb,
+      $q$ai_reply$q$, true
+    ),
+    (
+      $q$complaint-handler$q$, $q$Complaint Handler$q$, $q$support$q$, $q$customer-service$q$,
+      $q$Drafts a complaint reply and a task for a person. Nothing is sent.$q$,
+      150000, 'ZAR', true,
+      $q$["ai-draft","task"]$q$::jsonb,
+      $q${"tone":"careful","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:customer-service","stage":"stage:bot:customer-service:new","channel":"email"}$q$::jsonb,
+      $q$ai_reply$q$, true
+    ),
+    (
+      $q$faq-drafts$q$, $q$FAQ Drafts$q$, $q$support$q$, $q$customer-service$q$,
+      $q$Drafts an answer from the usual questions. Nothing is sent.$q$,
+      110000, 'ZAR', true,
+      $q$["ai-draft"]$q$::jsonb,
+      $q${"tone":"plain","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:customer-service","stage":"stage:bot:customer-service:new","channel":"email"}$q$::jsonb,
+      $q$ai_reply$q$, true
+    ),
+    (
+      $q$receptionist$q$, $q$Receptionist$q$, $q$support$q$, $q$booking$q$,
+      $q$Drafts a booking reply and a front-desk task. Nothing is sent.$q$,
+      140000, 'ZAR', true,
+      $q$["calendar-link","task","ai-draft"]$q$::jsonb,
+      $q${"tone":"warm","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:booking","stage":"stage:bot:booking:new","channel":"whatsapp"}$q$::jsonb,
+      $q$calendar$q$, true
+    ),
+    (
+      $q$reminder-drafts$q$, $q$Reminder Drafts$q$, $q$support$q$, $q$booking$q$,
+      $q$Drafts an appointment reminder after consent checks. Nothing is sent.$q$,
+      120000, 'ZAR', true,
+      $q$["outbox-draft","consent-check","calendar-link"]$q$::jsonb,
+      $q${"tone":"friendly","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:booking","stage":"stage:bot:booking:new","channel":"whatsapp"}$q$::jsonb,
+      $q$outbox_draft$q$, true
+    ),
+    (
+      $q$waitlist$q$, $q$Waitlist$q$, $q$support$q$, $q$booking$q$,
+      $q$Keeps a waitlist task when the diary is full. Nothing is sent.$q$,
+      100000, 'ZAR', true,
+      $q$["task"]$q$::jsonb,
+      $q${"tone":"brief","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:booking","stage":"stage:bot:booking:new","channel":"whatsapp"}$q$::jsonb,
+      $q$workflows$q$, true
+    ),
+    (
+      $q$invoice-drafts$q$, $q$Invoice Drafts$q$, $q$ops$q$, $q$finance$q$,
+      $q$Drafts an invoice note as a task. Nothing is charged and nothing is sent.$q$,
+      140000, 'ZAR', true,
+      $q$["task"]$q$::jsonb,
+      $q${"tone":"formal","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:finance","stage":"stage:bot:finance:new","channel":"email"}$q$::jsonb,
+      $q$workflows$q$, true
+    ),
+    (
+      $q$bookkeeping-notes$q$, $q$Bookkeeping Notes$q$, $q$ops$q$, $q$finance$q$,
+      $q$Files a bookkeeping task for the month. Nothing is sent.$q$,
+      150000, 'ZAR', true,
+      $q$["task"]$q$::jsonb,
+      $q${"tone":"precise","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:finance","stage":"stage:bot:finance:new","channel":"email"}$q$::jsonb,
+      $q$workflows$q$, true
+    ),
+    (
+      $q$payment-chase$q$, $q$Payment Chase$q$, $q$ops$q$, $q$finance$q$,
+      $q$Drafts a payment reminder after consent checks. Nothing is sent.$q$,
+      130000, 'ZAR', true,
+      $q$["outbox-draft","consent-check"]$q$::jsonb,
+      $q${"tone":"polite","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:finance","stage":"stage:bot:finance:new","channel":"email"}$q$::jsonb,
+      $q$outbox_draft$q$, true
+    ),
+    (
+      $q$recruiter-screen$q$, $q$Recruiter Screen$q$, $q$ops$q$, $q$hr$q$,
+      $q$Drafts a screening note and a task. Nothing is sent.$q$,
+      150000, 'ZAR', true,
+      $q$["ai-draft","task"]$q$::jsonb,
+      $q${"tone":"neutral","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:hr","stage":"stage:bot:hr:new","channel":"email"}$q$::jsonb,
+      $q$ai_reply$q$, true
+    ),
+    (
+      $q$interview-scheduler$q$, $q$Interview Scheduler$q$, $q$ops$q$, $q$hr$q$,
+      $q$Drafts an interview time and a booking link. Nothing is sent.$q$,
+      130000, 'ZAR', true,
+      $q$["calendar-link","task"]$q$::jsonb,
+      $q${"tone":"warm","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:hr","stage":"stage:bot:hr:new","channel":"email"}$q$::jsonb,
+      $q$calendar$q$, true
+    ),
+    (
+      $q$people-onboarding$q$, $q$People Onboarding$q$, $q$ops$q$, $q$hr$q$,
+      $q$Creates a new-hire checklist task. Nothing is sent.$q$,
+      120000, 'ZAR', true,
+      $q$["task"]$q$::jsonb,
+      $q${"tone":"helpful","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:hr","stage":"stage:bot:hr:new","channel":"email"}$q$::jsonb,
+      $q$workflows$q$, true
+    ),
+    (
+      $q$onboarding$q$, $q$Onboarding$q$, $q$sales$q$, $q$onboarding$q$,
+      $q$Creates onboarding tasks and a booking-link draft. Nothing is sent.$q$,
+      100000, 'ZAR', true,
+      $q$["task","calendar-link","workflow"]$q$::jsonb,
+      $q${"tone":"helpful","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:sales-team","stage":"stage:bot:sales-team:won","channel":"email"}$q$::jsonb,
+      $q$calendar$q$, true
+    ),
+    (
+      $q$kickoff-tasks$q$, $q$Kickoff Tasks$q$, $q$sales$q$, $q$onboarding$q$,
+      $q$Opens the kickoff task list for a new client. Nothing is sent.$q$,
+      120000, 'ZAR', true,
+      $q$["task","workflow"]$q$::jsonb,
+      $q${"tone":"clear","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:onboarding","stage":"stage:bot:onboarding:new","channel":"email"}$q$::jsonb,
+      $q$workflows$q$, true
+    ),
+    (
+      $q$handover-checklist$q$, $q$Handover Checklist$q$, $q$sales$q$, $q$onboarding$q$,
+      $q$Writes the handover checklist as a task. Nothing is sent.$q$,
+      110000, 'ZAR', true,
+      $q$["task"]$q$::jsonb,
+      $q${"tone":"plain","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:onboarding","stage":"stage:bot:onboarding:new","channel":"email"}$q$::jsonb,
+      $q$workflows$q$, true
+    ),
+    (
+      $q$review-requests$q$, $q$Review Requests$q$, $q$support$q$, $q$reputation$q$,
+      $q$Drafts a review request after consent checks. Nothing is sent.$q$,
+      120000, 'ZAR', true,
+      $q$["outbox-draft","consent-check"]$q$::jsonb,
+      $q${"tone":"grateful","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:reputation","stage":"stage:bot:reputation:new","channel":"whatsapp"}$q$::jsonb,
+      $q$outbox_draft$q$, true
+    ),
+    (
+      $q$review-replies$q$, $q$Review Replies$q$, $q$support$q$, $q$reputation$q$,
+      $q$Drafts a reply to a public review. Nothing is posted.$q$,
+      130000, 'ZAR', true,
+      $q$["ai-draft"]$q$::jsonb,
+      $q${"tone":"grateful","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:reputation","stage":"stage:bot:reputation:new","channel":"social"}$q$::jsonb,
+      $q$ai_reply$q$, true
+    ),
+    (
+      $q$rating-watch$q$, $q$Rating Watch$q$, $q$support$q$, $q$reputation$q$,
+      $q$Opens a task when a rating needs a person. Nothing is posted.$q$,
+      110000, 'ZAR', true,
+      $q$["task"]$q$::jsonb,
+      $q${"tone":"calm","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:reputation","stage":"stage:bot:reputation:new","channel":"email"}$q$::jsonb,
+      $q$workflows$q$, true
+    ),
+    (
+      $q$social-posting$q$, $q$Social Media Posting$q$, $q$marketing$q$, $q$social$q$,
+      $q$Drafts social posts only. Nothing is published.$q$,
+      120000, 'ZAR', true,
+      $q$["social-post-draft"]$q$::jsonb,
+      $q${"tone":"friendly","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:marketing-team","stage":"stage:bot:marketing-team:idea","channel":"social"}$q$::jsonb,
+      $q$workflows$q$, true
+    ),
+    (
+      $q$community-replies$q$, $q$Community Replies$q$, $q$marketing$q$, $q$social$q$,
+      $q$Drafts a reply to a comment. Nothing is published.$q$,
+      130000, 'ZAR', true,
+      $q$["ai-draft"]$q$::jsonb,
+      $q${"tone":"friendly","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:social","stage":"stage:bot:social:new","channel":"social"}$q$::jsonb,
+      $q$ai_reply$q$, true
+    ),
+    (
+      $q$content-calendar$q$, $q$Content Calendar$q$, $q$marketing$q$, $q$social$q$,
+      $q$Files the week's posts as tasks. Nothing is published.$q$,
+      140000, 'ZAR', true,
+      $q$["task"]$q$::jsonb,
+      $q${"tone":"bright","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:social","stage":"stage:bot:social:new","channel":"social"}$q$::jsonb,
+      $q$workflows$q$, true
+    ),
+    (
+      $q$ads$q$, $q$Ads$q$, $q$marketing$q$, $q$ads$q$,
+      $q$Drafts ad copy only. Nothing is published.$q$,
+      180000, 'ZAR', true,
+      $q$["ad-copy-draft"]$q$::jsonb,
+      $q${"tone":"clear","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:marketing-team","stage":"stage:bot:marketing-team:draft","channel":"ads"}$q$::jsonb,
+      $q$outbox_draft$q$, true
+    ),
+    (
+      $q$search-copy$q$, $q$Search Copy$q$, $q$marketing$q$, $q$ads$q$,
+      $q$Drafts search ad lines. Nothing is published.$q$,
+      150000, 'ZAR', true,
+      $q$["ad-copy-draft"]$q$::jsonb,
+      $q${"tone":"tight","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:ads","stage":"stage:bot:ads:new","channel":"ads"}$q$::jsonb,
+      $q$outbox_draft$q$, true
+    ),
+    (
+      $q$retargeting-copy$q$, $q$Retargeting Copy$q$, $q$marketing$q$, $q$ads$q$,
+      $q$Drafts retargeting copy. Nothing is published.$q$,
+      150000, 'ZAR', true,
+      $q$["ad-copy-draft"]$q$::jsonb,
+      $q${"tone":"direct","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:ads","stage":"stage:bot:ads:new","channel":"ads"}$q$::jsonb,
+      $q$outbox_draft$q$, true
+    ),
+    (
+      $q$blog-drafts$q$, $q$Blog Drafts$q$, $q$marketing$q$, $q$content$q$,
+      $q$Drafts a short article. Nothing is published.$q$,
+      140000, 'ZAR', true,
+      $q$["content-draft"]$q$::jsonb,
+      $q${"tone":"useful","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:content","stage":"stage:bot:content:new","channel":"email"}$q$::jsonb,
+      $q$workflows$q$, true
+    ),
+    (
+      $q$newsletter-drafts$q$, $q$Newsletter Drafts$q$, $q$marketing$q$, $q$content$q$,
+      $q$Drafts a newsletter after consent checks. Nothing is sent.$q$,
+      140000, 'ZAR', true,
+      $q$["outbox-draft","consent-check"]$q$::jsonb,
+      $q${"tone":"warm","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:content","stage":"stage:bot:content:new","channel":"email"}$q$::jsonb,
+      $q$outbox_draft$q$, true
+    ),
+    (
+      $q$case-study$q$, $q$Case Study$q$, $q$marketing$q$, $q$content$q$,
+      $q$Drafts a case study outline as a task. Nothing is published.$q$,
+      160000, 'ZAR', true,
+      $q$["task","content-draft"]$q$::jsonb,
+      $q${"tone":"specific","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:content","stage":"stage:bot:content:new","channel":"email"}$q$::jsonb,
+      $q$workflows$q$, true
+    ),
+    (
+      $q$order-status$q$, $q$Order Status$q$, $q$ops$q$, $q$ecommerce$q$,
+      $q$Drafts an order update. Nothing is sent.$q$,
+      130000, 'ZAR', true,
+      $q$["ai-draft"]$q$::jsonb,
+      $q${"tone":"clear","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:ecommerce","stage":"stage:bot:ecommerce:new","channel":"email"}$q$::jsonb,
+      $q$ai_reply$q$, true
+    ),
+    (
+      $q$fulfilment-tasks$q$, $q$Fulfilment Tasks$q$, $q$ops$q$, $q$ecommerce$q$,
+      $q$Opens a fulfilment task for an order. Nothing is sent.$q$,
+      140000, 'ZAR', true,
+      $q$["task"]$q$::jsonb,
+      $q${"tone":"brief","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:ecommerce","stage":"stage:bot:ecommerce:new","channel":"email"}$q$::jsonb,
+      $q$workflows$q$, true
+    ),
+    (
+      $q$returns-drafts$q$, $q$Returns Drafts$q$, $q$ops$q$, $q$ecommerce$q$,
+      $q$Drafts a returns reply. Nothing is sent.$q$,
+      120000, 'ZAR', true,
+      $q$["ai-draft"]$q$::jsonb,
+      $q${"tone":"fair","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:ecommerce","stage":"stage:bot:ecommerce:new","channel":"email"}$q$::jsonb,
+      $q$ai_reply$q$, true
+    ),
+    (
+      $q$ticket-triage$q$, $q$Ticket Triage$q$, $q$support$q$, $q$it-support$q$,
+      $q$Turns a support note into a task. Nothing is sent.$q$,
+      140000, 'ZAR', true,
+      $q$["task"]$q$::jsonb,
+      $q${"tone":"calm","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:it-support","stage":"stage:bot:it-support:new","channel":"email"}$q$::jsonb,
+      $q$workflows$q$, true
+    ),
+    (
+      $q$password-help$q$, $q$Password Help$q$, $q$support$q$, $q$it-support$q$,
+      $q$Drafts password-reset steps. Nothing is sent and no secret is stored.$q$,
+      110000, 'ZAR', true,
+      $q$["ai-draft"]$q$::jsonb,
+      $q${"tone":"plain","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:it-support","stage":"stage:bot:it-support:new","channel":"email"}$q$::jsonb,
+      $q$ai_reply$q$, true
+    ),
+    (
+      $q$status-notes$q$, $q$Status Notes$q$, $q$support$q$, $q$it-support$q$,
+      $q$Writes an internal status task. Nothing is sent.$q$,
+      100000, 'ZAR', true,
+      $q$["task"]$q$::jsonb,
+      $q${"tone":"plain","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:it-support","stage":"stage:bot:it-support:new","channel":"email"}$q$::jsonb,
+      $q$workflows$q$, true
     )
   on conflict (slug) do update set
     name = excluded.name,
     category = excluded.category,
+    department = excluded.department,
     description = excluded.description,
     monthly_price_cents = excluded.monthly_price_cents,
     currency = excluded.currency,
@@ -1029,19 +1381,89 @@ begin
   insert into public.bot_bundles (slug, name, description, bundle_price_cents, discount_percent, currency, price_placeholder)
   values
     (
-      'sales-team', 'Sales Team',
-      'Inbound Lead, Outbound Sales, and Onboarding as one team. Placeholder price, to be confirmed by Billy.',
+      $q$sales-team$q$, $q$Sales Team$q$,
+      $q$Inbound Lead, Outbound Sales, and Onboarding as one team. Placeholder price, to be confirmed by Billy.$q$,
       360000, 20, 'ZAR', true
     ),
     (
-      'marketing-team', 'Marketing Team',
-      'Ads and Social Media Posting as one team. Placeholder price, to be confirmed by Billy.',
+      $q$marketing-team$q$, $q$Marketing Team$q$,
+      $q$Ads and Social Media Posting as one team. Placeholder price, to be confirmed by Billy.$q$,
       240000, 20, 'ZAR', true
     ),
     (
-      'full-business', 'Full Business',
-      'Sales Team and Marketing Team together. Placeholder price, to be confirmed by Billy.',
+      $q$admin-team$q$, $q$Admin Team$q$,
+      $q$Inbox, documents, and calendar admin as one team. Placeholder price, to be confirmed by Billy.$q$,
+      288000, 20, 'ZAR', true
+    ),
+    (
+      $q$operations-team$q$, $q$Operations Team$q$,
+      $q$Coordination, vendors, and SOPs as one team. Placeholder price, to be confirmed by Billy.$q$,
+      320000, 20, 'ZAR', true
+    ),
+    (
+      $q$full-business$q$, $q$Full Business$q$,
+      $q$Sales and marketing agents together. Placeholder price, to be confirmed by Billy.$q$,
       600000, 20, 'ZAR', true
+    ),
+    (
+      $q$healthcare-clinic$q$, $q$Healthcare / clinic$q$,
+      $q$Reception, reminders, patient admin, reviews, operations, and billing. Not a sales team. Placeholder price, to be confirmed by Billy.$q$,
+      632000, 20, 'ZAR', true
+    ),
+    (
+      $q$fashion-brand$q$, $q$Clothing / fashion$q$,
+      $q$Branding, sales, marketing, social, ads, fulfilment, and customer service. Placeholder price, to be confirmed by Billy.$q$,
+      824000, 20, 'ZAR', true
+    ),
+    (
+      $q$restaurant-food$q$, $q$Restaurant / food$q$,
+      $q$Reception, reminders, reviews, social, and offers. Placeholder price, to be confirmed by Billy.$q$,
+      520000, 20, 'ZAR', true
+    ),
+    (
+      $q$real-estate$q$, $q$Real estate$q$,
+      $q$Inbound, outbound, proposals, reminders, and reviews. Placeholder price, to be confirmed by Billy.$q$,
+      584000, 20, 'ZAR', true
+    ),
+    (
+      $q$education-school$q$, $q$Education / school$q$,
+      $q$Admissions desk, documents, reminders, onboarding, and reviews. Uses the Education admissions stages. Placeholder price, to be confirmed by Billy.$q$,
+      480000, 20, 'ZAR', true
+    ),
+    (
+      $q$beauty-salon$q$, $q$Beauty / salon / spa$q$,
+      $q$Reception, reminders, reviews, social, and brand voice. Placeholder price, to be confirmed by Billy.$q$,
+      528000, 20, 'ZAR', true
+    ),
+    (
+      $q$fitness-gym$q$, $q$Fitness / gym$q$,
+      $q$Leads, reception, reminders, social, and reviews. Placeholder price, to be confirmed by Billy.$q$,
+      520000, 20, 'ZAR', true
+    ),
+    (
+      $q$legal-services$q$, $q$Legal / professional services$q$,
+      $q$Intake, documents, diary, invoices, and onboarding. Placeholder price, to be confirmed by Billy.$q$,
+      512000, 20, 'ZAR', true
+    ),
+    (
+      $q$trades-home$q$, $q$Trades / home services$q$,
+      $q$Leads, reception, reminders, invoices, and reviews. Placeholder price, to be confirmed by Billy.$q$,
+      536000, 20, 'ZAR', true
+    ),
+    (
+      $q$automotive$q$, $q$Automotive$q$,
+      $q$Leads, reception, reminders, reviews, and invoices. Placeholder price, to be confirmed by Billy.$q$,
+      536000, 20, 'ZAR', true
+    ),
+    (
+      $q$ecommerce-store$q$, $q$Ecommerce store$q$,
+      $q$Orders, fulfilment, returns, support, ads, and social. Placeholder price, to be confirmed by Billy.$q$,
+      664000, 20, 'ZAR', true
+    ),
+    (
+      $q$agency-consulting$q$, $q$Agency / consulting$q$,
+      $q$Inbound, outbound, proposals, onboarding, invoices, and content. Placeholder price, to be confirmed by Billy.$q$,
+      696000, 20, 'ZAR', true
     )
   on conflict (slug) do update set
     name = excluded.name,
@@ -1055,120 +1477,234 @@ begin
   from public.bot_bundles b
   join (
     values
-      ('sales-team', 'inbound-lead', 1),
-      ('sales-team', 'outbound-sales', 2),
-      ('sales-team', 'onboarding', 3),
-      ('marketing-team', 'ads', 1),
-      ('marketing-team', 'social-posting', 2),
-      ('full-business', 'inbound-lead', 1),
-      ('full-business', 'outbound-sales', 2),
-      ('full-business', 'onboarding', 3),
-      ('full-business', 'ads', 4),
-      ('full-business', 'social-posting', 5)
+      ($q$sales-team$q$, $q$inbound-lead$q$, 1),
+      ($q$sales-team$q$, $q$outbound-sales$q$, 2),
+      ($q$sales-team$q$, $q$onboarding$q$, 3),
+      ($q$marketing-team$q$, $q$ads$q$, 1),
+      ($q$marketing-team$q$, $q$social-posting$q$, 2),
+      ($q$admin-team$q$, $q$inbox-clerk$q$, 1),
+      ($q$admin-team$q$, $q$document-admin$q$, 2),
+      ($q$admin-team$q$, $q$calendar-admin$q$, 3),
+      ($q$operations-team$q$, $q$ops-coordinator$q$, 1),
+      ($q$operations-team$q$, $q$vendor-followup$q$, 2),
+      ($q$operations-team$q$, $q$sop-keeper$q$, 3),
+      ($q$full-business$q$, $q$inbound-lead$q$, 1),
+      ($q$full-business$q$, $q$outbound-sales$q$, 2),
+      ($q$full-business$q$, $q$onboarding$q$, 3),
+      ($q$full-business$q$, $q$ads$q$, 4),
+      ($q$full-business$q$, $q$social-posting$q$, 5),
+      ($q$healthcare-clinic$q$, $q$receptionist$q$, 1),
+      ($q$healthcare-clinic$q$, $q$reminder-drafts$q$, 2),
+      ($q$healthcare-clinic$q$, $q$document-admin$q$, 3),
+      ($q$healthcare-clinic$q$, $q$review-requests$q$, 4),
+      ($q$healthcare-clinic$q$, $q$ops-coordinator$q$, 5),
+      ($q$healthcare-clinic$q$, $q$invoice-drafts$q$, 6),
+      ($q$fashion-brand$q$, $q$brand-voice$q$, 1),
+      ($q$fashion-brand$q$, $q$inbound-lead$q$, 2),
+      ($q$fashion-brand$q$, $q$campaign-planner$q$, 3),
+      ($q$fashion-brand$q$, $q$social-posting$q$, 4),
+      ($q$fashion-brand$q$, $q$ads$q$, 5),
+      ($q$fashion-brand$q$, $q$order-status$q$, 6),
+      ($q$fashion-brand$q$, $q$support-replies$q$, 7),
+      ($q$restaurant-food$q$, $q$receptionist$q$, 1),
+      ($q$restaurant-food$q$, $q$reminder-drafts$q$, 2),
+      ($q$restaurant-food$q$, $q$review-replies$q$, 3),
+      ($q$restaurant-food$q$, $q$social-posting$q$, 4),
+      ($q$restaurant-food$q$, $q$offer-manager$q$, 5),
+      ($q$real-estate$q$, $q$inbound-lead$q$, 1),
+      ($q$real-estate$q$, $q$outbound-sales$q$, 2),
+      ($q$real-estate$q$, $q$proposal-writer$q$, 3),
+      ($q$real-estate$q$, $q$reminder-drafts$q$, 4),
+      ($q$real-estate$q$, $q$review-requests$q$, 5),
+      ($q$education-school$q$, $q$receptionist$q$, 1),
+      ($q$education-school$q$, $q$document-admin$q$, 2),
+      ($q$education-school$q$, $q$reminder-drafts$q$, 3),
+      ($q$education-school$q$, $q$onboarding$q$, 4),
+      ($q$education-school$q$, $q$review-requests$q$, 5),
+      ($q$beauty-salon$q$, $q$receptionist$q$, 1),
+      ($q$beauty-salon$q$, $q$reminder-drafts$q$, 2),
+      ($q$beauty-salon$q$, $q$review-requests$q$, 3),
+      ($q$beauty-salon$q$, $q$social-posting$q$, 4),
+      ($q$beauty-salon$q$, $q$brand-voice$q$, 5),
+      ($q$fitness-gym$q$, $q$inbound-lead$q$, 1),
+      ($q$fitness-gym$q$, $q$receptionist$q$, 2),
+      ($q$fitness-gym$q$, $q$reminder-drafts$q$, 3),
+      ($q$fitness-gym$q$, $q$social-posting$q$, 4),
+      ($q$fitness-gym$q$, $q$review-requests$q$, 5),
+      ($q$legal-services$q$, $q$inbound-lead$q$, 1),
+      ($q$legal-services$q$, $q$document-admin$q$, 2),
+      ($q$legal-services$q$, $q$calendar-admin$q$, 3),
+      ($q$legal-services$q$, $q$invoice-drafts$q$, 4),
+      ($q$legal-services$q$, $q$onboarding$q$, 5),
+      ($q$trades-home$q$, $q$inbound-lead$q$, 1),
+      ($q$trades-home$q$, $q$receptionist$q$, 2),
+      ($q$trades-home$q$, $q$reminder-drafts$q$, 3),
+      ($q$trades-home$q$, $q$invoice-drafts$q$, 4),
+      ($q$trades-home$q$, $q$review-requests$q$, 5),
+      ($q$automotive$q$, $q$inbound-lead$q$, 1),
+      ($q$automotive$q$, $q$receptionist$q$, 2),
+      ($q$automotive$q$, $q$reminder-drafts$q$, 3),
+      ($q$automotive$q$, $q$review-requests$q$, 4),
+      ($q$automotive$q$, $q$invoice-drafts$q$, 5),
+      ($q$ecommerce-store$q$, $q$order-status$q$, 1),
+      ($q$ecommerce-store$q$, $q$fulfilment-tasks$q$, 2),
+      ($q$ecommerce-store$q$, $q$returns-drafts$q$, 3),
+      ($q$ecommerce-store$q$, $q$support-replies$q$, 4),
+      ($q$ecommerce-store$q$, $q$ads$q$, 5),
+      ($q$ecommerce-store$q$, $q$social-posting$q$, 6),
+      ($q$agency-consulting$q$, $q$inbound-lead$q$, 1),
+      ($q$agency-consulting$q$, $q$outbound-sales$q$, 2),
+      ($q$agency-consulting$q$, $q$proposal-writer$q$, 3),
+      ($q$agency-consulting$q$, $q$onboarding$q$, 4),
+      ($q$agency-consulting$q$, $q$invoice-drafts$q$, 5),
+      ($q$agency-consulting$q$, $q$blog-drafts$q$, 6)
   ) as item(bundle_slug, bot_slug, position) on item.bundle_slug = b.slug
   on conflict (bundle_id, bot_slug) do nothing;
 
-  sales_payload := jsonb_build_object(
-    'version', 1,
-    'bots', jsonb_build_array(
-      jsonb_build_object('slug', 'inbound-lead', 'config', jsonb_build_object('tone', 'warm and plain', 'workingHours', hours, 'pipeline', 'pipeline:bot:sales-team', 'stage', 'stage:bot:sales-team:new', 'channel', 'whatsapp')),
-      jsonb_build_object('slug', 'outbound-sales', 'config', jsonb_build_object('tone', 'direct', 'workingHours', hours, 'pipeline', 'pipeline:bot:sales-team', 'stage', 'stage:bot:sales-team:contacted', 'channel', 'whatsapp')),
-      jsonb_build_object('slug', 'onboarding', 'config', jsonb_build_object('tone', 'helpful', 'workingHours', hours, 'pipeline', 'pipeline:bot:sales-team', 'stage', 'stage:bot:sales-team:won', 'channel', 'email'))
-    ),
-    'pipelines', jsonb_build_array(jsonb_build_object(
-      'asset_key', 'pipeline:bot:sales-team',
-      'name', 'Sales Team',
-      'is_default', false,
-      'stages', jsonb_build_array(
-        jsonb_build_object('asset_key', 'stage:bot:sales-team:new', 'name', 'New', 'position', 1, 'is_won', false, 'is_lost', false),
-        jsonb_build_object('asset_key', 'stage:bot:sales-team:contacted', 'name', 'Contacted', 'position', 2, 'is_won', false, 'is_lost', false),
-        jsonb_build_object('asset_key', 'stage:bot:sales-team:qualified', 'name', 'Qualified', 'position', 3, 'is_won', false, 'is_lost', false),
-        jsonb_build_object('asset_key', 'stage:bot:sales-team:proposal', 'name', 'Proposal', 'position', 4, 'is_won', false, 'is_lost', false),
-        jsonb_build_object('asset_key', 'stage:bot:sales-team:won', 'name', 'Won', 'position', 5, 'is_won', true, 'is_lost', false),
-        jsonb_build_object('asset_key', 'stage:bot:sales-team:lost', 'name', 'Lost', 'position', 6, 'is_won', false, 'is_lost', true)
-      )
-    )),
-    'workflows', jsonb_build_array(
-      jsonb_build_object(
-        'asset_key', 'workflow:bot:inbound-assign',
-        'name', 'Assign inbound lead',
-        'trigger_type', 'lead.created',
-        'trigger', '{}'::jsonb,
-        'steps', jsonb_build_array(jsonb_build_object('id', 'assign', 'kind', 'create_task', 'title', 'Assign the inbound lead'))
-      ),
-      jsonb_build_object(
-        'asset_key', 'workflow:bot:onboarding-tasks',
-        'name', 'Onboarding tasks',
-        'trigger_type', 'lead.stage_changed',
-        'trigger', '{}'::jsonb,
-        'steps', jsonb_build_array(jsonb_build_object('id', 'welcome', 'kind', 'create_task', 'title', 'Create the onboarding tasks'))
-      )
-    )
-  );
-
-  marketing_payload := jsonb_build_object(
-    'version', 1,
-    'bots', jsonb_build_array(
-      jsonb_build_object('slug', 'ads', 'config', jsonb_build_object('tone', 'clear', 'workingHours', hours, 'pipeline', 'pipeline:bot:marketing-team', 'stage', 'stage:bot:marketing-team:draft', 'channel', 'ads')),
-      jsonb_build_object('slug', 'social-posting', 'config', jsonb_build_object('tone', 'friendly', 'workingHours', hours, 'pipeline', 'pipeline:bot:marketing-team', 'stage', 'stage:bot:marketing-team:idea', 'channel', 'social'))
-    ),
-    'pipelines', jsonb_build_array(jsonb_build_object(
-      'asset_key', 'pipeline:bot:marketing-team',
-      'name', 'Marketing Team',
-      'is_default', false,
-      'stages', jsonb_build_array(
-        jsonb_build_object('asset_key', 'stage:bot:marketing-team:idea', 'name', 'Idea', 'position', 1, 'is_won', false, 'is_lost', false),
-        jsonb_build_object('asset_key', 'stage:bot:marketing-team:draft', 'name', 'Draft', 'position', 2, 'is_won', false, 'is_lost', false),
-        jsonb_build_object('asset_key', 'stage:bot:marketing-team:review', 'name', 'Review', 'position', 3, 'is_won', false, 'is_lost', false),
-        jsonb_build_object('asset_key', 'stage:bot:marketing-team:scheduled', 'name', 'Scheduled', 'position', 4, 'is_won', false, 'is_lost', false)
-      )
-    )),
-    'workflows', jsonb_build_array(
-      jsonb_build_object(
-        'asset_key', 'workflow:bot:ads-draft',
-        'name', 'Draft ad copy',
-        'trigger_type', 'schedule.cron',
-        'trigger', '{}'::jsonb,
-        'steps', jsonb_build_array(jsonb_build_object('id', 'ad', 'kind', 'create_task', 'title', 'Draft the ad copy'))
-      ),
-      jsonb_build_object(
-        'asset_key', 'workflow:bot:social-draft',
-        'name', 'Draft social post',
-        'trigger_type', 'schedule.cron',
-        'trigger', '{}'::jsonb,
-        'steps', jsonb_build_array(jsonb_build_object('id', 'post', 'kind', 'create_task', 'title', 'Draft the social post'))
-      )
-    )
-  );
-
-  full_payload := jsonb_build_object(
-    'version', 1,
-    'bots', (sales_payload->'bots') || (marketing_payload->'bots'),
-    'pipelines', (sales_payload->'pipelines') || (marketing_payload->'pipelines'),
-    'workflows', (sales_payload->'workflows') || (marketing_payload->'workflows')
-  );
-
-  insert into public.bot_templates (slug, name, description, bundle_slug, payload)
+  insert into public.bot_templates (slug, name, description, bundle_slug, industry, department, payload)
   values
     (
-      'sales-team', 'Sales Team',
-      'One click: inbound, outbound, and onboarding bots, the sales pipeline, and task workflows. Sending stays off.',
-      'sales-team', sales_payload
+      $q$sales-team$q$, $q$Sales Team$q$,
+      $q$One click: inbound, outbound, and onboarding agents, the sales pipeline, and task workflows. Sending stays off.$q$,
+      $q$sales-team$q$,
+      null,
+      $q$sales$q$,
+      $q${"version":1,"bots":[{"slug":"inbound-lead","config":{"tone":"warm and plain","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:sales-team","stage":"stage:bot:sales-team:new","channel":"whatsapp"}},{"slug":"outbound-sales","config":{"tone":"direct","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:sales-team","stage":"stage:bot:sales-team:contacted","channel":"whatsapp"}},{"slug":"onboarding","config":{"tone":"helpful","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:sales-team","stage":"stage:bot:sales-team:won","channel":"email"}}],"pipelines":[{"asset_key":"pipeline:bot:sales-team","name":"Sales Team","is_default":false,"stages":[{"asset_key":"stage:bot:sales-team:new","name":"New","position":1,"is_won":false,"is_lost":false},{"asset_key":"stage:bot:sales-team:contacted","name":"Contacted","position":2,"is_won":false,"is_lost":false},{"asset_key":"stage:bot:sales-team:qualified","name":"Qualified","position":3,"is_won":false,"is_lost":false},{"asset_key":"stage:bot:sales-team:proposal","name":"Proposal","position":4,"is_won":false,"is_lost":false},{"asset_key":"stage:bot:sales-team:won","name":"Won","position":5,"is_won":true,"is_lost":false},{"asset_key":"stage:bot:sales-team:lost","name":"Lost","position":6,"is_won":false,"is_lost":true}]}],"workflows":[{"asset_key":"workflow:bot:inbound-assign","name":"Assign inbound lead","trigger_type":"lead.created","trigger":{},"steps":[{"id":"assign","kind":"create_task","title":"Assign the inbound lead"}]},{"asset_key":"workflow:bot:onboarding-tasks","name":"Onboarding tasks","trigger_type":"lead.stage_changed","trigger":{},"steps":[{"id":"welcome","kind":"create_task","title":"Create the onboarding tasks"}]}]}$q$::jsonb
     ),
     (
-      'marketing-team', 'Marketing Team',
-      'One click: ads and social bots, the marketing pipeline, and draft workflows. Sending stays off.',
-      'marketing-team', marketing_payload
+      $q$marketing-team$q$, $q$Marketing Team$q$,
+      $q$One click: ads and social agents, the marketing pipeline, and draft workflows. Sending stays off.$q$,
+      $q$marketing-team$q$,
+      null,
+      $q$marketing$q$,
+      $q${"version":1,"bots":[{"slug":"ads","config":{"tone":"clear","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:marketing-team","stage":"stage:bot:marketing-team:draft","channel":"ads"}},{"slug":"social-posting","config":{"tone":"friendly","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:marketing-team","stage":"stage:bot:marketing-team:idea","channel":"social"}}],"pipelines":[{"asset_key":"pipeline:bot:marketing-team","name":"Marketing Team","is_default":false,"stages":[{"asset_key":"stage:bot:marketing-team:idea","name":"Idea","position":1,"is_won":false,"is_lost":false},{"asset_key":"stage:bot:marketing-team:draft","name":"Draft","position":2,"is_won":false,"is_lost":false},{"asset_key":"stage:bot:marketing-team:review","name":"Review","position":3,"is_won":false,"is_lost":false},{"asset_key":"stage:bot:marketing-team:scheduled","name":"Scheduled","position":4,"is_won":false,"is_lost":false}]}],"workflows":[{"asset_key":"workflow:bot:ads-draft","name":"Draft ad copy","trigger_type":"schedule.cron","trigger":{},"steps":[{"id":"ad","kind":"create_task","title":"Draft the ad copy"}]},{"asset_key":"workflow:bot:social-draft","name":"Draft social post","trigger_type":"schedule.cron","trigger":{},"steps":[{"id":"post","kind":"create_task","title":"Draft the social post"}]}]}$q$::jsonb
     ),
     (
-      'full-business', 'Full Business',
-      'One click: every store bot, both pipelines, and the task workflows. Sending stays off.',
-      'full-business', full_payload
+      $q$admin-team$q$, $q$Admin Team$q$,
+      $q$One click: inbox, documents, and calendar agents. Sending stays off.$q$,
+      $q$admin-team$q$,
+      null,
+      $q$admin$q$,
+      $q${"version":1,"bots":[{"slug":"inbox-clerk","config":{"tone":"plain","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:admin","stage":"stage:bot:admin:new","channel":"email"}},{"slug":"document-admin","config":{"tone":"careful","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:admin","stage":"stage:bot:admin:new","channel":"email"}},{"slug":"calendar-admin","config":{"tone":"helpful","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:admin","stage":"stage:bot:admin:new","channel":"email"}}],"pipelines":[{"asset_key":"pipeline:bot:admin","name":"Admin","is_default":false,"stages":[{"asset_key":"stage:bot:admin:new","name":"New","position":1,"is_won":false,"is_lost":false},{"asset_key":"stage:bot:admin:doing","name":"In progress","position":2,"is_won":false,"is_lost":false},{"asset_key":"stage:bot:admin:done","name":"Done","position":3,"is_won":true,"is_lost":false}]}],"workflows":[{"asset_key":"workflow:bot:admin-file","name":"File the admin item","trigger_type":"lead.created","trigger":{},"steps":[{"id":"task","kind":"create_task","title":"File the admin item"}]}]}$q$::jsonb
+    ),
+    (
+      $q$operations-team$q$, $q$Operations Team$q$,
+      $q$One click: coordination, vendor, and SOP agents. Sending stays off.$q$,
+      $q$operations-team$q$,
+      null,
+      $q$operations$q$,
+      $q${"version":1,"bots":[{"slug":"ops-coordinator","config":{"tone":"direct","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:operations","stage":"stage:bot:operations:new","channel":"email"}},{"slug":"vendor-followup","config":{"tone":"brief","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:operations","stage":"stage:bot:operations:new","channel":"email"}},{"slug":"sop-keeper","config":{"tone":"plain","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:operations","stage":"stage:bot:operations:new","channel":"email"}}],"pipelines":[{"asset_key":"pipeline:bot:operations","name":"Operations","is_default":false,"stages":[{"asset_key":"stage:bot:operations:logged","name":"Logged","position":1,"is_won":false,"is_lost":false},{"asset_key":"stage:bot:operations:doing","name":"In progress","position":2,"is_won":false,"is_lost":false},{"asset_key":"stage:bot:operations:done","name":"Done","position":3,"is_won":true,"is_lost":false}]}],"workflows":[{"asset_key":"workflow:bot:ops-task","name":"Open the operations task","trigger_type":"lead.created","trigger":{},"steps":[{"id":"task","kind":"create_task","title":"Open the operations task"}]}]}$q$::jsonb
+    ),
+    (
+      $q$full-business$q$, $q$Full Business$q$,
+      $q$One click: the sales and marketing agents, both pipelines, and the task workflows. Sending stays off.$q$,
+      $q$full-business$q$,
+      null,
+      null,
+      $q${"version":1,"bots":[{"slug":"inbound-lead","config":{"tone":"warm and plain","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:sales-team","stage":"stage:bot:sales-team:new","channel":"whatsapp"}},{"slug":"outbound-sales","config":{"tone":"direct","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:sales-team","stage":"stage:bot:sales-team:contacted","channel":"whatsapp"}},{"slug":"onboarding","config":{"tone":"helpful","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:sales-team","stage":"stage:bot:sales-team:won","channel":"email"}},{"slug":"ads","config":{"tone":"clear","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:marketing-team","stage":"stage:bot:marketing-team:draft","channel":"ads"}},{"slug":"social-posting","config":{"tone":"friendly","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:marketing-team","stage":"stage:bot:marketing-team:idea","channel":"social"}}],"pipelines":[{"asset_key":"pipeline:bot:sales-team","name":"Sales Team","is_default":false,"stages":[{"asset_key":"stage:bot:sales-team:new","name":"New","position":1,"is_won":false,"is_lost":false},{"asset_key":"stage:bot:sales-team:contacted","name":"Contacted","position":2,"is_won":false,"is_lost":false},{"asset_key":"stage:bot:sales-team:qualified","name":"Qualified","position":3,"is_won":false,"is_lost":false},{"asset_key":"stage:bot:sales-team:proposal","name":"Proposal","position":4,"is_won":false,"is_lost":false},{"asset_key":"stage:bot:sales-team:won","name":"Won","position":5,"is_won":true,"is_lost":false},{"asset_key":"stage:bot:sales-team:lost","name":"Lost","position":6,"is_won":false,"is_lost":true}]},{"asset_key":"pipeline:bot:marketing-team","name":"Marketing Team","is_default":false,"stages":[{"asset_key":"stage:bot:marketing-team:idea","name":"Idea","position":1,"is_won":false,"is_lost":false},{"asset_key":"stage:bot:marketing-team:draft","name":"Draft","position":2,"is_won":false,"is_lost":false},{"asset_key":"stage:bot:marketing-team:review","name":"Review","position":3,"is_won":false,"is_lost":false},{"asset_key":"stage:bot:marketing-team:scheduled","name":"Scheduled","position":4,"is_won":false,"is_lost":false}]}],"workflows":[{"asset_key":"workflow:bot:inbound-assign","name":"Assign inbound lead","trigger_type":"lead.created","trigger":{},"steps":[{"id":"assign","kind":"create_task","title":"Assign the inbound lead"}]},{"asset_key":"workflow:bot:onboarding-tasks","name":"Onboarding tasks","trigger_type":"lead.stage_changed","trigger":{},"steps":[{"id":"welcome","kind":"create_task","title":"Create the onboarding tasks"}]},{"asset_key":"workflow:bot:ads-draft","name":"Draft ad copy","trigger_type":"schedule.cron","trigger":{},"steps":[{"id":"ad","kind":"create_task","title":"Draft the ad copy"}]},{"asset_key":"workflow:bot:social-draft","name":"Draft social post","trigger_type":"schedule.cron","trigger":{},"steps":[{"id":"post","kind":"create_task","title":"Draft the social post"}]}]}$q$::jsonb
+    ),
+    (
+      $q$healthcare-clinic$q$, $q$Healthcare / clinic$q$,
+      $q$Reception, patient admin, reminders, reviews, operations, and billing. Sending stays off.$q$,
+      $q$healthcare-clinic$q$,
+      $q$healthcare$q$,
+      null,
+      $q${"version":1,"bots":[{"slug":"receptionist","config":{"tone":"warm","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:booking","stage":"stage:bot:booking:new","channel":"whatsapp"}},{"slug":"reminder-drafts","config":{"tone":"friendly","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:booking","stage":"stage:bot:booking:new","channel":"whatsapp"}},{"slug":"document-admin","config":{"tone":"careful","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:admin","stage":"stage:bot:admin:new","channel":"email"}},{"slug":"review-requests","config":{"tone":"grateful","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:reputation","stage":"stage:bot:reputation:new","channel":"whatsapp"}},{"slug":"ops-coordinator","config":{"tone":"direct","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:operations","stage":"stage:bot:operations:new","channel":"email"}},{"slug":"invoice-drafts","config":{"tone":"formal","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:finance","stage":"stage:bot:finance:new","channel":"email"}}],"pipelines":[{"asset_key":"pipeline:bot:healthcare-clinic","name":"Clinic","is_default":false,"stages":[{"asset_key":"stage:bot:healthcare-clinic:enquiry","name":"Enquiry","position":1,"is_won":false,"is_lost":false},{"asset_key":"stage:bot:healthcare-clinic:booked","name":"Booked","position":2,"is_won":false,"is_lost":false},{"asset_key":"stage:bot:healthcare-clinic:seen","name":"Seen","position":3,"is_won":true,"is_lost":false},{"asset_key":"stage:bot:healthcare-clinic:follow-up","name":"Follow-up","position":4,"is_won":false,"is_lost":false}]}],"workflows":[{"asset_key":"workflow:bot:healthcare-clinic","name":"Prepare the clinic follow-up","trigger_type":"lead.created","trigger":{},"steps":[{"id":"task","kind":"create_task","title":"Prepare the clinic follow-up"}]}]}$q$::jsonb
+    ),
+    (
+      $q$fashion-brand$q$, $q$Clothing / fashion$q$,
+      $q$Brand, sales, marketing, social, ads, fulfilment, and service. Sending stays off.$q$,
+      $q$fashion-brand$q$,
+      $q$fashion$q$,
+      null,
+      $q${"version":1,"bots":[{"slug":"brand-voice","config":{"tone":"on brand","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:branding","stage":"stage:bot:branding:new","channel":"social"}},{"slug":"inbound-lead","config":{"tone":"warm and plain","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:sales-team","stage":"stage:bot:sales-team:new","channel":"whatsapp"}},{"slug":"campaign-planner","config":{"tone":"clear","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:marketing-team","stage":"stage:bot:marketing-team:idea","channel":"email"}},{"slug":"social-posting","config":{"tone":"friendly","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:marketing-team","stage":"stage:bot:marketing-team:idea","channel":"social"}},{"slug":"ads","config":{"tone":"clear","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:marketing-team","stage":"stage:bot:marketing-team:draft","channel":"ads"}},{"slug":"order-status","config":{"tone":"clear","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:ecommerce","stage":"stage:bot:ecommerce:new","channel":"email"}},{"slug":"support-replies","config":{"tone":"calm","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:customer-service","stage":"stage:bot:customer-service:new","channel":"whatsapp"}}],"pipelines":[{"asset_key":"pipeline:bot:fashion-brand","name":"Fashion","is_default":false,"stages":[{"asset_key":"stage:bot:fashion-brand:lead","name":"Lead","position":1,"is_won":false,"is_lost":false},{"asset_key":"stage:bot:fashion-brand:styled","name":"Styled","position":2,"is_won":false,"is_lost":false},{"asset_key":"stage:bot:fashion-brand:ordered","name":"Ordered","position":3,"is_won":true,"is_lost":false}]}],"workflows":[{"asset_key":"workflow:bot:fashion-brand","name":"Draft the fashion follow-up","trigger_type":"lead.created","trigger":{},"steps":[{"id":"task","kind":"create_task","title":"Draft the fashion follow-up"}]}]}$q$::jsonb
+    ),
+    (
+      $q$restaurant-food$q$, $q$Restaurant / food$q$,
+      $q$Bookings, reminders, reviews, social, and offers. Sending stays off.$q$,
+      $q$restaurant-food$q$,
+      $q$restaurant$q$,
+      null,
+      $q${"version":1,"bots":[{"slug":"receptionist","config":{"tone":"warm","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:booking","stage":"stage:bot:booking:new","channel":"whatsapp"}},{"slug":"reminder-drafts","config":{"tone":"friendly","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:booking","stage":"stage:bot:booking:new","channel":"whatsapp"}},{"slug":"review-replies","config":{"tone":"grateful","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:reputation","stage":"stage:bot:reputation:new","channel":"social"}},{"slug":"social-posting","config":{"tone":"friendly","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:marketing-team","stage":"stage:bot:marketing-team:idea","channel":"social"}},{"slug":"offer-manager","config":{"tone":"direct","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:marketing-team","stage":"stage:bot:marketing-team:review","channel":"email"}}],"pipelines":[{"asset_key":"pipeline:bot:restaurant-food","name":"Restaurant","is_default":false,"stages":[{"asset_key":"stage:bot:restaurant-food:enquiry","name":"Enquiry","position":1,"is_won":false,"is_lost":false},{"asset_key":"stage:bot:restaurant-food:booked","name":"Booked","position":2,"is_won":false,"is_lost":false},{"asset_key":"stage:bot:restaurant-food:seated","name":"Seated","position":3,"is_won":true,"is_lost":false}]}],"workflows":[{"asset_key":"workflow:bot:restaurant-food","name":"Confirm the booking draft","trigger_type":"lead.created","trigger":{},"steps":[{"id":"task","kind":"create_task","title":"Confirm the booking draft"}]}]}$q$::jsonb
+    ),
+    (
+      $q$real-estate$q$, $q$Real estate$q$,
+      $q$Leads, viewings, proposals, and reviews. Sending stays off.$q$,
+      $q$real-estate$q$,
+      $q$real-estate$q$,
+      null,
+      $q${"version":1,"bots":[{"slug":"inbound-lead","config":{"tone":"warm and plain","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:sales-team","stage":"stage:bot:sales-team:new","channel":"whatsapp"}},{"slug":"outbound-sales","config":{"tone":"direct","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:sales-team","stage":"stage:bot:sales-team:contacted","channel":"whatsapp"}},{"slug":"proposal-writer","config":{"tone":"clear","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:sales-team","stage":"stage:bot:sales-team:proposal","channel":"email"}},{"slug":"reminder-drafts","config":{"tone":"friendly","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:booking","stage":"stage:bot:booking:new","channel":"whatsapp"}},{"slug":"review-requests","config":{"tone":"grateful","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:reputation","stage":"stage:bot:reputation:new","channel":"whatsapp"}}],"pipelines":[{"asset_key":"pipeline:bot:real-estate","name":"Property","is_default":false,"stages":[{"asset_key":"stage:bot:real-estate:enquiry","name":"Enquiry","position":1,"is_won":false,"is_lost":false},{"asset_key":"stage:bot:real-estate:viewing","name":"Viewing","position":2,"is_won":false,"is_lost":false},{"asset_key":"stage:bot:real-estate:offer","name":"Offer","position":3,"is_won":false,"is_lost":false},{"asset_key":"stage:bot:real-estate:won","name":"Won","position":4,"is_won":true,"is_lost":false},{"asset_key":"stage:bot:real-estate:lost","name":"Lost","position":5,"is_won":false,"is_lost":true}]}],"workflows":[{"asset_key":"workflow:bot:real-estate","name":"Book the viewing task","trigger_type":"lead.created","trigger":{},"steps":[{"id":"task","kind":"create_task","title":"Book the viewing task"}]}]}$q$::jsonb
+    ),
+    (
+      $q$education-school$q$, $q$Education / school$q$,
+      $q$Admissions stages from the Education snapshot, plus the school agents. Sending stays off.$q$,
+      $q$education-school$q$,
+      $q$education$q$,
+      null,
+      $q${"version":1,"bots":[{"slug":"receptionist","config":{"tone":"warm","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:booking","stage":"stage:bot:booking:new","channel":"whatsapp"}},{"slug":"document-admin","config":{"tone":"careful","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:admin","stage":"stage:bot:admin:new","channel":"email"}},{"slug":"reminder-drafts","config":{"tone":"friendly","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:booking","stage":"stage:bot:booking:new","channel":"whatsapp"}},{"slug":"onboarding","config":{"tone":"helpful","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:sales-team","stage":"stage:bot:sales-team:won","channel":"email"}},{"slug":"review-requests","config":{"tone":"grateful","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:reputation","stage":"stage:bot:reputation:new","channel":"whatsapp"}}],"pipelines":[{"asset_key":"pipeline:admissions","name":"Admissions","is_default":false,"stages":[{"asset_key":"stage:admissions:enquiry","name":"Enquiry","position":1,"is_won":false,"is_lost":false},{"asset_key":"stage:admissions:application-started","name":"Application Started","position":2,"is_won":false,"is_lost":false},{"asset_key":"stage:admissions:docs-submitted","name":"Docs Submitted","position":3,"is_won":false,"is_lost":false},{"asset_key":"stage:admissions:accepted","name":"Accepted","position":4,"is_won":false,"is_lost":false},{"asset_key":"stage:admissions:registered","name":"Registered","position":5,"is_won":true,"is_lost":false},{"asset_key":"stage:admissions:lost","name":"Lost","position":6,"is_won":false,"is_lost":true}]}],"workflows":[{"asset_key":"workflow:bot:education-school","name":"Follow the admissions enquiry","trigger_type":"lead.created","trigger":{},"steps":[{"id":"task","kind":"create_task","title":"Follow the admissions enquiry"}]}]}$q$::jsonb
+    ),
+    (
+      $q$beauty-salon$q$, $q$Beauty / salon / spa$q$,
+      $q$Diary, reminders, reviews, and social. Sending stays off.$q$,
+      $q$beauty-salon$q$,
+      $q$beauty$q$,
+      null,
+      $q${"version":1,"bots":[{"slug":"receptionist","config":{"tone":"warm","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:booking","stage":"stage:bot:booking:new","channel":"whatsapp"}},{"slug":"reminder-drafts","config":{"tone":"friendly","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:booking","stage":"stage:bot:booking:new","channel":"whatsapp"}},{"slug":"review-requests","config":{"tone":"grateful","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:reputation","stage":"stage:bot:reputation:new","channel":"whatsapp"}},{"slug":"social-posting","config":{"tone":"friendly","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:marketing-team","stage":"stage:bot:marketing-team:idea","channel":"social"}},{"slug":"brand-voice","config":{"tone":"on brand","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:branding","stage":"stage:bot:branding:new","channel":"social"}}],"pipelines":[{"asset_key":"pipeline:bot:beauty-salon","name":"Salon","is_default":false,"stages":[{"asset_key":"stage:bot:beauty-salon:enquiry","name":"Enquiry","position":1,"is_won":false,"is_lost":false},{"asset_key":"stage:bot:beauty-salon:booked","name":"Booked","position":2,"is_won":false,"is_lost":false},{"asset_key":"stage:bot:beauty-salon:visited","name":"Visited","position":3,"is_won":true,"is_lost":false}]}],"workflows":[{"asset_key":"workflow:bot:beauty-salon","name":"Hold the appointment draft","trigger_type":"lead.created","trigger":{},"steps":[{"id":"task","kind":"create_task","title":"Hold the appointment draft"}]}]}$q$::jsonb
+    ),
+    (
+      $q$fitness-gym$q$, $q$Fitness / gym$q$,
+      $q$Trials, memberships, reminders, and social. Sending stays off.$q$,
+      $q$fitness-gym$q$,
+      $q$fitness$q$,
+      null,
+      $q${"version":1,"bots":[{"slug":"inbound-lead","config":{"tone":"warm and plain","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:sales-team","stage":"stage:bot:sales-team:new","channel":"whatsapp"}},{"slug":"receptionist","config":{"tone":"warm","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:booking","stage":"stage:bot:booking:new","channel":"whatsapp"}},{"slug":"reminder-drafts","config":{"tone":"friendly","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:booking","stage":"stage:bot:booking:new","channel":"whatsapp"}},{"slug":"social-posting","config":{"tone":"friendly","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:marketing-team","stage":"stage:bot:marketing-team:idea","channel":"social"}},{"slug":"review-requests","config":{"tone":"grateful","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:reputation","stage":"stage:bot:reputation:new","channel":"whatsapp"}}],"pipelines":[{"asset_key":"pipeline:bot:fitness-gym","name":"Gym","is_default":false,"stages":[{"asset_key":"stage:bot:fitness-gym:trial","name":"Trial","position":1,"is_won":false,"is_lost":false},{"asset_key":"stage:bot:fitness-gym:joined","name":"Joined","position":2,"is_won":true,"is_lost":false},{"asset_key":"stage:bot:fitness-gym:lost","name":"Lost","position":3,"is_won":false,"is_lost":true}]}],"workflows":[{"asset_key":"workflow:bot:fitness-gym","name":"Follow the trial booking","trigger_type":"lead.created","trigger":{},"steps":[{"id":"task","kind":"create_task","title":"Follow the trial booking"}]}]}$q$::jsonb
+    ),
+    (
+      $q$legal-services$q$, $q$Legal / professional services$q$,
+      $q$Intake, documents, diary, and invoices. Sending stays off.$q$,
+      $q$legal-services$q$,
+      $q$legal$q$,
+      null,
+      $q${"version":1,"bots":[{"slug":"inbound-lead","config":{"tone":"warm and plain","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:sales-team","stage":"stage:bot:sales-team:new","channel":"whatsapp"}},{"slug":"document-admin","config":{"tone":"careful","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:admin","stage":"stage:bot:admin:new","channel":"email"}},{"slug":"calendar-admin","config":{"tone":"helpful","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:admin","stage":"stage:bot:admin:new","channel":"email"}},{"slug":"invoice-drafts","config":{"tone":"formal","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:finance","stage":"stage:bot:finance:new","channel":"email"}},{"slug":"onboarding","config":{"tone":"helpful","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:sales-team","stage":"stage:bot:sales-team:won","channel":"email"}}],"pipelines":[{"asset_key":"pipeline:bot:legal-services","name":"Matter","is_default":false,"stages":[{"asset_key":"stage:bot:legal-services:enquiry","name":"Enquiry","position":1,"is_won":false,"is_lost":false},{"asset_key":"stage:bot:legal-services:consult","name":"Consult","position":2,"is_won":false,"is_lost":false},{"asset_key":"stage:bot:legal-services:engaged","name":"Engaged","position":3,"is_won":true,"is_lost":false},{"asset_key":"stage:bot:legal-services:closed","name":"Closed","position":4,"is_won":false,"is_lost":true}]}],"workflows":[{"asset_key":"workflow:bot:legal-services","name":"Open the matter task","trigger_type":"lead.created","trigger":{},"steps":[{"id":"task","kind":"create_task","title":"Open the matter task"}]}]}$q$::jsonb
+    ),
+    (
+      $q$trades-home$q$, $q$Trades / home services$q$,
+      $q$Jobs, visits, invoices, and reviews. Sending stays off.$q$,
+      $q$trades-home$q$,
+      $q$trades$q$,
+      null,
+      $q${"version":1,"bots":[{"slug":"inbound-lead","config":{"tone":"warm and plain","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:sales-team","stage":"stage:bot:sales-team:new","channel":"whatsapp"}},{"slug":"receptionist","config":{"tone":"warm","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:booking","stage":"stage:bot:booking:new","channel":"whatsapp"}},{"slug":"reminder-drafts","config":{"tone":"friendly","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:booking","stage":"stage:bot:booking:new","channel":"whatsapp"}},{"slug":"invoice-drafts","config":{"tone":"formal","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:finance","stage":"stage:bot:finance:new","channel":"email"}},{"slug":"review-requests","config":{"tone":"grateful","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:reputation","stage":"stage:bot:reputation:new","channel":"whatsapp"}}],"pipelines":[{"asset_key":"pipeline:bot:trades-home","name":"Job","is_default":false,"stages":[{"asset_key":"stage:bot:trades-home:enquiry","name":"Enquiry","position":1,"is_won":false,"is_lost":false},{"asset_key":"stage:bot:trades-home:quoted","name":"Quoted","position":2,"is_won":false,"is_lost":false},{"asset_key":"stage:bot:trades-home:booked","name":"Booked","position":3,"is_won":false,"is_lost":false},{"asset_key":"stage:bot:trades-home:done","name":"Done","position":4,"is_won":true,"is_lost":false}]}],"workflows":[{"asset_key":"workflow:bot:trades-home","name":"Schedule the site visit","trigger_type":"lead.created","trigger":{},"steps":[{"id":"task","kind":"create_task","title":"Schedule the site visit"}]}]}$q$::jsonb
+    ),
+    (
+      $q$automotive$q$, $q$Automotive$q$,
+      $q$Enquiries, bookings, reviews, and invoices. Sending stays off.$q$,
+      $q$automotive$q$,
+      $q$automotive$q$,
+      null,
+      $q${"version":1,"bots":[{"slug":"inbound-lead","config":{"tone":"warm and plain","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:sales-team","stage":"stage:bot:sales-team:new","channel":"whatsapp"}},{"slug":"receptionist","config":{"tone":"warm","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:booking","stage":"stage:bot:booking:new","channel":"whatsapp"}},{"slug":"reminder-drafts","config":{"tone":"friendly","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:booking","stage":"stage:bot:booking:new","channel":"whatsapp"}},{"slug":"review-requests","config":{"tone":"grateful","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:reputation","stage":"stage:bot:reputation:new","channel":"whatsapp"}},{"slug":"invoice-drafts","config":{"tone":"formal","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:finance","stage":"stage:bot:finance:new","channel":"email"}}],"pipelines":[{"asset_key":"pipeline:bot:automotive","name":"Workshop","is_default":false,"stages":[{"asset_key":"stage:bot:automotive:enquiry","name":"Enquiry","position":1,"is_won":false,"is_lost":false},{"asset_key":"stage:bot:automotive:booked","name":"Booked","position":2,"is_won":false,"is_lost":false},{"asset_key":"stage:bot:automotive:done","name":"Done","position":3,"is_won":true,"is_lost":false}]}],"workflows":[{"asset_key":"workflow:bot:automotive","name":"Confirm the workshop booking","trigger_type":"lead.created","trigger":{},"steps":[{"id":"task","kind":"create_task","title":"Confirm the workshop booking"}]}]}$q$::jsonb
+    ),
+    (
+      $q$ecommerce-store$q$, $q$Ecommerce store$q$,
+      $q$Orders, fulfilment, returns, and marketing drafts. Sending stays off.$q$,
+      $q$ecommerce-store$q$,
+      $q$ecommerce$q$,
+      null,
+      $q${"version":1,"bots":[{"slug":"order-status","config":{"tone":"clear","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:ecommerce","stage":"stage:bot:ecommerce:new","channel":"email"}},{"slug":"fulfilment-tasks","config":{"tone":"brief","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:ecommerce","stage":"stage:bot:ecommerce:new","channel":"email"}},{"slug":"returns-drafts","config":{"tone":"fair","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:ecommerce","stage":"stage:bot:ecommerce:new","channel":"email"}},{"slug":"support-replies","config":{"tone":"calm","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:customer-service","stage":"stage:bot:customer-service:new","channel":"whatsapp"}},{"slug":"ads","config":{"tone":"clear","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:marketing-team","stage":"stage:bot:marketing-team:draft","channel":"ads"}},{"slug":"social-posting","config":{"tone":"friendly","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:marketing-team","stage":"stage:bot:marketing-team:idea","channel":"social"}}],"pipelines":[{"asset_key":"pipeline:bot:ecommerce-store","name":"Order","is_default":false,"stages":[{"asset_key":"stage:bot:ecommerce-store:new","name":"New","position":1,"is_won":false,"is_lost":false},{"asset_key":"stage:bot:ecommerce-store:packed","name":"Packed","position":2,"is_won":false,"is_lost":false},{"asset_key":"stage:bot:ecommerce-store:fulfilled","name":"Fulfilled","position":3,"is_won":true,"is_lost":false},{"asset_key":"stage:bot:ecommerce-store:returned","name":"Returned","position":4,"is_won":false,"is_lost":true}]}],"workflows":[{"asset_key":"workflow:bot:ecommerce-store","name":"Open the fulfilment task","trigger_type":"lead.created","trigger":{},"steps":[{"id":"task","kind":"create_task","title":"Open the fulfilment task"}]}]}$q$::jsonb
+    ),
+    (
+      $q$agency-consulting$q$, $q$Agency / consulting$q$,
+      $q$Pipeline, proposals, onboarding, and content. Sending stays off.$q$,
+      $q$agency-consulting$q$,
+      $q$agency$q$,
+      null,
+      $q${"version":1,"bots":[{"slug":"inbound-lead","config":{"tone":"warm and plain","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:sales-team","stage":"stage:bot:sales-team:new","channel":"whatsapp"}},{"slug":"outbound-sales","config":{"tone":"direct","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:sales-team","stage":"stage:bot:sales-team:contacted","channel":"whatsapp"}},{"slug":"proposal-writer","config":{"tone":"clear","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:sales-team","stage":"stage:bot:sales-team:proposal","channel":"email"}},{"slug":"onboarding","config":{"tone":"helpful","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:sales-team","stage":"stage:bot:sales-team:won","channel":"email"}},{"slug":"invoice-drafts","config":{"tone":"formal","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:finance","stage":"stage:bot:finance:new","channel":"email"}},{"slug":"blog-drafts","config":{"tone":"useful","workingHours":{"timezone":"Africa/Johannesburg","start":"08:00","end":"17:00","days":[1,2,3,4,5]},"pipeline":"pipeline:bot:content","stage":"stage:bot:content:new","channel":"email"}}],"pipelines":[{"asset_key":"pipeline:bot:agency-consulting","name":"Engagement","is_default":false,"stages":[{"asset_key":"stage:bot:agency-consulting:lead","name":"Lead","position":1,"is_won":false,"is_lost":false},{"asset_key":"stage:bot:agency-consulting:proposal","name":"Proposal","position":2,"is_won":false,"is_lost":false},{"asset_key":"stage:bot:agency-consulting:won","name":"Won","position":3,"is_won":true,"is_lost":false},{"asset_key":"stage:bot:agency-consulting:lost","name":"Lost","position":4,"is_won":false,"is_lost":true}]}],"workflows":[{"asset_key":"workflow:bot:agency-consulting","name":"Draft the engagement task","trigger_type":"lead.created","trigger":{},"steps":[{"id":"task","kind":"create_task","title":"Draft the engagement task"}]}]}$q$::jsonb
     )
   on conflict (slug) do update set
     name = excluded.name,
     description = excluded.description,
     bundle_slug = excluded.bundle_slug,
+    industry = excluded.industry,
+    department = excluded.department,
     payload = excluded.payload;
 end
 $seed$;

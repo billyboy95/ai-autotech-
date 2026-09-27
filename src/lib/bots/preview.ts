@@ -1,10 +1,12 @@
 import {
+  AGENT_DEPARTMENTS,
   BOT_BUNDLES,
   BOT_CATALOG,
-  BOT_CATEGORIES,
+  DEPARTMENT_LABELS,
   TEAM_TEMPLATES,
   botBySlug,
   botsInBundle,
+  type AgentTouches,
   type BotConfig,
 } from "@/lib/bots/catalog";
 import { bundleSaving } from "@/lib/bots/pricing";
@@ -13,6 +15,7 @@ export type StoreBotCard = {
   slug: string;
   name: string;
   category: string;
+  department: string;
   description: string;
   monthlyPriceCents: number;
   pricePlaceholder: true;
@@ -35,6 +38,8 @@ export type StoreTemplateCard = {
   slug: string;
   name: string;
   description: string;
+  industry: string | null;
+  department: string | null;
 };
 
 export type BotStoreData = {
@@ -43,7 +48,7 @@ export type BotStoreData = {
   canManage: boolean;
   canSeeAgency: boolean;
   orgSlug: string;
-  categories: string[];
+  departments: string[];
   bots: StoreBotCard[];
   bundles: StoreBundleCard[];
   templates: StoreTemplateCard[];
@@ -70,6 +75,8 @@ export type BotDetailData = {
   engine: string;
   pricePlaceholder: true;
   monthlyPriceCents: number;
+  departmentLabel: string;
+  touches: AgentTouches | null;
   config: BotConfig;
   runs: BotRunRow[];
 };
@@ -93,6 +100,7 @@ export type AgencyBotData = {
 };
 
 const PREVIEW_STATUS: Record<string, Record<string, string>> = {
+  "ai-autotech": { "inbound-lead": "active", receptionist: "trial", "review-requests": "active" },
   eastc: { "inbound-lead": "trial", "outbound-sales": "trial", onboarding: "trial" },
   zentrix: { ads: "active", "social-posting": "active" },
 };
@@ -108,11 +116,12 @@ export function previewBotStore(orgSlug: string, notice: string | null, canSeeAg
     canManage: false,
     canSeeAgency,
     orgSlug,
-    categories: BOT_CATEGORIES.filter((category) => BOT_CATALOG.some((bot) => bot.category === category)),
+    departments: AGENT_DEPARTMENTS.filter((department) => BOT_CATALOG.some((bot) => bot.department === department)),
     bots: BOT_CATALOG.map((bot) => ({
       slug: bot.slug,
       name: bot.name,
       category: bot.category,
+      department: bot.department,
       description: bot.description,
       monthlyPriceCents: bot.monthlyPriceCents,
       pricePlaceholder: true,
@@ -136,6 +145,8 @@ export function previewBotStore(orgSlug: string, notice: string | null, canSeeAg
       slug: template.slug,
       name: template.name,
       description: template.description,
+      industry: template.industry,
+      department: template.department,
     })),
   };
 }
@@ -156,6 +167,8 @@ export function previewBotDetail(orgSlug: string, slug: string, notice: string |
       engine: "",
       pricePlaceholder: true,
       monthlyPriceCents: 0,
+      departmentLabel: "",
+      touches: null,
       config: botBySlug("inbound-lead").defaultConfig,
       runs: [],
     };
@@ -174,6 +187,8 @@ export function previewBotDetail(orgSlug: string, slug: string, notice: string |
     engine: bot.engine,
     pricePlaceholder: true,
     monthlyPriceCents: bot.monthlyPriceCents,
+    departmentLabel: DEPARTMENT_LABELS[bot.department as keyof typeof DEPARTMENT_LABELS] || bot.department,
+    touches: bot.touches,
     config: bot.defaultConfig,
     runs: [{
       id: `preview-${bot.slug}`,

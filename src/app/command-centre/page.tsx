@@ -19,7 +19,7 @@ export async function generateMetadata(): Promise<Metadata> {
   if (brand && !brand.showPlatformName) {
     return { title: { absolute: brand.productName }, robots: { index: false, follow: false } };
   }
-  return { title: "Today", robots: { index: false, follow: false } };
+  return { title: "Home", robots: { index: false, follow: false } };
 }
 
 export default async function CommandCentrePage({
@@ -47,8 +47,8 @@ export default async function CommandCentrePage({
       <div data-testid="dashboard" className="grid gap-4">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <h1 className="font-display text-2xl font-bold text-[#0B1F3A]">Today</h1>
-            <p className="text-sm text-slate-500">{report.date} · Africa/Johannesburg</p>
+            <h1 className="font-display text-2xl font-bold text-[#0B1F3A]">Home</h1>
+            <p className="text-sm text-slate-500">Today · {report.date} · Africa/Johannesburg</p>
           </div>
           <form action={runAutomationsNow}>
             <button className="h-10 rounded-md bg-[#0B1F3A] px-4 text-sm font-semibold text-white">Run automations</button>

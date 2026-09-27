@@ -187,6 +187,55 @@ function social(config: BotConfig): BotRunResult {
   });
 }
 
+function generic(input: BotRunInput, config: BotConfig): BotRunResult {
+  const bot = botBySlug(input.slug);
+  if (bot.capabilities.includes("outbox-draft")) {
+    const drafted = outbound(input, config);
+    return { ...drafted, botSlug: bot.slug, summary: drafted.status === "skipped" ? drafted.summary : `${bot.name} saved a draft. Nothing was sent.` };
+  }
+  if (bot.capabilities.includes("ad-copy-draft") || bot.capabilities.includes("social-post-draft") || bot.capabilities.includes("content-draft")) {
+    const body = `${bot.name} draft. Tone: ${config.tone}. This is a draft and is not published.`;
+    return result({
+      botSlug: bot.slug,
+      engine: bot.engine,
+      kind: bot.capabilities.includes("ad-copy-draft") ? "ad_draft" : "social_draft",
+      status: "drafted",
+      summary: `${bot.name} saved a draft. Nothing was published.`,
+      artifacts: [{ kind: "draft", status: "draft", title: `${bot.name} draft`, body, channel: config.channel }],
+      output: { kind: "draft", draftBody: body },
+    });
+  }
+  if (bot.engine === "calendar" || bot.capabilities.includes("calendar-link")) {
+    const booked = onboarding(input, config);
+    return { ...booked, botSlug: bot.slug, summary: `${bot.name} saved a task and a booking-link draft. Nothing was sent.` };
+  }
+  if (bot.engine === "ai_reply") {
+    const name = input.leadName?.trim() || "there";
+    const body = `Hi ${name}, this is a ${config.tone} draft from ${bot.name}. Nothing was sent.`;
+    return result({
+      botSlug: bot.slug,
+      engine: bot.engine,
+      kind: "ai_draft",
+      status: "drafted",
+      summary: `${bot.name} saved a draft. Nothing was sent.`,
+      artifacts: [
+        { kind: "task", status: "open", title: `Review the ${bot.name} draft`, body: bot.touches.pipelines[0] || config.pipeline },
+        { kind: "draft", status: "draft", title: `${bot.name} draft`, body, channel: config.channel },
+      ],
+      output: { kind: "draft", taskTitle: `Review the ${bot.name} draft`, draftBody: body },
+    });
+  }
+  return result({
+    botSlug: bot.slug,
+    engine: bot.engine,
+    kind: "task",
+    status: "drafted",
+    summary: `${bot.name} saved a task. Nothing was sent.`,
+    artifacts: [{ kind: "task", status: "open", title: bot.name, body: `Task for ${config.pipeline}. Nothing was sent.` }],
+    output: { kind: "task", taskTitle: bot.name, workflowAssetKey: config.pipeline },
+  });
+}
+
 /** Runs one bot. Output is drafts or tasks. Outbox rows stay status draft. */
 export function runBot(input: BotRunInput): BotRunResult {
   const config = configOf(input);
@@ -196,7 +245,7 @@ export function runBot(input: BotRunInput): BotRunResult {
   if (bot.slug === "onboarding") return onboarding(input, config);
   if (bot.slug === "ads") return ads(config);
   if (bot.slug === "social-posting") return social(config);
-  throw new Error(`unknown bot ${input.slug}`);
+  return generic(input, config);
 }
 
 export function runTouchesOutbox(run: BotRunResult) {

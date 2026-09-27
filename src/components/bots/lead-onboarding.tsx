@@ -153,9 +153,13 @@ export function LeadOnboardingChat({
           <h2 className="font-display text-lg font-bold text-[#0B1F3A]">Sandbox trial recorded</h2>
           <p className="text-sm text-slate-700">
             {teamName(teamSlug)} is the full team on a sandbox trial. No charge was sent. Sending stays off.
-            Connect accounts and import contacts after the subscription is paid.
+            Next, connect accounts and import contacts. Nothing is sent.
           </p>
-          <Link href="/command-centre/bots" className={`${primaryClass} w-fit`}>Open the agent store</Link>
+          <div className="flex flex-wrap gap-2">
+            <Link href="/command-centre/connect-accounts" className={primaryClass}>Connect accounts</Link>
+            <Link href="/command-centre/import-contacts" className={primaryClass}>Import contacts</Link>
+          </div>
+          <Link href="/command-centre/bots" className="text-sm font-semibold text-[#2563EB]">Open the agent store</Link>
           <Link href="/command-centre/lead-agent" className="text-sm font-semibold text-[#2563EB]">Answer again</Link>
         </section>
       </div>

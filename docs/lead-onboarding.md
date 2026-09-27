@@ -15,7 +15,7 @@ Team discounts match `src/lib/pricing/price-sheet.ts`: 10% from 3 agents, 15% fr
 
 The button calls `record_lead_onboarding_trial`, which stores one draft on `lead_onboarding_drafts` and then calls `start_recommended_sandbox_team` for every agent on that template. A shorter list is refused.
 
-No card is charged. `sending_enabled` stays false. `price_placeholder` stays true. Accounts are not connected and contacts are not imported. Those wait until a subscription is paid.
+No card is charged. `sending_enabled` stays false. `price_placeholder` stays true. After the trial, connect accounts and import contacts. Those pages are sandbox stubs until provider keys exist. See `docs/connect-import.md`. Nothing is sent.
 
 ## Environment
 

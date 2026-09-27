@@ -90,6 +90,6 @@ export async function startLeadOnboardingTeam(formData: FormData) {
   revalidatePath("/command-centre/lead-agent");
   revalidatePath("/command-centre/bots");
   revalidatePath("/command-centre/agents");
-  const notice = "Sandbox trial recorded for the full team. No charge was sent. Connect accounts and import contacts after the subscription is paid. Nothing was sent.";
+  const notice = "Sandbox trial recorded for the full team. No charge was sent. Next, connect accounts and import contacts. Nothing was sent.";
   redirect(`${backPath()}?started=1&team=${encodeURIComponent(recommendation.templateSlug)}&notice=${encodeURIComponent(notice)}`);
 }

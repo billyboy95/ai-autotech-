@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { importSetupContacts, placeholderChannel } from "@/app/actions/setup";
 import { accountsForTemplate } from "@/lib/bots/interview";
 import { templateBySlug } from "@/lib/bots/catalog";
@@ -34,7 +35,11 @@ export function SetupReady({
         <>
           <section className="grid gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
             <h2 className="font-display text-lg font-bold text-[#0B1F3A]">Connect your accounts</h2>
-            <p className="text-sm text-slate-700">Only the accounts this team uses are listed. Each button is a placeholder. No key is stored.</p>
+            <p className="text-sm text-slate-700">
+              Only the accounts this team uses are listed here. The full list is on{" "}
+              <Link href="/command-centre/connect-accounts" className="font-semibold text-[#2563EB]">connect accounts</Link>.
+              Each button is a placeholder. No key is stored. Nothing is sent.
+            </p>
             <ul className="grid gap-2">
               {accounts.map((account) => (
                 <li key={account.id} className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-slate-200 px-3 py-2">
@@ -57,7 +62,11 @@ export function SetupReady({
           </section>
           <section className="grid gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
             <h2 className="font-display text-lg font-bold text-[#0B1F3A]">Import your contacts</h2>
-            <p className="text-sm text-slate-700">Upload a CSV with name and consent_basis. consent means they opted in. existing_customer means you already work with them. Nothing is sent.</p>
+            <p className="text-sm text-slate-700">
+              Upload a CSV with name and consent_basis. consent means they opted in. existing_customer means you already work with them.
+              The dry run lives on <Link href="/command-centre/import-contacts" className="font-semibold text-[#2563EB]">import contacts</Link>.
+              Nothing is sent.
+            </p>
             <form action={importSetupContacts} className="grid gap-3">
               <input type="hidden" name="slug" value={orgSlug} />
               <input type="hidden" name="team" value={teamSlug} />

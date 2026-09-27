@@ -134,6 +134,27 @@ test("inbox, conversation AI, calendars, reviews, referrals, and public pages re
     assert.doesNotMatch(leadHtml, /Connect your accounts/);
     assert.doesNotMatch(leadHtml, /Import your contacts/);
 
+    const connectAccounts = await fetch(`http://127.0.0.1:${port}/command-centre/connect-accounts`, { redirect: "manual" });
+    assert.equal(connectAccounts.status, 200);
+    const connectHtml = await connectAccounts.text();
+    assert.match(connectHtml, /Connect accounts/);
+    assert.match(connectHtml, /Email \/ Gmail/);
+    assert.match(connectHtml, /WhatsApp \(Meta Cloud\)/);
+    assert.match(connectHtml, /Needs keys/);
+    assert.match(connectHtml, /Connected/);
+    assert.match(connectHtml, /Nothing is sent/);
+    assert.doesNotMatch(connectHtml, /start with (these )?(3|three)/i);
+
+    const importContacts = await fetch(`http://127.0.0.1:${port}/command-centre/import-contacts`, { redirect: "manual" });
+    assert.equal(importContacts.status, 200);
+    const importHtml = await importContacts.text();
+    assert.match(importHtml, /Import contacts/);
+    assert.match(importHtml, /consent_basis/);
+    assert.match(importHtml, /POPIA/);
+    assert.match(importHtml, /Import to sandbox/);
+    assert.match(importHtml, /Nothing is sent/);
+    assert.doesNotMatch(importHtml, /start with (these )?(3|three)/i);
+
     const onboarding = await fetch(`http://127.0.0.1:${port}/command-centre/onboarding`, { redirect: "manual" });
     assert.equal(onboarding.status, 307);
     assert.match(onboarding.headers.get("location") || "", /\/command-centre\/lead-agent$/);

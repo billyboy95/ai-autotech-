@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { test } from "node:test";
 
-test("inbox, conversation AI, calendars, and public booking respond", { timeout: 180_000 }, async () => {
+test("inbox, conversation AI, calendars, reviews, referrals, and public pages respond", { timeout: 180_000 }, async () => {
   const port = 4187;
   const root = new URL("../../..", import.meta.url).pathname;
   const nextBin = new URL("../../../node_modules/next/dist/bin/next", import.meta.url).pathname;
@@ -14,6 +14,7 @@ test("inbox, conversation AI, calendars, and public booking respond", { timeout:
       NEXT_TELEMETRY_DISABLED: "1",
       NEXT_PUBLIC_SUPABASE_URL: "",
       NEXT_PUBLIC_SUPABASE_ANON_KEY: "",
+      VERCEL_ENV: "",
       AI_REPLY_CRON_ENABLED: "",
       AI_REPLY_API_KEY: "",
     },
@@ -78,6 +79,35 @@ test("inbox, conversation AI, calendars, and public booking respond", { timeout:
     assert.equal(directory.status, 200);
     const directoryHtml = await directory.text();
     assert.match(directoryHtml, /ai-autotech-audit/);
+
+    const pipeline = await fetch(`http://127.0.0.1:${port}/command-centre/pipeline`, { redirect: "manual" });
+    assert.equal(pipeline.status, 200);
+
+    const contact = await fetch(`http://127.0.0.1:${port}/api/public/contact`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: "{}",
+    });
+    assert.equal(contact.status, 400);
+    const auditApi = await fetch(`http://127.0.0.1:${port}/api/public/audit`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: "{}",
+    });
+    assert.equal(auditApi.status, 400);
+
+    const reviews = await fetch(`http://127.0.0.1:${port}/command-centre/reviews`, { redirect: "manual" });
+    assert.equal(reviews.status, 200);
+    const reviewsHtml = await reviews.text();
+    assert.match(reviewsHtml, /Reviews/);
+    assert.match(reviewsHtml, /Nothing is sent/);
+    assert.match(reviewsHtml, /review\.received is deferred/);
+
+    const publicReview = await fetch(`http://127.0.0.1:${port}/r/ai-autotech`, { redirect: "manual" });
+    assert.equal(publicReview.status, 200);
+    const publicReviewHtml = await publicReview.text();
+    assert.match(publicReviewHtml, /Leave a review/);
+    assert.match(publicReviewHtml, /No message is sent/);
 
     const referrals = await fetch(`http://127.0.0.1:${port}/command-centre/referrals`, { redirect: "manual" });
     assert.equal(referrals.status, 200);

@@ -74,6 +74,8 @@ export default async function ContactsPage() {
 async function loadContacts() {
   try {
     const supabase = await createSupabaseServerClient();
+    const user = await supabase.auth.getUser();
+    if (!user.data.user) return [];
     const listed = await supabase
       .from("crm_contacts")
       .select("id, first_name, last_name, email, phone_e164, company")

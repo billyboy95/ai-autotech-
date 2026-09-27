@@ -20,8 +20,7 @@ export default async function SettingsPage() {
       <div>
         <h1 className="font-display text-2xl font-bold text-[#0B1F3A]">Automation settings</h1>
         <p className="mt-2 max-w-3xl text-sm text-slate-600">
-          This command centre has no login, on purpose. Anyone with the URL can read lead names, phone numbers, and audit answers.
-          Keep the link private.
+          Automation settings for this workspace. Lead names, phone numbers, and audit answers stay behind your login.
         </p>
       </div>
       <form action={saveAutomationSettings} className="grid max-w-3xl gap-4 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">

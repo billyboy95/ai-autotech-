@@ -13,7 +13,7 @@ export async function loadCalendarDesk(input: { org?: string | null; calendarId?
   const preview = previewCalendarDesk(tenant.active.slug, siteUrl());
   if (input.notice) preview.notice = input.notice;
   const connected = Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
-  if (!connected || tenant.mode !== "member" || !tenant.scoped || tenant.active.id.startsWith("preview-")) {
+  if (!connected || tenant.requiresLogin || !tenant.role || tenant.mode !== "member" || !tenant.scoped || tenant.active.id.startsWith("preview-")) {
     return preview;
   }
 

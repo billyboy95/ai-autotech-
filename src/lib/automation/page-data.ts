@@ -2,7 +2,7 @@ import { classicForBrand } from "@/lib/brand/present";
 import { isSendEnabled } from "@/lib/automation/channels";
 import { createInitialState } from "@/lib/automation/engine";
 import { DEFAULT_SETTINGS } from "@/lib/automation/types";
-import { loadWorkspace, type Workspace } from "@/lib/automation/service";
+import { loadViewerWorkspace, type Workspace } from "@/lib/automation/service";
 import type { CrmData } from "@/lib/crm-store";
 import { readCrm } from "@/lib/crm-store";
 import { safeResolveWorkspace } from "@/lib/tenant/context";
@@ -62,7 +62,7 @@ export async function loadCommandData(): Promise<{
   tenant: WorkspaceResolution;
 }> {
   const tenant = await safeResolveWorkspace();
-  if (tenant.brandLocked && tenant.mode === "preview") {
+  if (tenant.mode === "preview") {
     return {
       workspace: {
         state: createInitialState({
@@ -71,14 +71,14 @@ export async function loadCommandData(): Promise<{
         }),
         automationReady: false,
         setupError: null,
-        demo: false,
+        demo: true,
       },
-      classic: classicForBrand(DEMO_CLASSIC, tenant.active.slug),
+      classic: classicForBrand(DEMO_CLASSIC, tenant.brandLocked ? tenant.active.slug : null),
       sendingEnabled: isSendEnabled(),
       tenant,
     };
   }
-  if (tenant.requiresLogin || (tenant.brandLocked && tenant.workspaces.length === 0)) {
+  if (tenant.requiresLogin || !tenant.role || (tenant.brandLocked && tenant.workspaces.length === 0)) {
     return {
       workspace: EMPTY_WORKSPACE,
       classic: EMPTY_CLASSIC,
@@ -91,7 +91,7 @@ export async function loadCommandData(): Promise<{
     tenant.brandLocked && !tenant.active.id.startsWith("preview-") ? tenant.active.id : null;
   let workspace: Workspace;
   try {
-    workspace = await loadWorkspace(lockedOrgId);
+    workspace = await loadViewerWorkspace(lockedOrgId);
   } catch (error) {
     console.error("automation workspace load failed", error);
     workspace = {

@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
+import { authOnlyRealtime } from "@/lib/supabase/realtime";
 
 export async function createSupabaseServerClient() {
   const cookieStore = await cookies();
@@ -22,6 +23,7 @@ export async function createSupabaseServerClient() {
           }
         },
       },
+      realtime: authOnlyRealtime,
     },
   );
 }

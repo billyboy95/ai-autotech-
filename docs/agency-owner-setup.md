@@ -2,7 +2,7 @@
 
 AI AutoTech Pty Ltd is the parent agency. EASTC (East Sea Technocentric Varsity, Kempton Park) is the first client workspace. Existing CRM rows stay in the agency workspace. Nothing in the migration deletes data.
 
-The company CRM at `/command-centre` stays open on the **agency workspace only**. That is the owner path, so the current book of leads is not locked behind a password. Client workspaces, including EASTC, require a Supabase Auth login and a membership.
+`/command-centre` and `/agency` require a Supabase Auth session. The signed-in user must have a membership in the organisation on screen. Row level security applies because those pages use the user session, not the service role. Client workspaces, including EASTC, stay isolated the same way.
 
 ## 1. Apply the migrations
 
@@ -21,7 +21,7 @@ In the Supabase SQL editor, run these files in order if they are not already app
 11. `supabase/migrations/20261015120000_org_scope_phase1_tables.sql` (adds `org_id` and RLS to pipeline tables that already exist; skips any that do not)
 12. `supabase/migrations/20261015140000_phase2b_channels_popia.sql` (channel connections, vault secret RPCs, POPIA contacts, rate cards, usage ledger)
 
-The command centre still opens if the agency migrations are not applied yet. It reads the existing CRM as one agency book and does not crash when `organizations` or `org_id` is missing. Client workspaces appear after `20260926160000_agency_tenancy.sql` is applied.
+A signed-in user still reaches the command centre if the agency migrations are not applied yet. Customer rows are not loaded with the service role in that case, so the book stays hidden until `organizations` and a membership exist. Client workspaces appear after `20260926160000_agency_tenancy.sql` is applied.
 
 ## 1b. Phase 2b channels and POPIA
 
@@ -51,13 +51,30 @@ Already required for the live CRM:
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY`
 
-No new variable is required. Sign-in uses Supabase Auth.
+Sign-in uses Supabase Auth: email and password, an email magic link, and social buttons. Password reset is `/login/forgot`. Social buttons come from `NEXT_PUBLIC_AUTH_PROVIDERS` (a comma-separated list). A button is shown only when that id is in the list and the provider is enabled in Supabase. If the list is blank, or the provider check fails, every social button stays hidden and email sign-in still works. Google is always first. No provider client secret belongs in this app's env file.
+
+Enable providers at https://supabase.com/dashboard/project/fnysxlswzufdnlbhndxc/auth/providers. Each provider app must allow the callback shown there, `https://fnysxlswzufdnlbhndxc.supabase.co/auth/v1/callback`, and must be allowed to share the user's email so the owner address can be matched.
+
+| Button | Env id | App the owner creates |
+| --- | --- | --- |
+| Continue with Google | `google` | Google Cloud OAuth client (Web) |
+| Continue with Facebook | `facebook` | Meta app with Facebook Login |
+| Continue with GitHub | `github` | GitHub OAuth App |
+| Continue with Apple | `apple` | Apple Services ID with Sign in with Apple, plus the key |
+| Continue with Microsoft | `azure` | Microsoft Entra app registration |
+| Continue with LinkedIn | `linkedin_oidc` | LinkedIn app using Sign In with LinkedIn (OpenID Connect), not the legacy LinkedIn provider |
+| Continue with X | `x` | X Developer app with OAuth 2.0. Use the OAuth 2.0 client id and secret, and turn on "Request email from users". This is not the legacy Twitter OAuth 1.0a provider. |
+| Continue with Discord | `discord` | Discord application with OAuth2 |
+
+`OWNER_EMAILS` is server-side. It is a comma-separated list. The default, and the value in `.env.example`, is `billyfaber06@gmail.com`. On first login, an address in that list with no membership is attached as `agency_owner` of the AI AutoTech organisation. If the variable is unset or blank, that same address is used. The attach is idempotent and does not change a membership that already exists. `supabase/owner-bootstrap.sql` remains the manual path. Do not put a live provider key in this variable.
+
+In Supabase Authentication → URL configuration, allow `https://<your-host>/auth/callback` so the magic link, social sign-in, and the reset link can finish signing in and return to the page that was requested.
 
 ## 3. Create the agency owner login
 
 1. Supabase Dashboard → Authentication → Users → Add user.
 2. Use the email and password you want for yourself. Turn on "Auto Confirm" so you can sign in immediately.
-3. Run `supabase/owner-bootstrap.sql` after replacing `you@aiautotech.co.za` with that email.
+3. Or skip the SQL and sign in as `billyfaber06@gmail.com` (the `OWNER_EMAILS` default). To attach a different address by hand, run `supabase/owner-bootstrap.sql` after replacing that email.
 
 That inserts one `memberships` row: your user, the AI AutoTech organisation, role `agency_owner`.
 
@@ -67,11 +84,13 @@ That inserts one `memberships` row: your user, the AI AutoTech organisation, rol
 7. Shopify is not called. On `/agency/zentrix/settings`, paste the Admin API token and webhook secret when you have them. In Shopify admin, send orders, customers, and checkouts to `POST /api/shopify/webhook`. Paid orders then show as revenue on `/agency`. Until the secret is saved, the webhook refuses the request and writes nothing.
 8. Sending is off for every workspace until you, as agency owner, tick "Sending enabled" on that workspace's settings. Marketing still needs a consent record or an existing-customer basis, and every outbound message adds the sender name plus an opt-out. Opt-outs land on the workspace suppression list.
 
-## 4. What stays open
+## 4. What stays public
 
-- `/command-centre` with no login shows only AI AutoTech's own CRM (the rows migrated into the agency org).
-- `/command-centre?org=eastc` and `/command-centre?org=zentrix` send you to `/login`.
+- `/login`, `/login/forgot`, and `/auth/callback` are the sign-in flow. After login the app returns to the requested page.
+- `/command-centre` and `/agency` redirect to `/login` when nobody is signed in.
+- A member of one organisation cannot open another organisation's records.
 - `/api/public/audit` still writes into the AI AutoTech workspace.
+- `/audit`, `/book/*`, `/r/*`, `/team/*`, and other `/api/public/*` routes stay public.
 - Each workspace has a form key. EASTC intake is `POST /api/public/intake/eastc` and the form is `/intake/eastc`. Zentrix intake is `/intake/zentrix`.
 
 ## 5. Add a client user

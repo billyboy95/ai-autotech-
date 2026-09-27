@@ -1,4 +1,5 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { authOnlyRealtime } from "@/lib/supabase/realtime";
 
 /**
  * Unscoped service client for the single agency book.
@@ -11,5 +12,6 @@ export function openServiceDatabase(): SupabaseClient | null {
   if (!supabaseUrl || !serviceRoleKey) return null;
   return createClient(supabaseUrl, serviceRoleKey, {
     auth: { autoRefreshToken: false, persistSession: false },
+    realtime: authOnlyRealtime,
   });
 }

@@ -178,6 +178,19 @@ test("inbox, conversation AI, calendars, reviews, referrals, and public pages re
     assert.equal(invite.status, 200);
     const inviteHtml = await invite.text();
     assert.match(inviteHtml, /Join this workspace/);
+
+    for (const path of ["/agency", "/agency/snapshots", "/agency/new", "/agency/eastc/settings", "/agency/zentrix/settings"]) {
+      const response = await fetch(`http://127.0.0.1:${port}${path}`, { redirect: "manual" });
+      assert.equal(response.status, 200, path);
+    }
+    const agencyHtml = await (await fetch(`http://127.0.0.1:${port}/agency`, { redirect: "manual" })).text();
+    assert.match(agencyHtml, /Apply Education pack to EASTC/);
+    const eastcSettings = await (await fetch(`http://127.0.0.1:${port}/agency/eastc/settings`, { redirect: "manual" })).text();
+    assert.match(eastcSettings, /Apply Education pack to EASTC/);
+    const zentrixSettings = await (await fetch(`http://127.0.0.1:${port}/agency/zentrix/settings`, { redirect: "manual" })).text();
+    assert.equal(zentrixSettings.includes("Apply Education pack to EASTC"), false);
+    const snapshotsHtml = await (await fetch(`http://127.0.0.1:${port}/agency/snapshots`, { redirect: "manual" })).text();
+    assert.match(snapshotsHtml, /existing EASTC workspace/);
   } finally {
     stop();
   }

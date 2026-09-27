@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { ApplyEducationPackForm } from "@/components/apply-education-pack-form";
 import { ChannelConnectForm, type ChannelConnectionView } from "@/components/channel-connect-form";
 import { WorkspaceBillingPanel } from "@/components/workspace-billing-panel";
 import { WorkspaceSettingsForm } from "@/components/workspace-settings-form";
@@ -11,6 +12,7 @@ import { blueprintForSlug } from "@/lib/tenant/blueprints";
 import { previewWorkspaces } from "@/lib/tenant/blueprints";
 import { resolveWorkspace } from "@/lib/tenant/context";
 import { findOrgBySlug, listMembers, listShopifyStores, listStages } from "@/lib/tenant/data";
+import { showEducationPack } from "@/lib/snapshots/eastc-pack";
 import { isAgencyRole } from "@/lib/tenant/types";
 
 export const dynamic = "force-dynamic";
@@ -38,6 +40,9 @@ export default async function WorkspaceSettingsPage({ params }: { params: Promis
             Preview only. Settings save after Supabase Auth and the tenancy migration are in place.
           </p>
           <WorkspaceSettingsForm workspace={org} stages={stages} members={[]} stores={stores} canEdit={false} canToggleSending={false} />
+          {showEducationPack({ surface: "settings", slug: org.slug, canManageAgency: workspace.canManageAgency }) ? (
+            <ApplyEducationPackForm />
+          ) : null}
           <AiReplySettingsLink slug={org.slug} />
           <WorkspaceBillingPanel billing={await loadBillingPage({ orgId: null, orgName: org.name, slug: org.slug, email: "", role: null, preview: true })} />
           <ChannelConnectForm slug={org.slug} canEdit={false} connections={[]} />
@@ -85,6 +90,9 @@ export default async function WorkspaceSettingsPage({ params }: { params: Promis
           readOnly={billing.readOnly}
         />
         <WorkspaceBillingPanel billing={billing} />
+        {showEducationPack({ surface: "settings", slug: org.slug, canManageAgency: workspace.canManageAgency }) ? (
+          <ApplyEducationPackForm />
+        ) : null}
         <AiReplySettingsLink slug={org.slug} />
         <ChannelConnectForm slug={org.slug} canEdit={canEdit && !billing.readOnly} connections={await listConnections(org.id)} />
       </div>

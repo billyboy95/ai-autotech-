@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { AgencyRollupTable } from "@/components/agency-rollup";
+import { ApplyEducationPackForm } from "@/components/apply-education-pack-form";
 import type { RollupClient } from "@/lib/agency/load";
 import { formatCurrency } from "@/lib/utils";
 import type { ClientMetric, WorkspaceSummary } from "@/lib/tenant/types";
@@ -19,6 +20,7 @@ export function AgencyView({
   rollupSample,
   fromDay,
   toDay,
+  showEducationPack = false,
 }: {
   agency: WorkspaceSummary;
   clients: ClientMetric[];
@@ -28,6 +30,7 @@ export function AgencyView({
   rollupSample: boolean;
   fromDay: string;
   toDay: string;
+  showEducationPack?: boolean;
 }) {
   return (
     <div className="min-h-screen bg-[#F3F4F6] text-[#111827]">
@@ -58,6 +61,7 @@ export function AgencyView({
             {signedInEmail ? ` Signed in as ${signedInEmail}.` : ""}
           </p>
         ) : null}
+        {showEducationPack ? <ApplyEducationPackForm /> : null}
         <AgencyRollupTable rows={rollup} sample={rollupSample} fromDay={fromDay} toDay={toDay} />
         <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <article className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">

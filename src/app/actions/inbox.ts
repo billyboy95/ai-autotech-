@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { workspaceWriteBlock } from "@/lib/billing/guard";
 import { usageForSend } from "@/lib/compliance/usage";
 import type { ConsentStatus } from "@/lib/compliance/send-gate";
 import { contactLookup, outboxRow, parseInboxChannel, planInboxReply, type InboxTemplateChoice, type WaCategory } from "@/lib/inbox/rules";
@@ -42,6 +43,8 @@ export async function sendInboxReply(formData: FormData) {
     .maybeSingle();
   if (conversation.error || !conversation.data) back(formData, { error: "That conversation is not in this workspace." });
   const current = conversation.data;
+  const blocked = await workspaceWriteBlock(String(current.org_id));
+  if (blocked) back(formData, { error: blocked });
   if (!current) back(formData, { error: "That conversation is not in this workspace." });
   const channel = parseInboxChannel(text(formData, "replyChannel")) || String(current.channel);
   const contact = current.contact_id

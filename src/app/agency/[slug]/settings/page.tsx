@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { ChannelConnectForm, type ChannelConnectionView } from "@/components/channel-connect-form";
+import { WorkspaceBillingPanel } from "@/components/workspace-billing-panel";
 import { WorkspaceSettingsForm } from "@/components/workspace-settings-form";
+import { loadBillingPage } from "@/lib/billing/load";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { zentrixStores } from "@/lib/shopify/catalog";
 import { blueprintForSlug } from "@/lib/tenant/blueprints";
@@ -36,6 +38,7 @@ export default async function WorkspaceSettingsPage({ params }: { params: Promis
             Preview only. Settings save after Supabase Auth and the tenancy migration are in place.
           </p>
           <WorkspaceSettingsForm workspace={org} stages={stages} members={[]} stores={stores} canEdit={false} canToggleSending={false} />
+          <WorkspaceBillingPanel billing={await loadBillingPage({ orgId: null, orgName: org.name, slug: org.slug, email: "", role: null, preview: true })} />
           <ChannelConnectForm slug={org.slug} canEdit={false} connections={[]} />
         </div>
       </main>
@@ -55,6 +58,13 @@ export default async function WorkspaceSettingsPage({ params }: { params: Promis
     listShopifyStores(org.id),
   ]);
   const canEdit = workspace.role === "client_admin" || isAgencyRole(workspace.role);
+  const billing = await loadBillingPage({
+    orgId: org.id,
+    orgName: org.name,
+    slug: org.slug,
+    email: workspace.userEmail || "",
+    role: workspace.role,
+  });
 
   return (
     <main className="min-h-screen bg-[#F3F4F6] px-4 py-8">
@@ -71,8 +81,10 @@ export default async function WorkspaceSettingsPage({ params }: { params: Promis
           stores={stores}
           canEdit={canEdit}
           canToggleSending={workspace.role === "agency_owner"}
+          readOnly={billing.readOnly}
         />
-        <ChannelConnectForm slug={org.slug} canEdit={canEdit} connections={await listConnections(org.id)} />
+        <WorkspaceBillingPanel billing={billing} />
+        <ChannelConnectForm slug={org.slug} canEdit={canEdit && !billing.readOnly} connections={await listConnections(org.id)} />
       </div>
     </main>
   );

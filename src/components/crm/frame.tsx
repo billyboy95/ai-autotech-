@@ -17,6 +17,8 @@ export type CommandChrome = {
   userEmail: string | null;
   note: string | null;
   agencyBanner: string | null;
+  billingBanner: string | null;
+  billingTone: "block" | "warn" | null;
 };
 
 const links = [
@@ -33,6 +35,7 @@ const links = [
   ["/command-centre/clients", "Clients"],
   ["/command-centre/jobs", "Jobs"],
   ["/command-centre/money", "Money"],
+  ["/command-centre/billing", "Billing"],
   ["/command-centre/settings", "Settings"],
 ] as const;
 
@@ -107,6 +110,11 @@ export function CrmFrame({
         </div>
       </header>
       <div className="mx-auto grid max-w-7xl grid-cols-1 gap-4 px-4 py-6">
+        {chrome?.billingBanner ? (
+          <p className={`rounded-xl border px-4 py-3 text-sm ${chrome.billingTone === "block" ? "border-rose-200 bg-rose-50 text-rose-950" : "border-amber-200 bg-amber-50 text-amber-950"}`}>
+            {chrome.billingBanner}
+          </p>
+        ) : null}
         {chrome?.agencyBanner ? (
           <p className="rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-950">{chrome.agencyBanner}</p>
         ) : null}

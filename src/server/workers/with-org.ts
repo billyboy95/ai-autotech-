@@ -81,6 +81,20 @@ export async function lookupRow(table: string, column: string, value: string, co
   return { ...result, configured: true as const };
 }
 
+export async function callServiceRpc(fn: string, args: Record<string, unknown>) {
+  const allowed = new Set([
+    "apply_billing_event",
+    "apply_billing_dunning",
+    "run_billing_cycle",
+    "bill_usage_period",
+  ]);
+  if (!allowed.has(fn)) throw new Error("That billing call is not allowed.");
+  const client = serviceClient();
+  if (!client) return { data: null, error: null, configured: false as const };
+  const result = await client.rpc(fn, args);
+  return { data: result.data, error: result.error, configured: true as const };
+}
+
 export async function agencyOrgId() {
   const found = await lookupRow("organizations", "slug", "ai-autotech", "id");
   if (!found.configured || found.error || !found.data) return null;

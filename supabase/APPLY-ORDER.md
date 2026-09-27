@@ -31,6 +31,7 @@ PR #3 is merged. Its files are on `main` and are still unapplied. Run them after
 10. `supabase/migrations/20261016120000_phase2c_snapshots.sql`
 11. `supabase/migrations/20261017120000_phase2d_workflows.sql`
 12. `supabase/migrations/20261018120000_phase2e_inbox.sql`
+13. `supabase/migrations/20261019120000_phase2f_billing.sql`
 
 Why this order:
 
@@ -45,6 +46,7 @@ Why this order:
 - `phase2c_snapshots` adds pipelines, pipeline stages, message templates, sequences, custom fields, and workspace snapshots. It adds `crm_leads.stage_id` only where the stage name matches exactly one stage in that organisation, and it adds `asset_key` on the phase 1 sequence tables. It follows phase 2b. Snapshot payloads do not include contacts, messages, or secrets. Applying a snapshot does not turn sending on.
 - `phase2d_workflows` adds the workflow engine tables (`events`, `workflows`, `workflow_runs`, `workflow_run_logs`, `workflow_alerts`, `contact_tags`) and seeds one workflow row per organisation for the phase 1 assignment, stage, and sequence behaviour. It follows phase 2c because snapshot export and apply grow a `workflows` array. `workflow_engine_enabled` stays false, and `sending_enabled` stays false. Leave `WORKFLOW_ENGINE_ENABLED` unset until this file has been applied. Snapshot export then includes workflows and still excludes contacts, messages, and secrets.
 - `phase2e_inbox` adds `conversations`, `messages`, and `conversation_notes`, with org indexes and RLS. A `client_user` with `assigned_only` only sees conversations assigned to them. Inbound WhatsApp opens a 24-hour window; free-form replies after that are rejected unless the row points at an approved template. The monthly free service-message counter is `wa_service_sends_this_month` (1,000 per WhatsApp number from 1 Oct 2026). Realtime tables are added to `supabase_realtime` when that publication already exists. This file does not turn `sending_enabled` on. Inbound messages call `record_workflow_event` for `message.inbound`. Apply it after phase 2d.
+- `phase2f_billing` adds ZAR `plans`, `org_subscriptions` (sandbox must stay true), idempotent `billing_events`, usage reports, and Yoco sandbox payment-link drafts. It follows phase 2e and the phase 2b usage ledger. A PayFast ITN is applied only by the service role. `past_due` for 7 days becomes `suspended`: the organisation status is suspended, `sending_enabled` is forced false, and queued outbox rows are held. Signed-in writes on a suspended workspace are rejected. This file does not call PayFast, Paystack, or Yoco, and it does not turn sending on. Leave `BILLING_SANDBOX` unset until you have the PayFast sandbox merchant id `10000100`. Do not put a live merchant id in the environment.
 
 ## Workflow runner schedule
 
@@ -74,6 +76,26 @@ select cron.schedule(
   $$
 );
 ```
+
+## Billing cycle
+
+`/api/cron/billing` runs dunning and writes the previous month's usage report. It does not call PayFast, Paystack, or Yoco, and it does not turn sending on. It is not in `vercel.json`, for the same Hobby-plan reason as the workflow route. Schedule it daily from Supabase after step 13 is applied. Do not run it until `SUPABASE_DB_URL` is available.
+
+```sql
+select cron.schedule(
+  'billing-cycle',
+  '15 2 * * *',
+  $$
+  select net.http_post(
+    url := 'https://REPLACE_WITH_THE_DEPLOYMENT_HOST/api/cron/billing',
+    headers := jsonb_build_object('Authorization', 'Bearer REPLACE_WITH_CRON_SECRET'),
+    body := '{}'::jsonb
+  );
+  $$
+);
+```
+
+A failed PayFast sandbox ITN sets `org_subscriptions.status` to `past_due`. Seven days later this job sets `suspended`, forces `sending_enabled` false, and holds queued outbox rows.
 
 ## Shared timestamps
 

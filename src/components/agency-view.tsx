@@ -2,6 +2,12 @@ import Link from "next/link";
 import { formatCurrency } from "@/lib/utils";
 import type { ClientMetric, WorkspaceSummary } from "@/lib/tenant/types";
 
+function subscriptionLabel(status: string | null | undefined) {
+  if (!status) return "None";
+  if (status === "past_due") return "Past due";
+  return status.slice(0, 1).toUpperCase() + status.slice(1);
+}
+
 export function AgencyView({
   agency,
   clients,
@@ -101,7 +107,7 @@ export function AgencyView({
                     </Link>
                   </div>
                 </div>
-                <dl className="mt-4 grid gap-3 sm:grid-cols-4">
+                <dl className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
                   <div>
                     <dt className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Leads</dt>
                     <dd className="text-xl font-bold text-[#0B1F3A]">{client.leads}</dd>
@@ -117,6 +123,10 @@ export function AgencyView({
                   <div>
                     <dt className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Conversions</dt>
                     <dd className="text-xl font-bold text-[#0B1F3A]">{client.conversions}%</dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Subscription</dt>
+                    <dd className="text-xl font-bold text-[#0B1F3A]">{subscriptionLabel(client.subscriptionStatus)}</dd>
                   </div>
                 </dl>
                 {client.stores ? (

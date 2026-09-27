@@ -118,7 +118,17 @@ export async function listStages(orgId: string) {
   return (data ?? []).map((row) => String(row.name));
 }
 
+async function subscriptionStatuses(orgIds: string[]) {
+  const statuses = new Map<string, string>();
+  if (!orgIds.length) return statuses;
+  const { data, error } = await (await db()).from("org_subscriptions").select("org_id, status").in("org_id", orgIds);
+  if (error) return statuses;
+  for (const row of data ?? []) statuses.set(String(row.org_id), String(row.status));
+  return statuses;
+}
+
 export async function clientMetrics(clients: WorkspaceSummary[]): Promise<ClientMetric[]> {
+  const billing = await subscriptionStatuses(clients.map((workspace) => workspace.id));
   return Promise.all(
     clients.map(async (workspace) => {
       const [leads, money, stages, shopify] = await Promise.all([
@@ -138,6 +148,7 @@ export async function clientMetrics(clients: WorkspaceSummary[]): Promise<Client
         conversions,
         won,
         stages,
+        subscriptionStatus: billing.get(workspace.id) ?? null,
       };
     }),
   );

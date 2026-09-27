@@ -153,6 +153,7 @@ test("every command-centre and agency page requires a session, and public intake
     "/command-centre",
     "/command-centre/pipeline",
     "/command-centre/reviews",
+    "/command-centre/referrals",
     "/command-centre/leads/abc",
     "/agency",
     "/agency/eastc/settings",
@@ -185,7 +186,7 @@ test("middleware redirects an unauthenticated /command-centre request to /login"
     const location = denied.headers.get("location") ?? "";
     assert.match(location, /\/login\?next=%2Fcommand-centre$/);
 
-    for (const path of ["/command-centre/pipeline", "/command-centre/reviews", "/agency"]) {
+    for (const path of ["/command-centre/pipeline", "/command-centre/reviews", "/command-centre/referrals", "/agency"]) {
       const response = await middleware(new NextRequest(`http://localhost${path}`));
       assert.equal(response.status, 307, path);
       assert.match(response.headers.get("location") ?? "", new RegExp(`/login\\?next=${encodeURIComponent(path).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`));
@@ -229,6 +230,40 @@ test("middleware still redirects when the runtime has no native WebSocket", asyn
   } finally {
     Object.defineProperty(process.versions, "node", { value: previous.node, configurable: true });
     Object.defineProperty(globalThis, "WebSocket", { value: previous.webSocket, configurable: true });
+    if (previous.url === undefined) delete process.env.NEXT_PUBLIC_SUPABASE_URL;
+    else process.env.NEXT_PUBLIC_SUPABASE_URL = previous.url;
+    if (previous.key === undefined) delete process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    else process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = previous.key;
+    if (previous.vercel === undefined) delete process.env.VERCEL_ENV;
+    else process.env.VERCEL_ENV = previous.vercel;
+  }
+});
+
+test("a referral code is stored on public links without a session", async () => {
+  const previous = {
+    url: process.env.NEXT_PUBLIC_SUPABASE_URL,
+    key: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    vercel: process.env.VERCEL_ENV,
+  };
+  process.env.NEXT_PUBLIC_SUPABASE_URL = "http://127.0.0.1:9";
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "test-anon-key";
+  process.env.VERCEL_ENV = "preview";
+  try {
+    const { middleware } = await import("@/middleware");
+    for (const path of ["/audit?ref=BILLY42", "/signup?ref=BILLY42", "/team/demo-token?ref=BILLY42"]) {
+      const response = await middleware(new NextRequest(`http://localhost${path}`));
+      assert.equal(response.status, 200, path);
+      assert.match(response.headers.get("set-cookie") || "", /aat_ref=BILLY42/, path);
+    }
+    const posted = await middleware(new NextRequest("http://localhost/api/public/audit?ref=BILLY42", { method: "POST" }));
+    assert.equal(posted.status, 200);
+    assert.match(posted.headers.get("set-cookie") || "", /aat_ref=BILLY42/);
+
+    const gated = await middleware(new NextRequest("http://localhost/command-centre/referrals?ref=BILLY42"));
+    assert.equal(gated.status, 307);
+    assert.match(gated.headers.get("location") ?? "", /\/login\?next=%2Fcommand-centre%2Freferrals/);
+    assert.match(gated.headers.get("set-cookie") || "", /aat_ref=BILLY42/);
+  } finally {
     if (previous.url === undefined) delete process.env.NEXT_PUBLIC_SUPABASE_URL;
     else process.env.NEXT_PUBLIC_SUPABASE_URL = previous.url;
     if (previous.key === undefined) delete process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;

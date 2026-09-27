@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { test } from "node:test";
 
-test("inbox, conversation AI, calendars, reviews, and public pages respond", { timeout: 180_000 }, async () => {
+test("inbox, conversation AI, calendars, reviews, referrals, and public pages respond", { timeout: 180_000 }, async () => {
   const port = 4187;
   const root = new URL("../../..", import.meta.url).pathname;
   const nextBin = new URL("../../../node_modules/next/dist/bin/next", import.meta.url).pathname;
@@ -89,12 +89,12 @@ test("inbox, conversation AI, calendars, reviews, and public pages respond", { t
       body: "{}",
     });
     assert.equal(contact.status, 400);
-    const audit = await fetch(`http://127.0.0.1:${port}/api/public/audit`, {
+    const auditApi = await fetch(`http://127.0.0.1:${port}/api/public/audit`, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: "{}",
     });
-    assert.equal(audit.status, 400);
+    assert.equal(auditApi.status, 400);
 
     const reviews = await fetch(`http://127.0.0.1:${port}/command-centre/reviews`, { redirect: "manual" });
     assert.equal(reviews.status, 200);
@@ -108,6 +108,31 @@ test("inbox, conversation AI, calendars, reviews, and public pages respond", { t
     const publicReviewHtml = await publicReview.text();
     assert.match(publicReviewHtml, /Leave a review/);
     assert.match(publicReviewHtml, /No message is sent/);
+
+    const referrals = await fetch(`http://127.0.0.1:${port}/command-centre/referrals`, { redirect: "manual" });
+    assert.equal(referrals.status, 200);
+    const referralsHtml = await referrals.text();
+    assert.match(referralsHtml, /Refer &amp; earn/);
+    assert.match(referralsHtml, /Copy link/);
+    assert.match(referralsHtml, /WhatsApp/);
+    assert.match(referralsHtml, /placeholder/i);
+
+    const audit = await fetch(`http://127.0.0.1:${port}/audit?ref=BILLY42`, { redirect: "manual" });
+    assert.equal(audit.status, 200);
+    assert.match(audit.headers.get("set-cookie") || "", /aat_ref=BILLY42/);
+    const auditHtml = await audit.text();
+    assert.match(auditHtml, /AI business audit/);
+    assert.match(auditHtml, /60 days/);
+
+    const signup = await fetch(`http://127.0.0.1:${port}/signup?ref=BILLY42`, { redirect: "manual" });
+    assert.equal(signup.status, 200);
+    const signupHtml = await signup.text();
+    assert.match(signupHtml, /Bring your referral with you/);
+
+    const team = await fetch(`http://127.0.0.1:${port}/team/demo-token?ref=BILLY42`, { redirect: "manual" });
+    assert.equal(team.status, 200);
+    const teamHtml = await team.text();
+    assert.match(teamHtml, /Join this workspace/);
   } finally {
     stop();
   }

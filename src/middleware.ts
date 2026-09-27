@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { authGateEnabled, decideAccess, supabaseAuthConfigured } from "@/lib/auth/gate";
 import { authOnlyRealtime } from "@/lib/supabase/realtime";
 import { BRAND_HOST_COOKIE, brandHostFrom, brandRedirectPath, isMarketingPath, stubPath } from "@/lib/brand/host";
+import { REFERRAL_COOKIE, REFERRAL_MAX_AGE_SECONDS, readReferralCode } from "@/lib/referrals/codes";
 import { ORG_COOKIE, WORKSPACE_COOKIE } from "@/lib/tenant/types";
 
 const UNLOCK_PATH = "/command-centre/unlock";
@@ -14,6 +15,25 @@ function rememberWorkspace(request: NextRequest, response: NextResponse) {
     response.cookies.set(WORKSPACE_COOKIE, org, options);
     response.cookies.set(ORG_COOKIE, org, options);
   }
+  return response;
+}
+
+function rememberReferral(request: NextRequest, response: NextResponse) {
+  const code = readReferralCode(request.nextUrl.searchParams.get("ref"));
+  if (!code) return response;
+  response.cookies.set(REFERRAL_COOKIE, code, {
+    httpOnly: true,
+    sameSite: "lax",
+    path: "/",
+    maxAge: REFERRAL_MAX_AGE_SECONDS,
+    secure: request.nextUrl.protocol === "https:",
+  });
+  return response;
+}
+
+function stampWorkspace(request: NextRequest, response: NextResponse) {
+  rememberWorkspace(request, response);
+  rememberReferral(request, response);
   return response;
 }
 
@@ -42,7 +62,7 @@ export async function middleware(request: NextRequest) {
         maxAge: 60 * 60 * 24 * 30,
       });
     }
-    return redirected;
+    return rememberReferral(request, redirected);
   }
 
   const brandHost = brandHostFrom({
@@ -55,9 +75,9 @@ export async function middleware(request: NextRequest) {
   if (brandedTarget) {
     const url = request.nextUrl.clone();
     url.pathname = brandedTarget;
-    return NextResponse.redirect(url);
+    return rememberReferral(request, NextResponse.redirect(url));
   }
-  if (isMarketingPath(pathname)) return NextResponse.next();
+  if (isMarketingPath(pathname)) return rememberReferral(request, NextResponse.next());
 
   if (pathname === UNLOCK_PATH || pathname.startsWith(`${UNLOCK_PATH}/`)) {
     const url = request.nextUrl.clone();
@@ -83,7 +103,7 @@ export async function middleware(request: NextRequest) {
             cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
             response = NextResponse.next({ request });
             cookiesToSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options));
-            rememberWorkspace(request, response);
+            stampWorkspace(request, response);
           },
         },
         realtime: authOnlyRealtime,
@@ -113,10 +133,10 @@ export async function middleware(request: NextRequest) {
     url.searchParams.set("next", decision.next);
     const redirect = NextResponse.redirect(url);
     redirect.headers.set("X-Robots-Tag", "noindex, nofollow");
-    return redirect;
+    return rememberReferral(request, redirect);
   }
 
-  rememberWorkspace(request, response);
+  stampWorkspace(request, response);
   response.headers.set("X-Robots-Tag", "noindex, nofollow");
   return response;
 }
@@ -147,5 +167,9 @@ export const config = {
     "/case-studies",
     "/d/:path*",
     "/brand/clear",
+    "/audit",
+    "/signup",
+    "/team/:path*",
+    "/api/public/audit",
   ],
 };

@@ -42,6 +42,7 @@ const links = [
   ["/command-centre/jobs", "Jobs"],
   ["/command-centre/money", "Money"],
   ["/command-centre/billing", "Billing"],
+  ["/command-centre/referrals", "Referrals"],
   ["/command-centre/settings", "Settings"],
 ] as const;
 

@@ -7,6 +7,7 @@ export const TRIGGER_TYPES = [
   "form.submitted",
   "message.inbound",
   "message.no_reply",
+  // Public calendar booking records this existing trigger. There is no appointment_booked value.
   "appointment.booked",
   "invoice.paid",
   "opt_out.received",

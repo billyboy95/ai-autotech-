@@ -4,10 +4,12 @@ import { resolveRequestBrand } from "@/lib/brand/request";
 import { runAutomationsNow } from "@/app/actions/automation";
 import { PeriodMetricsPanel } from "@/components/agency-rollup";
 import { AssistantPanel } from "@/components/bots/assistant-panel";
+import { HomeChatPanel } from "@/components/home-chat/panel";
 import { CommandShell } from "@/components/crm/command-shell";
 import { Advanced } from "@/components/ui/advanced";
 import { PageLead } from "@/components/ui/page-lead";
 import { isBotAssistantEnabled } from "@/lib/bots/flag";
+import { homeChatDisplayMode } from "@/lib/home-chat/flag";
 import { loadWorkspacePeriod } from "@/lib/agency/load";
 import { eastcPeriodFixture, periodBounds, periodMetrics, zentrixPeriodFixture } from "@/lib/agency/metrics";
 import { formatZar } from "@/lib/automation/ids";
@@ -51,10 +53,12 @@ export default async function CommandCentrePage({
       <div data-testid="dashboard" className="grid gap-4">
         <PageLead
           title="Home"
-          body={`Today · ${report.date} · Africa/Johannesburg. Build the full team first. The Lead Agent below can also open any page.`}
-          action="Build the full team"
-          href="/command-centre/lead-agent"
+          body={`Today · ${report.date} · Africa/Johannesburg. Ask the assistant to look up a lead, summarise the pipeline, or leave a draft. Nothing is sent.`}
+          action="Ask the assistant"
+          href="#home-chat"
         />
+
+        <HomeChatPanel mode={homeChatDisplayMode({ tenantMode: tenant.mode })} orgSlug={tenant.active.slug} />
 
         <AssistantPanel enabled={isBotAssistantEnabled()} />
 

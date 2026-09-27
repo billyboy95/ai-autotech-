@@ -8,7 +8,7 @@ export const SANDBOX_TEAM_MAX = 8;
 export const PHASED_TEAM_COPY = /start with (these )?(3|three)\b/i;
 
 export const LEAD_ONBOARDING_INTRO =
-  "Tell me the niche, the goals, the channels, the hours, and the tools you already use. I recommend the full team for that niche, then I ask each agent's setup questions before the next one. The monthly estimate is ZAR excluding VAT and stays a placeholder. Start this team records a sandbox trial at the team discount. No charge is sent. Accounts and contacts are connected after the subscription is paid. Nothing is sent.";
+  "Tell me the niche, the goals, the channels, the hours, and the tools you already use. I recommend the full team for that niche, then I ask each agent's setup questions before the next one. The monthly estimate is ZAR excluding VAT and stays a placeholder. Start this team records a sandbox trial at the team discount. No charge is sent. After that trial, connect accounts and import contacts. Nothing is sent.";
 
 export const ONBOARDING_NICHES: { label: string; business: string; templateSlug: string }[] = [
   { label: "Clinic", business: "clinic", templateSlug: "healthcare-clinic" },

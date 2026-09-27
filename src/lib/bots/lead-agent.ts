@@ -12,6 +12,8 @@ export type LeadAgentReply = {
 const EXTRA_PHRASES: Record<string, string[]> = {
   "/command-centre": ["home", "today"],
   "/command-centre/setup": ["setup", "set up"],
+  "/command-centre/connect-accounts": ["connect accounts"],
+  "/command-centre/import-contacts": ["import contacts"],
   "/command-centre/inbox": ["inbox", "messages"],
   "/command-centre/pipeline": ["pipeline", "deals"],
   "/command-centre/contacts": ["contacts"],

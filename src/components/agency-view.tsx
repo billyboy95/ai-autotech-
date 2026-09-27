@@ -45,6 +45,12 @@ export function AgencyView({
             <Link href="/command-centre/lead-agent" className="h-10 rounded-md border border-slate-200 px-3 text-sm font-semibold leading-10 text-[#0B1F3A]">
               Lead Agent
             </Link>
+            <Link href="/command-centre/connect-accounts" className="h-10 rounded-md border border-slate-200 px-3 text-sm font-semibold leading-10 text-[#0B1F3A]">
+              Connect accounts
+            </Link>
+            <Link href="/command-centre/import-contacts" className="h-10 rounded-md border border-slate-200 px-3 text-sm font-semibold leading-10 text-[#0B1F3A]">
+              Import contacts
+            </Link>
             <Link href="/command-centre" className="h-10 rounded-md border border-slate-200 px-3 text-sm font-semibold leading-10 text-[#0B1F3A]">
               Open CRM
             </Link>

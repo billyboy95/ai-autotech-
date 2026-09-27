@@ -19,6 +19,11 @@ export function BotStoreView({ data }: { data: BotStoreData }) {
         action="Build the full team"
         href="/command-centre/lead-agent"
       />
+      <p className="text-sm text-slate-700">
+        After the sandbox trial, <Link href="/command-centre/connect-accounts" className="font-semibold text-[#2563EB]">connect accounts</Link>
+        {" "}and <Link href="/command-centre/import-contacts" className="font-semibold text-[#2563EB]">import contacts</Link>.
+        Nothing is sent.
+      </p>
       {data.notice ? <p className="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600">{data.notice}</p> : null}
 
       {data.departments.map((department) => (

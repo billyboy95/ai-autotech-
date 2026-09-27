@@ -156,6 +156,8 @@ test("every command-centre and agency page requires a session, and public intake
     "/command-centre/referrals",
     "/command-centre/lead-agent",
     "/command-centre/onboarding",
+    "/command-centre/connect-accounts",
+    "/command-centre/import-contacts",
     "/command-centre/leads/abc",
     "/agency",
     "/agency/eastc/settings",
@@ -188,7 +190,7 @@ test("middleware redirects an unauthenticated /command-centre request to /login"
     const location = denied.headers.get("location") ?? "";
     assert.match(location, /\/login\?next=%2Fcommand-centre$/);
 
-    for (const path of ["/command-centre/pipeline", "/command-centre/reviews", "/command-centre/referrals", "/command-centre/lead-agent", "/command-centre/onboarding", "/agency"]) {
+    for (const path of ["/command-centre/pipeline", "/command-centre/reviews", "/command-centre/referrals", "/command-centre/lead-agent", "/command-centre/onboarding", "/command-centre/connect-accounts", "/command-centre/import-contacts", "/agency"]) {
       const response = await middleware(new NextRequest(`http://localhost${path}`));
       assert.equal(response.status, 307, path);
       assert.match(response.headers.get("location") ?? "", new RegExp(`/login\\?next=${encodeURIComponent(path).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`));

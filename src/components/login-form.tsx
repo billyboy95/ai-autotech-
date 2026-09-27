@@ -2,7 +2,9 @@
 
 import { useActionState } from "react";
 import Link from "next/link";
-import { sendMagicLink, sendPasswordReset, signIn, signInWithGoogle, updatePassword, type AuthActionState } from "@/app/actions/auth";
+import { sendMagicLink, sendPasswordReset, signIn, updatePassword, type AuthActionState } from "@/app/actions/auth";
+import { SocialSignIn } from "@/components/social-sign-in";
+import type { AuthProviderId } from "@/lib/auth/providers";
 
 const initialState: AuthActionState = {
   ok: false,
@@ -22,11 +24,11 @@ function Notice({ state }: { state: AuthActionState }) {
 export function LoginForm({
   next,
   placeholder = "billyfaber06@gmail.com",
-  google = false,
+  providers = [],
 }: {
   next?: string;
   placeholder?: string;
-  google?: boolean;
+  providers?: AuthProviderId[];
 }) {
   const [state, formAction, pending] = useActionState(signIn, initialState);
   const [magic, magicAction, magicPending] = useActionState(sendMagicLink, initialState);
@@ -58,17 +60,7 @@ export function LoginForm({
       </form>
 
       <div className="grid gap-4 border-t border-slate-200 pt-6">
-        {google ? (
-          <form action={signInWithGoogle} className="grid gap-3">
-            {next ? <input type="hidden" name="next" value={next} /> : null}
-            <button
-              type="submit"
-              className="h-11 rounded-md border border-slate-200 bg-white px-4 text-sm font-semibold text-[#0B1F3A] transition hover:border-[#2563EB] hover:text-[#2563EB]"
-            >
-              Continue with Google
-            </button>
-          </form>
-        ) : null}
+        <SocialSignIn providers={providers} next={next} />
         <form action={magicAction} className="grid gap-4">
           {next ? <input type="hidden" name="next" value={next} /> : null}
           <p className="text-sm font-medium text-slate-700">Or email yourself a magic link</p>

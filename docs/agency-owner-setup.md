@@ -51,11 +51,24 @@ Already required for the live CRM:
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY`
 
-Sign-in uses Supabase Auth: email and password, an email magic link, or Continue with Google. Password reset is `/login/forgot`. The Google button is hidden until Authentication → Providers → Google is enabled. No Google client secret belongs in this app's env file.
+Sign-in uses Supabase Auth: email and password, an email magic link, and social buttons. Password reset is `/login/forgot`. Social buttons come from `NEXT_PUBLIC_AUTH_PROVIDERS` (a comma-separated list). A button is shown only when that id is in the list and the provider is enabled in Supabase. If the list is blank, or the provider check fails, every social button stays hidden and email sign-in still works. Google is always first. No provider client secret belongs in this app's env file.
+
+Enable providers at https://supabase.com/dashboard/project/fnysxlswzufdnlbhndxc/auth/providers. Each provider app must allow the callback shown there, `https://fnysxlswzufdnlbhndxc.supabase.co/auth/v1/callback`, and must be allowed to share the user's email so the owner address can be matched.
+
+| Button | Env id | App the owner creates |
+| --- | --- | --- |
+| Continue with Google | `google` | Google Cloud OAuth client (Web) |
+| Continue with Facebook | `facebook` | Meta app with Facebook Login |
+| Continue with GitHub | `github` | GitHub OAuth App |
+| Continue with Apple | `apple` | Apple Services ID with Sign in with Apple, plus the key |
+| Continue with Microsoft | `azure` | Microsoft Entra app registration |
+| Continue with LinkedIn | `linkedin_oidc` | LinkedIn app using Sign In with LinkedIn (OpenID Connect), not the legacy LinkedIn provider |
+| Continue with X | `x` | X Developer app with OAuth 2.0. Use the OAuth 2.0 client id and secret, and turn on "Request email from users". This is not the legacy Twitter OAuth 1.0a provider. |
+| Continue with Discord | `discord` | Discord application with OAuth2 |
 
 `OWNER_EMAILS` is server-side. It is a comma-separated list. The default, and the value in `.env.example`, is `billyfaber06@gmail.com`. On first login, an address in that list with no membership is attached as `agency_owner` of the AI AutoTech organisation. If the variable is unset or blank, that same address is used. The attach is idempotent and does not change a membership that already exists. `supabase/owner-bootstrap.sql` remains the manual path. Do not put a live provider key in this variable.
 
-In Supabase Authentication → URL configuration, allow `https://<your-host>/auth/callback` so the magic link, Google sign-in, and the reset link can finish signing in and return to the page that was requested.
+In Supabase Authentication → URL configuration, allow `https://<your-host>/auth/callback` so the magic link, social sign-in, and the reset link can finish signing in and return to the page that was requested.
 
 ## 3. Create the agency owner login
 

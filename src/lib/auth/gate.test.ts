@@ -3,7 +3,8 @@ import test from "node:test";
 import { NextRequest } from "next/server";
 import { decideAccess, isPublicPath, requiresSession } from "@/lib/auth/gate";
 import { safeNextPath } from "@/lib/auth/redirect";
-import { googleProviderEnabled, googleSignInAvailable } from "@/lib/auth/google";
+import { enabledAuthProviders } from "@/lib/auth/provider-settings";
+import { parseAuthProviders, providerEnabled } from "@/lib/auth/providers";
 import { DEFAULT_OWNER_EMAIL, ownerEmailList, parseOwnerEmails, shouldAttachOwner } from "@/lib/auth/owners";
 import { expandAccessibleOrgs, roleForOrg, visibleWorkspace } from "@/lib/tenant/access";
 import { previewWorkspaces } from "@/lib/tenant/blueprints";
@@ -72,37 +73,52 @@ test("OWNER_EMAILS attaches only a listed address that has no membership", () =>
   assert.equal(shouldAttachOwner({ email: "other@example.com", listed: ["owner@example.com"], membershipCount: 0 }), false);
 });
 
-test("Continue with Google stays hidden unless the provider is enabled", async () => {
-  assert.equal(googleProviderEnabled({ external: { google: false } }), false);
-  assert.equal(googleProviderEnabled({ external: { google: true } }), true);
-  assert.equal(googleProviderEnabled(null), false);
+test("social buttons follow NEXT_PUBLIC_AUTH_PROVIDERS and stay hidden unless enabled", async () => {
+  assert.deepEqual(parseAuthProviders(""), []);
+  assert.deepEqual(parseAuthProviders(undefined), []);
+  assert.deepEqual(
+    parseAuthProviders(" discord, twitter ,nope,azure, google "),
+    ["google", "azure", "x", "discord"],
+  );
+  assert.equal(providerEnabled({ external: { google: true, facebook: false } }, "google"), true);
+  assert.equal(providerEnabled({ external: { google: true } }, "facebook"), false);
+  assert.equal(providerEnabled(null, "google"), false);
 
   const previous = {
     url: process.env.NEXT_PUBLIC_SUPABASE_URL,
     key: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    providers: process.env.NEXT_PUBLIC_AUTH_PROVIDERS,
   };
   const originalFetch = globalThis.fetch;
   try {
     delete process.env.NEXT_PUBLIC_SUPABASE_URL;
     delete process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-    assert.equal(await googleSignInAvailable(), false);
+    process.env.NEXT_PUBLIC_AUTH_PROVIDERS = "google,facebook";
+    assert.deepEqual(await enabledAuthProviders(), []);
 
     process.env.NEXT_PUBLIC_SUPABASE_URL = "https://example.supabase.co";
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "test-anon-key";
-    globalThis.fetch = (async () => new Response(JSON.stringify({ external: { google: false } }), { status: 200 })) as typeof fetch;
-    assert.equal(await googleSignInAvailable(), false);
+    process.env.NEXT_PUBLIC_AUTH_PROVIDERS = "";
     globalThis.fetch = (async () => new Response(JSON.stringify({ external: { google: true } }), { status: 200 })) as typeof fetch;
-    assert.equal(await googleSignInAvailable(), true);
+    assert.deepEqual(await enabledAuthProviders(), []);
+
+    process.env.NEXT_PUBLIC_AUTH_PROVIDERS = "facebook,google,discord";
+    globalThis.fetch = (async () =>
+      new Response(JSON.stringify({ external: { google: true, facebook: false, discord: true } }), { status: 200 })) as typeof fetch;
+    assert.deepEqual(await enabledAuthProviders(), ["google", "discord"]);
+
     globalThis.fetch = (async () => {
       throw new Error("settings unavailable");
     }) as typeof fetch;
-    assert.equal(await googleSignInAvailable(), false);
+    assert.deepEqual(await enabledAuthProviders(), []);
   } finally {
     globalThis.fetch = originalFetch;
     if (previous.url === undefined) delete process.env.NEXT_PUBLIC_SUPABASE_URL;
     else process.env.NEXT_PUBLIC_SUPABASE_URL = previous.url;
     if (previous.key === undefined) delete process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
     else process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = previous.key;
+    if (previous.providers === undefined) delete process.env.NEXT_PUBLIC_AUTH_PROVIDERS;
+    else process.env.NEXT_PUBLIC_AUTH_PROVIDERS = previous.providers;
   }
 });
 

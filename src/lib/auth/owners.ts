@@ -9,7 +9,7 @@ export function parseOwnerEmails(value: string | null | undefined) {
 
 /** Blank or missing OWNER_EMAILS uses the agency owner address. */
 export function ownerEmailList(raw: string | null | undefined = process.env.OWNER_EMAILS) {
-  if (raw === undefined || raw.trim() === "") return [DEFAULT_OWNER_EMAIL];
+  if (raw == null || raw.trim() === "") return [DEFAULT_OWNER_EMAIL];
   const parsed = parseOwnerEmails(raw);
   return parsed.length ? parsed : [DEFAULT_OWNER_EMAIL];
 }

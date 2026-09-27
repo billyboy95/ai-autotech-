@@ -3,7 +3,8 @@
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { supabaseAuthConfigured } from "@/lib/auth/gate";
-import { googleSignInAvailable } from "@/lib/auth/google";
+import { enabledAuthProviders } from "@/lib/auth/provider-settings";
+import { authProviderLabel, isAuthProviderId } from "@/lib/auth/providers";
 import { safeNextPath } from "@/lib/auth/redirect";
 import { BRAND_HOST_COOKIE } from "@/lib/brand/host";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -69,23 +70,26 @@ export async function signIn(
   return { ok: true, message: "" };
 }
 
-export async function signInWithGoogle(formData: FormData) {
+export async function signInWithProvider(formData: FormData) {
+  const requested = String(formData.get("provider") ?? "").trim().toLowerCase();
   const next = safeNextPath(String(formData.get("next") ?? "") || "/command-centre");
   const back = `/login?next=${encodeURIComponent(next)}`;
-  if (!supabaseAuthConfigured() || !(await googleSignInAvailable())) {
-    redirect(`${back}&error=${encodeURIComponent("Google sign-in is not configured.")}`);
+  const enabled = await enabledAuthProviders();
+  if (!isAuthProviderId(requested) || !enabled.includes(requested)) {
+    redirect(`${back}&error=${encodeURIComponent("That sign-in provider is not configured.")}`);
   }
+  const label = authProviderLabel(requested);
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase.auth.signInWithOAuth({
-    provider: "google",
+    provider: requested,
     options: {
       redirectTo: callbackUrl(await redirectOrigin(), next),
       skipBrowserRedirect: true,
-      queryParams: { prompt: "select_account" },
+      ...(requested === "google" ? { queryParams: { prompt: "select_account" } } : {}),
     },
   });
   if (error || !data.url) {
-    redirect(`${back}&error=${encodeURIComponent(error?.message || "Google sign-in could not start.")}`);
+    redirect(`${back}&error=${encodeURIComponent(error?.message || `${label} sign-in could not start.`)}`);
   }
   redirect(data.url);
 }

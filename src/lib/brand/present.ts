@@ -51,7 +51,7 @@ export function loginCopy(brand: PublicBrand | null) {
   if (!brand || brand.showPlatformName) {
     return {
       title: "Sign in",
-      body: "Agency owners and client teams sign in with Supabase Auth. AI AutoTech staff land on the agency view. EASTC and other client users land in their own workspace. The open company CRM stays available at the agency workspace until you sign in.",
+      body: "Agency owners and client teams sign in with Supabase Auth. Use your email and password, or email yourself a magic link. AI AutoTech staff land on the agency view. EASTC and other client users land in their own workspace.",
       showPlatform: true,
       placeholder: "admin@ai-autotech.co.za",
     };

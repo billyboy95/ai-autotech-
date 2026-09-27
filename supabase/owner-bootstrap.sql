@@ -2,9 +2,10 @@
 -- in Supabase Dashboard → Authentication → Users.
 -- Replace the email with the exact address you used. This does not delete anything.
 --
--- Until this row exists, /command-centre still opens the AI AutoTech workspace
--- without a password (the current owner path). /agency and client workspaces
--- such as EASTC ask you to sign in.
+-- /command-centre and /agency require a Supabase Auth session.
+-- Alternatively set OWNER_EMAILS (see .env.example). On first login, a listed
+-- address with no membership is attached as agency_owner. This script is the
+-- manual path when that variable is not set. It does not delete anything.
 
 insert into public.memberships (user_id, org_id, role)
 select u.id, o.id, 'agency_owner'

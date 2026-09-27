@@ -1,8 +1,9 @@
 import { cookies, headers } from "next/headers";
+import { supabaseAuthConfigured } from "@/lib/auth/gate";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { agencyOrgId, serviceConfigured, withOrg } from "@/server/workers/with-org";
+import { ensureOwnerMembership } from "@/server/workers/owner-bootstrap";
 import { BRAND_HOST_COOKIE, BRAND_HOST_HEADER, TEST_BRAND_HOSTS, brandHostFrom } from "@/lib/brand/host";
-import { expandAccessibleOrgs, roleForOrg, toOptions } from "@/lib/tenant/access";
+import { expandAccessibleOrgs, roleForOrg, toOptions, visibleWorkspace } from "@/lib/tenant/access";
 import { previewWorkspaces } from "@/lib/tenant/blueprints";
 import { missingTenantTable, toWorkspace, type OrganizationRow } from "@/lib/tenant/rows";
 import {
@@ -134,42 +135,30 @@ export async function slugForBrandHost(host: string | null) {
   return TEST_BRAND_HOSTS[host] ?? null;
 }
 
-function ownerShell(active: WorkspaceSummary, scoped: boolean): WorkspaceResolution {
-  return resolution({
-    mode: "owner",
-    active,
-    workspaces: [{ slug: active.slug, name: active.name, orgType: active.orgType }],
-    role: null,
-    userEmail: null,
-    canManageAgency: false,
-    scoped,
-  });
-}
-
 function mapOrgs(data: OrganizationRow[] | null) {
   return (data ?? []).map(toWorkspace).filter((org): org is WorkspaceSummary => Boolean(org));
 }
 
+function signedOutResolution(asked: string | null | undefined): WorkspaceResolution {
+  const fallback = previewWorkspaces()[0];
+  return resolution({
+    mode: "member",
+    active: fallback,
+    workspaces: [],
+    role: null,
+    userEmail: null,
+    canManageAgency: false,
+    scoped: true,
+    requiresLogin: true,
+    requestedSlug: asked ?? null,
+  });
+}
+
 export async function loadOrganizations(): Promise<WorkspaceSummary[] | null> {
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) return null;
+  if (!supabaseAuthConfigured()) return null;
   const supabase = await createSupabaseServerClient();
   const user = await supabase.auth.getUser().then((result) => result.data.user).catch(() => null);
-  if (!user) {
-    if (!serviceConfigured()) return null;
-    const id = await agencyOrgId();
-    if (!id) return null;
-    let { data, error } = await withOrg(id, "id").from("organizations").select(ORG_COLUMNS).maybeSingle();
-    if (phase2ColumnMissing(error)) {
-      const retry = await withOrg(id, "id").from("organizations").select(ORG_COLUMNS_BASE).maybeSingle();
-      data = retry.data;
-      error = retry.error;
-    }
-    if (error) {
-      if (missingTenantTable(error)) return null;
-      throw new Error(error.message);
-    }
-    return data ? mapOrgs([data as unknown as OrganizationRow]) : null;
-  }
+  if (!user) return null;
   const first = await supabase.from("organizations").select(ORG_COLUMNS);
   const listed = phase2ColumnMissing(first.error)
     ? await supabase.from("organizations").select(ORG_COLUMNS_BASE)
@@ -240,7 +229,7 @@ export async function resolveWorkspace(requestedSlug?: string | null): Promise<W
     return applyBrandLock(hosted, brandSlug, catalog, role);
   };
 
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+  if (!supabaseAuthConfigured()) {
     const previews = previewWorkspaces();
     const active = previews.find((org) => org.slug === asked) ?? previews[0];
     return lock(resolution({
@@ -254,24 +243,26 @@ export async function resolveWorkspace(requestedSlug?: string | null): Promise<W
     }), previews);
   }
 
+  const user = await sessionUser();
+  if (!user) return lock(signedOutResolution(asked), previewWorkspaces());
+
+  await ensureOwnerMembership({ id: user.id, email: user.email });
+
   const orgs = await loadOrganizations();
   const agency = orgs?.find((org) => org.slug === AGENCY_SLUG) ?? orgs?.find((org) => org.orgType === "agency") ?? null;
 
   if (!orgs || !agency) {
-    const fallback = previewWorkspaces()[0];
-    return lock(ownerShell(fallback, false), previewWorkspaces());
-  }
-
-  const user = await sessionUser();
-  if (!user) {
-    if (asked && asked !== agency.slug) {
-      return lock(resolution({
-        ...ownerShell(agency, true),
-        requiresLogin: true,
-        requestedSlug: asked,
-      }), orgs);
-    }
-    return lock(ownerShell(agency, true), orgs);
+    return lock(resolution({
+      mode: "member",
+      active: previewWorkspaces()[0],
+      workspaces: [],
+      role: null,
+      userEmail: user.email ?? null,
+      canManageAgency: false,
+      scoped: true,
+      requiresLogin: false,
+      requestedSlug: asked,
+    }), previewWorkspaces());
   }
 
   const memberships = await loadMemberships(user.id);
@@ -293,23 +284,9 @@ export async function resolveWorkspace(requestedSlug?: string | null): Promise<W
     }), orgs, brandedRole);
   }
 
-  const requested = asked ? accessible.find((org) => org.slug === asked) : undefined;
-  if (asked && !requested) {
-    const fallback = accessible.find((org) => org.slug === AGENCY_SLUG) ?? accessible[0];
-    return lock(resolution({
-      mode: "member",
-      active: fallback,
-      workspaces: toOptions(accessible),
-      role: roleForOrg(fallback, memberships, orgs),
-      userEmail: user.email ?? null,
-      canManageAgency: memberships.some((membership) => isAgencyRole(membership.role)),
-      scoped: true,
-      requiresLogin: false,
-      requestedSlug: asked,
-    }), orgs, brandedRole);
-  }
-
-  const active = requested ?? accessible.find((org) => org.orgType === "agency") ?? accessible[0];
+  const requested = visibleWorkspace(accessible, asked);
+  const denied = Boolean(asked && !requested);
+  const active = requested ?? visibleWorkspace(accessible, null) ?? accessible[0];
   const role = roleForOrg(active, memberships, orgs);
   return lock(resolution({
     mode: "member",
@@ -319,6 +296,8 @@ export async function resolveWorkspace(requestedSlug?: string | null): Promise<W
     userEmail: user.email ?? null,
     canManageAgency: memberships.some((membership) => isAgencyRole(membership.role)),
     scoped: true,
+    requiresLogin: false,
+    requestedSlug: denied ? asked : null,
   }), orgs, brandedRole);
 }
 
@@ -361,8 +340,17 @@ export async function safeResolveWorkspace(requestedSlug?: string | null): Promi
     return await resolveWorkspace(requestedSlug);
   } catch (error) {
     console.error("workspace resolution failed", error);
+    if (supabaseAuthConfigured()) return signedOutResolution(requestedSlug);
     const fallback = previewWorkspaces()[0];
-    return ownerShell(fallback, false);
+    return resolution({
+      mode: "preview",
+      active: fallback,
+      workspaces: toOptions(previewWorkspaces()),
+      role: "agency_owner",
+      userEmail: null,
+      canManageAgency: true,
+      scoped: false,
+    });
   }
 }
 

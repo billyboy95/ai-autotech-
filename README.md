@@ -44,7 +44,7 @@ Open `http://localhost:3000`.
 
 ## Agency workspaces
 
-AI AutoTech Pty Ltd is the parent agency. Client workspaces such as EASTC and Zentrix Online are isolated by `org_id` and Row Level Security. The open CRM at `/command-centre` stays on the agency workspace. Client workspaces require a Supabase Auth login. Owner steps: `docs/agency-owner-setup.md`.
+AI AutoTech Pty Ltd is the parent agency. Client workspaces such as EASTC and Zentrix Online are isolated by `org_id` and Row Level Security. `/command-centre` and `/agency` require a Supabase Auth session and a membership in the organisation being viewed. Owner steps: `docs/agency-owner-setup.md`.
 
 ## Supabase Setup
 
@@ -189,7 +189,7 @@ npm test
 
 ### Privacy
 
-`/command-centre` is intentionally open. There is no login gate. Anyone with the URL can see lead names, phone numbers, email addresses, and audit answers. Do not publish the link. This was left open on purpose and has not been put back.
+`/command-centre` and `/agency` require a Supabase Auth session when Supabase keys are set. A signed-in user only sees organisations they belong to. `OWNER_EMAILS` can attach the agency owner on first login. Without Supabase keys the pages render fixture data for local review and CI. Public intake stays at `/api/public/*`.
 
 ## Next Build Steps
 

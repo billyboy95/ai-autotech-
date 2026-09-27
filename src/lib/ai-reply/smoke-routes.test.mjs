@@ -14,6 +14,7 @@ test("inbox, conversation AI, calendars, and public booking respond", { timeout:
       NEXT_TELEMETRY_DISABLED: "1",
       NEXT_PUBLIC_SUPABASE_URL: "",
       NEXT_PUBLIC_SUPABASE_ANON_KEY: "",
+      VERCEL_ENV: "",
       AI_REPLY_CRON_ENABLED: "",
       AI_REPLY_API_KEY: "",
     },

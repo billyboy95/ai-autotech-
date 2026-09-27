@@ -9,6 +9,8 @@ export async function loadInboxUnread() {
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) return 0;
   try {
     const supabase = await createSupabaseServerClient();
+    const user = await supabase.auth.getUser();
+    if (!user.data.user) return 0;
     const listed = await supabase.from("conversations").select("unread_count").neq("status", "closed");
     if (listed.error) return 0;
     return (listed.data ?? []).reduce((sum, row) => sum + Number(row.unread_count || 0), 0);
@@ -28,7 +30,9 @@ export async function loadInbox(query: {
   const channel = parseInboxChannel(query.channel);
   const tenant = await safeResolveWorkspace(query.org);
   if (
-    !process.env.NEXT_PUBLIC_SUPABASE_URL
+    tenant.requiresLogin
+    || !tenant.role
+    || !process.env.NEXT_PUBLIC_SUPABASE_URL
     || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
     || !tenant.scoped
     || tenant.active.id.startsWith("preview-")

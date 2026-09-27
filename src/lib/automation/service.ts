@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { openServiceDatabase } from "@/server/workers/service-db";
 import { isSendEnabled } from "@/lib/automation/channels";
 import { applyStageRules, captureLead, createInitialState, runCron } from "@/lib/automation/engine";
@@ -25,16 +26,37 @@ export function isDemoMode() {
   return process.env.CRM_DEMO_DATA === "1";
 }
 
+function presentLoaded(loaded: { state: AutomationState; automationReady: boolean; setupError: string | null }): Workspace {
+  return { ...loaded, state: applyEnvDefaults(hydrateState(loaded.state)), demo: false };
+}
+
+function demoWorkspace(): Workspace {
+  return { state: applyEnvDefaults(hydrateState(readDemoState())), automationReady: true, setupError: null, demo: true };
+}
+
+async function viewerClient(): Promise<SupabaseClient | null> {
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) return null;
+  const { createSupabaseServerClient } = await import("@/lib/supabase/server");
+  const supabase = await createSupabaseServerClient();
+  const { data } = await supabase.auth.getUser();
+  return data.user ? supabase : null;
+}
+
 export async function loadWorkspace(orgId?: string | null): Promise<Workspace> {
-  if (isDemoMode()) {
-    return { state: applyEnvDefaults(hydrateState(readDemoState())), automationReady: true, setupError: null, demo: true };
-  }
+  if (isDemoMode()) return demoWorkspace();
   const supabase = openServiceDatabase();
   if (!supabase) {
     throw new Error("CRM store requires a configured Supabase service role.");
   }
-  const loaded = await loadSupabaseWorkspace(supabase, orgId ?? null);
-  return { ...loaded, state: applyEnvDefaults(hydrateState(loaded.state)), demo: false };
+  return presentLoaded(await loadSupabaseWorkspace(supabase, orgId ?? null));
+}
+
+/** Command-centre reads. Uses the signed-in session so RLS applies. */
+export async function loadViewerWorkspace(orgId?: string | null): Promise<Workspace> {
+  if (isDemoMode()) return demoWorkspace();
+  const supabase = await viewerClient();
+  if (!supabase) throw new Error("Sign in to open the command centre.");
+  return presentLoaded(await loadSupabaseWorkspace(supabase, orgId ?? null));
 }
 
 function applyEnvDefaults(state: AutomationState): AutomationState {
@@ -53,27 +75,54 @@ export async function saveWorkspace(before: AutomationState, after: AutomationSt
   await saveSupabaseWorkspace(supabase, before, after);
 }
 
+async function enrollOn(supabase: SupabaseClient, input: CaptureInput) {
+  const workspace = presentLoaded(await loadSupabaseWorkspace(supabase, null));
+  if (!workspace.automationReady) {
+    return { ok: false as const, error: workspace.setupError || `Apply ${MIGRATION_FILE} first.` };
+  }
+  const now = new Date();
+  let after = captureLead(workspace.state, input, now, { automate: !isWorkflowEngineEnabled() });
+  if (isWorkflowEngineEnabled()) {
+    after = dispatchEvent(after, phase1Workflows(), {
+      type: "lead.created",
+      subjectId: input.id,
+      occurredAt: now.toISOString(),
+      id: `lead.created-${input.id}-${now.toISOString()}`,
+      payload: { source: input.source || "" },
+    }).state;
+  } else {
+    after = applyStageRules(after, now, process.env, input.id);
+  }
+  await saveSupabaseWorkspace(supabase, workspace.state, after);
+  return { ok: true as const };
+}
+
 export async function enrollLead(input: CaptureInput) {
   try {
-    const workspace = await loadWorkspace();
-    if (!workspace.automationReady) {
-      return { ok: false as const, error: workspace.setupError || `Apply ${MIGRATION_FILE} first.` };
+    if (isDemoMode()) {
+      const workspace = await loadWorkspace();
+      if (!workspace.automationReady) {
+        return { ok: false as const, error: workspace.setupError || `Apply ${MIGRATION_FILE} first.` };
+      }
+      const now = new Date();
+      let after = captureLead(workspace.state, input, now, { automate: !isWorkflowEngineEnabled() });
+      if (isWorkflowEngineEnabled()) {
+        after = dispatchEvent(after, phase1Workflows(), {
+          type: "lead.created",
+          subjectId: input.id,
+          occurredAt: now.toISOString(),
+          id: `lead.created-${input.id}-${now.toISOString()}`,
+          payload: { source: input.source || "" },
+        }).state;
+      } else {
+        after = applyStageRules(after, now, process.env, input.id);
+      }
+      await saveWorkspace(workspace.state, after);
+      return { ok: true as const };
     }
-    const now = new Date();
-    let after = captureLead(workspace.state, input, now, { automate: !isWorkflowEngineEnabled() });
-    if (isWorkflowEngineEnabled()) {
-      after = dispatchEvent(after, phase1Workflows(), {
-        type: "lead.created",
-        subjectId: input.id,
-        occurredAt: now.toISOString(),
-        id: `lead.created-${input.id}-${now.toISOString()}`,
-        payload: { source: input.source || "" },
-      }).state;
-    } else {
-      after = applyStageRules(after, now, process.env, input.id);
-    }
-    await saveWorkspace(workspace.state, after);
-    return { ok: true as const };
+    const supabase = openServiceDatabase();
+    if (!supabase) return { ok: false as const, error: "CRM store requires a configured Supabase service role." };
+    return await enrollOn(supabase, input);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Automation enroll failed.";
     console.error("automation enroll failed", message);
@@ -81,8 +130,20 @@ export async function enrollLead(input: CaptureInput) {
   }
 }
 
-export async function runAutomationJob() {
-  const workspace = await loadWorkspace();
+export async function enrollLeadForViewer(input: CaptureInput) {
+  try {
+    if (isDemoMode()) return enrollLead(input);
+    const supabase = await viewerClient();
+    if (!supabase) return { ok: false as const, error: "Sign in to add a lead." };
+    return await enrollOn(supabase, input);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Automation enroll failed.";
+    return { ok: false as const, error: message };
+  }
+}
+
+async function runOn(supabase: SupabaseClient) {
+  const workspace = presentLoaded(await loadSupabaseWorkspace(supabase, null));
   if (!workspace.automationReady) {
     return { ok: false as const, events: [] as string[], error: workspace.setupError || `Apply ${MIGRATION_FILE} first.` };
   }
@@ -93,17 +154,56 @@ export async function runAutomationJob() {
   after = await flushOutbox(after, now, process.env);
   after = await publishDuePosts(after, now, process.env);
   if (isSendEnabled() && !isWorkflowEngineEnabled()) after = applyStageRules(after, now, process.env);
-  await saveWorkspace(workspace.state, after);
+  await saveSupabaseWorkspace(supabase, workspace.state, after);
   return { ok: true as const, events: describeChanges(workspace.state, after), error: undefined };
 }
 
+export async function runAutomationJob() {
+  if (isDemoMode()) {
+    const workspace = await loadWorkspace();
+    if (!workspace.automationReady) {
+      return { ok: false as const, events: [] as string[], error: workspace.setupError || `Apply ${MIGRATION_FILE} first.` };
+    }
+    const now = new Date();
+    let after = isWorkflowEngineEnabled()
+      ? runScheduledWorkflows(workspace.state, phase1Workflows(), now, { env: process.env }).state
+      : runCron(workspace.state, now, process.env);
+    after = await flushOutbox(after, now, process.env);
+    after = await publishDuePosts(after, now, process.env);
+    if (isSendEnabled() && !isWorkflowEngineEnabled()) after = applyStageRules(after, now, process.env);
+    await saveWorkspace(workspace.state, after);
+    return { ok: true as const, events: describeChanges(workspace.state, after), error: undefined };
+  }
+  const supabase = openServiceDatabase();
+  if (!supabase) throw new Error("Supabase service role is not configured.");
+  return runOn(supabase);
+}
+
+export async function runViewerAutomationJob() {
+  if (isDemoMode()) return runAutomationJob();
+  const supabase = await viewerClient();
+  if (!supabase) throw new Error("Sign in to run automations.");
+  return runOn(supabase);
+}
+
 export async function mutateWorkspace(change: (state: AutomationState) => AutomationState | Promise<AutomationState>) {
-  const workspace = await loadWorkspace();
+  if (isDemoMode()) {
+    const workspace = await loadWorkspace();
+    if (!workspace.automationReady) {
+      throw new Error(workspace.setupError || `Apply ${MIGRATION_FILE} before changing automation data.`);
+    }
+    const after = await change(workspace.state);
+    await saveWorkspace(workspace.state, after);
+    return after;
+  }
+  const supabase = await viewerClient();
+  if (!supabase) throw new Error("Sign in to change the command centre.");
+  const workspace = presentLoaded(await loadSupabaseWorkspace(supabase, null));
   if (!workspace.automationReady) {
     throw new Error(workspace.setupError || `Apply ${MIGRATION_FILE} before changing automation data.`);
   }
   const after = await change(workspace.state);
-  await saveWorkspace(workspace.state, after);
+  await saveSupabaseWorkspace(supabase, workspace.state, after);
   return after;
 }
 

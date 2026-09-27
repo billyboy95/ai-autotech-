@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 export default async function SnapshotsPage() {
   const workspace = await resolveWorkspace();
   const blocked = workspace.mode !== "preview" && !workspace.canManageAgency;
-  const snapshots = workspace.mode === "preview" ? seededSnapshotOptions() : await listSnapshotOptions();
+  const snapshots = workspace.mode === "preview" || blocked ? seededSnapshotOptions() : await listSnapshotOptions();
 
   return (
     <main className="min-h-screen bg-[#F3F4F6] px-4 py-8">

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { requireCrmApiUser } from "@/lib/auth/session";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { renderBusinessPdf } from "@/lib/pdf";
 import { formatCurrency } from "@/lib/utils";
@@ -7,6 +8,8 @@ export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const session = await requireCrmApiUser();
+  if (!session.ok) return NextResponse.json({ ok: false, error: session.error }, { status: session.status });
   const { id } = await params;
   let proposal = {
     title: "AI AutoTech Growth Automation Proposal",

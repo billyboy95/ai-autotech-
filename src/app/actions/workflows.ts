@@ -1,7 +1,7 @@
 "use server";
 
 import { createInitialState } from "@/lib/automation/engine";
-import { loadWorkspace } from "@/lib/automation/service";
+import { loadViewerWorkspace } from "@/lib/automation/service";
 import { emptyLead } from "@/lib/automation/types";
 import { phase1Workflows } from "@/lib/workflows/phase1";
 import { dryRunWorkflow } from "@/lib/workflows/runner";
@@ -14,7 +14,7 @@ export async function previewWorkflow(assetKey: string, contactId: string, steps
 
   let state = createInitialState();
   try {
-    const workspace = await loadWorkspace();
+    const workspace = await loadViewerWorkspace();
     state = workspace.state;
   } catch {
     state = createInitialState();

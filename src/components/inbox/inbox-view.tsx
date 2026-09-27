@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { addInboxNote, assignInboxConversation, markInboxRead, sendInboxReply, setInboxStatus } from "@/app/actions/inbox";
+import { AiDraftPanel } from "@/components/inbox/ai-draft-panel";
 import { formatInboxCost, inboxCost, realtimeOrgFilter, acceptRealtimeRow, serviceAllowanceLabel, whatsappComposeGate, windowCountdown, type InboxChannel } from "@/lib/inbox/rules";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import type { InboxData } from "@/lib/inbox/types";
@@ -170,6 +171,7 @@ export function InboxView({ data, banner, bannerTone }: { data: InboxData; banne
                   </article>
                 ))}
               </div>
+              <AiDraftPanel data={data} />
               <form action={sendInboxReply} className="grid gap-2 border-t border-slate-100 pt-3">
                 <Hidden data={data} id={thread.id} />
                 <div className="flex flex-wrap gap-2">

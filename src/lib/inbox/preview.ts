@@ -201,5 +201,20 @@ export function previewInbox(query: {
     members: [{ userId: PREVIEW_USER, role: "client_admin" }],
     serviceUsed: 12,
     notice: query.notice ?? "Preview inbox. Connect Supabase to load this workspace. Nothing here is delivered.",
+    aiEnabled: false,
+    aiMode: "draft_only",
+    aiRequireHuman: true,
+    draft: selected === OPEN_WA
+      ? {
+          id: "00000000-0000-4000-8000-0000000000d1",
+          status: "pending_review",
+          body: "Thanks Lerato. Applications for the October intake are still open.",
+          consentOk: true,
+          failure: "",
+          reason: "",
+          outboxStatus: "",
+          createdAt: now.toISOString(),
+        }
+      : null,
   };
 }

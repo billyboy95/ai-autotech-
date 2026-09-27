@@ -1,3 +1,4 @@
+import type { AiDraftView, AiReplyMode } from "@/lib/ai-reply/types";
 import type { InboxFilter } from "@/lib/inbox/rules";
 
 export type InboxListItem = {
@@ -98,4 +99,8 @@ export type InboxData = {
   members: InboxMemberOption[];
   serviceUsed: number;
   notice: string | null;
+  aiEnabled: boolean;
+  aiMode: AiReplyMode;
+  aiRequireHuman: boolean;
+  draft: AiDraftView | null;
 };

@@ -28,6 +28,7 @@ const links = [
   ["/command-centre", "Today"],
   ["/command-centre/inbox", "Inbox"],
   ["/command-centre/calendars", "Calendars"],
+  ["/command-centre/reviews", "Reviews"],
   ["/command-centre/ai-replies", "AI replies"],
   ["/command-centre/pipeline", "Pipeline"],
   ["/command-centre/outbox", "Outbox"],

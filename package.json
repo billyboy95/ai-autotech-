@@ -2,12 +2,15 @@
   "name": "ai-autotech-command-centre",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": "22.x"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "node scripts/check-service-role.mjs && tsx --test src/lib/automation/engine.test.ts src/lib/automation/outbound.test.ts src/lib/automation/compliance.test.ts src/lib/crm-store.test.ts src/lib/tenant/access.test.ts src/lib/auth/gate.test.ts src/lib/shopify/classify.test.ts src/lib/compliance/send-gate.test.ts src/lib/compliance/phase2b.test.ts src/lib/brand/catalog.test.ts src/lib/brand/brand.test.ts src/lib/agency/rollup.test.ts src/lib/snapshots/payload.test.ts src/lib/workflows/engine.test.ts src/lib/inbox/inbox.test.ts src/lib/billing/billing.test.ts src/lib/agency/rollup-sql.test.ts src/lib/ai-reply/ai-reply.test.ts src/server/workers/ai-reply-cron.test.ts src/lib/calendars/slots.test.ts src/lib/calendars/book.test.ts && node --test --test-concurrency=1 src/lib/tenant/rls-isolation.test.mjs src/lib/channels/vault-rls.test.mjs src/lib/snapshots/snapshot-sql.test.mjs src/lib/workflows/workflow-sql.test.mjs src/lib/inbox/inbox-sql.test.mjs src/lib/billing/billing-sql.test.mjs src/lib/ai-reply/ai-reply-sql.test.mjs src/lib/calendars/calendars-sql.test.mjs src/lib/ai-reply/smoke-routes.test.mjs",
+    "test": "node scripts/check-service-role.mjs && tsx --test src/lib/automation/engine.test.ts src/lib/automation/outbound.test.ts src/lib/automation/compliance.test.ts src/lib/crm-store.test.ts src/lib/tenant/access.test.ts src/lib/auth/gate.test.ts src/lib/shopify/classify.test.ts src/lib/compliance/send-gate.test.ts src/lib/compliance/phase2b.test.ts src/lib/brand/catalog.test.ts src/lib/brand/brand.test.ts src/lib/agency/rollup.test.ts src/lib/snapshots/payload.test.ts src/lib/workflows/engine.test.ts src/lib/inbox/inbox.test.ts src/lib/billing/billing.test.ts src/lib/agency/rollup-sql.test.ts src/lib/ai-reply/ai-reply.test.ts src/server/workers/ai-reply-cron.test.ts src/lib/calendars/slots.test.ts src/lib/calendars/book.test.ts src/lib/reviews/plan.test.ts && node --test --test-concurrency=1 src/lib/tenant/rls-isolation.test.mjs src/lib/channels/vault-rls.test.mjs src/lib/snapshots/snapshot-sql.test.mjs src/lib/workflows/workflow-sql.test.mjs src/lib/inbox/inbox-sql.test.mjs src/lib/billing/billing-sql.test.mjs src/lib/ai-reply/ai-reply-sql.test.mjs src/lib/calendars/calendars-sql.test.mjs src/lib/reviews/reviews-sql.test.mjs src/lib/ai-reply/smoke-routes.test.mjs",
     "demo:automation": "tsx scripts/demo-automation.ts"
   },
   "dependencies": {

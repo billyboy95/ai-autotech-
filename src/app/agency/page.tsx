@@ -7,6 +7,7 @@ import { previewWorkspaces, EDUCATION_BLUEPRINT, ECOMMERCE_BLUEPRINT } from "@/l
 import { zentrixStores } from "@/lib/shopify/catalog";
 import { resolveWorkspace, loadOrganizations } from "@/lib/tenant/context";
 import { clientMetrics } from "@/lib/tenant/data";
+import { showEducationPack } from "@/lib/snapshots/eastc-pack";
 import { AGENCY_SLUG } from "@/lib/tenant/types";
 
 export const dynamic = "force-dynamic";
@@ -55,6 +56,7 @@ export default async function AgencyPage({
         rollupSample
         fromDay="2026-09-01"
         toDay="2026-09-03"
+        showEducationPack={showEducationPack({ surface: "agency", canManageAgency: workspace.canManageAgency })}
         clients={[
           {
             workspace: eastc,
@@ -99,6 +101,7 @@ export default async function AgencyPage({
       rollupSample={!live}
       fromDay={live ? bounds.fromDay : "2026-09-01"}
       toDay={live ? bounds.toDay : "2026-09-03"}
+      showEducationPack={showEducationPack({ surface: "agency", canManageAgency: workspace.canManageAgency })}
     />
   );
 }

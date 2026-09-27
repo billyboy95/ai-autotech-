@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { SnapshotPushForm } from "@/components/snapshot-push-form";
-import { seededSnapshotOptions } from "@/lib/snapshots/catalog";
+import { EDUCATION_SNAPSHOT_ID, seededSnapshotOptions } from "@/lib/snapshots/catalog";
 import { listSnapshotOptions } from "@/lib/snapshots/store";
 import { resolveWorkspace } from "@/lib/tenant/context";
 
@@ -43,6 +43,12 @@ export default async function SnapshotsPage() {
             <article key={snapshot.id} className="grid gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
               <h2 className="font-display text-lg font-bold text-[#0B1F3A]">{snapshot.name}</h2>
               <p className="text-sm text-slate-600">{snapshot.description}</p>
+              {snapshot.id === EDUCATION_SNAPSHOT_ID ? (
+                <p className="text-sm leading-6 text-slate-600">
+                  The existing EASTC workspace does not load this pack until an agency owner uses Apply Education pack to EASTC on the agency page.
+                  A push only updates workspaces that already loaded the snapshot. Contacts and messages stay out, and sending stays off.
+                </p>
+              ) : null}
               {workspace.mode === "preview" ? null : <SnapshotPushForm snapshotId={snapshot.id} snapshotName={snapshot.name} />}
             </article>
           ))

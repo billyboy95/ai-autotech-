@@ -1,3 +1,4 @@
+import { missingAiTable, parseAiDraft, parseAiReplySettings } from "@/lib/ai-reply/types";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { safeResolveWorkspace } from "@/lib/tenant/context";
 import { contactLookup, parseInboxChannel, parseInboxFilter } from "@/lib/inbox/rules";
@@ -60,6 +61,10 @@ export async function loadInbox(query: {
     members: [],
     serviceUsed: 0,
     notice: query.notice ?? null,
+    aiEnabled: false,
+    aiMode: "draft_only",
+    aiRequireHuman: true,
+    draft: null,
   };
 
   if (userId) {
@@ -140,6 +145,30 @@ export async function loadInbox(query: {
   if (connectionId && isUuid(connectionId)) {
     const counted = await supabase.rpc("wa_service_sends_this_month", { p_org: tenant.active.id, p_connection: connectionId });
     if (!counted.error && typeof counted.data === "number") base.serviceUsed = counted.data;
+  }
+
+  try {
+    const settings = await supabase.from("ai_reply_settings").select("*").eq("org_id", tenant.active.id).maybeSingle();
+    if (!settings.error && settings.data) {
+      const parsed = parseAiReplySettings(settings.data);
+      base.aiEnabled = parsed.enabled;
+      base.aiMode = parsed.mode;
+      base.aiRequireHuman = parsed.requireHumanBeforeSend;
+    } else if (settings.error && !missingAiTable(settings.error.message)) {
+      base.notice = base.notice || settings.error.message;
+    }
+    if (base.thread) {
+      const drafts = await supabase
+        .from("ai_drafts")
+        .select("id, status, draft_body, consent_ok, model_meta, created_at")
+        .eq("conversation_id", base.thread.id)
+        .eq("org_id", tenant.active.id)
+        .order("created_at", { ascending: false })
+        .limit(1);
+      if (!drafts.error) base.draft = parseAiDraft(drafts.data?.[0] ?? null);
+    }
+  } catch {
+    // A missing Conversation AI migration must not take down the inbox.
   }
   return base;
 }

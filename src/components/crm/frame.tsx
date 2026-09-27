@@ -27,6 +27,7 @@ export type CommandChrome = {
 const links = [
   ["/command-centre", "Today"],
   ["/command-centre/inbox", "Inbox"],
+  ["/command-centre/ai-replies", "AI replies"],
   ["/command-centre/pipeline", "Pipeline"],
   ["/command-centre/outbox", "Outbox"],
   ["/command-centre/campaigns", "Campaigns"],

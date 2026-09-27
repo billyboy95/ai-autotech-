@@ -38,6 +38,7 @@ export default async function WorkspaceSettingsPage({ params }: { params: Promis
             Preview only. Settings save after Supabase Auth and the tenancy migration are in place.
           </p>
           <WorkspaceSettingsForm workspace={org} stages={stages} members={[]} stores={stores} canEdit={false} canToggleSending={false} />
+          <AiReplySettingsLink slug={org.slug} />
           <WorkspaceBillingPanel billing={await loadBillingPage({ orgId: null, orgName: org.name, slug: org.slug, email: "", role: null, preview: true })} />
           <ChannelConnectForm slug={org.slug} canEdit={false} connections={[]} />
         </div>
@@ -84,9 +85,24 @@ export default async function WorkspaceSettingsPage({ params }: { params: Promis
           readOnly={billing.readOnly}
         />
         <WorkspaceBillingPanel billing={billing} />
+        <AiReplySettingsLink slug={org.slug} />
         <ChannelConnectForm slug={org.slug} canEdit={canEdit && !billing.readOnly} connections={await listConnections(org.id)} />
       </div>
     </main>
+  );
+}
+
+function AiReplySettingsLink({ slug }: { slug: string }) {
+  return (
+    <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+      <h2 className="font-display text-lg font-bold text-[#0B1F3A]">Conversation AI</h2>
+      <p className="mt-1 text-sm text-slate-600">
+        Draft replies in the inbox. This stays off until an agency owner or client admin enables it. It does not turn sending on.
+      </p>
+      <Link href={`/command-centre/ai-replies?org=${slug}`} className="mt-3 inline-flex text-sm font-semibold text-[#2563EB]">
+        Open Conversation AI settings
+      </Link>
+    </section>
   );
 }
 

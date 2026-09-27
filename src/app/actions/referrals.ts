@@ -78,6 +78,9 @@ export async function acceptTeamInvite(
 ): Promise<ReferralActionState> {
   const token = String(formData.get("token") ?? "").trim();
   if (!token) return { ok: false, message: "This team link is missing its token." };
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    return { ok: false, message: "Sign in with the invited email, then accept. No message is sent from this page." };
+  }
   const supabase = await createSupabaseServerClient();
   const user = await supabase.auth.getUser();
   if (!user.data.user) return { ok: false, message: "Sign in with the invited email, then accept. No message is sent from this page." };

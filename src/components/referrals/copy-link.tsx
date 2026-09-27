@@ -13,6 +13,21 @@ export function CopyLink({ url }: { url: string }) {
         try {
           await navigator.clipboard.writeText(url);
           setCopied(true);
+          return;
+        } catch {
+          // Some mobile browsers block the async clipboard API until a fallback runs.
+        }
+        try {
+          const input = document.createElement("textarea");
+          input.value = url;
+          input.setAttribute("readonly", "");
+          input.style.position = "fixed";
+          input.style.left = "-9999px";
+          document.body.appendChild(input);
+          input.select();
+          const ok = document.execCommand("copy");
+          document.body.removeChild(input);
+          setCopied(ok);
         } catch {
           setCopied(false);
         }

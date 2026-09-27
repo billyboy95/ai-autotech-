@@ -1,3 +1,4 @@
+import { headers } from "next/headers";
 import { referralQrSvg } from "@/lib/referrals/qr";
 import {
   PLACEHOLDER_TIERS,
@@ -13,8 +14,15 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { safeResolveWorkspace } from "@/lib/tenant/context";
 import { isAgencyRole } from "@/lib/tenant/types";
 
-function siteUrl() {
-  return (process.env.NEXT_PUBLIC_SITE_URL || "").replace(/\/$/, "");
+async function siteUrl() {
+  const configured = (process.env.NEXT_PUBLIC_SITE_URL || "").replace(/\/$/, "");
+  if (configured) return configured;
+  const headerStore = await headers();
+  const host = (headerStore.get("x-forwarded-host") || headerStore.get("host") || "").split(",")[0].trim();
+  if (!host) return "";
+  const forwarded = (headerStore.get("x-forwarded-proto") || "").split(",")[0].trim();
+  const proto = forwarded || (host.startsWith("localhost") || host.startsWith("127.") ? "http" : "https");
+  return `${proto}://${host}`;
 }
 
 function missingRelation(error: { message?: string } | null) {
@@ -108,7 +116,7 @@ function leaderboard(rows: ReferralRowView[]): LeaderRow[] {
 
 export async function loadReferralDesk(org?: string | null): Promise<ReferralDesk> {
   const tenant = await safeResolveWorkspace(org);
-  const origin = siteUrl();
+  const origin = await siteUrl();
   const preview = previewReferralDesk(tenant.active.slug, origin);
   preview.qrSvg = await referralQrSvg(preview.link);
   const connected = Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);

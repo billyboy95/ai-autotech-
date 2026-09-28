@@ -170,6 +170,7 @@ test("every command-centre and agency page requires a session, and public intake
     "/command-centre/leads/abc",
     "/agency",
     "/agency/eastc/settings",
+    "/agency/zentrix/settings",
   ];
   for (const path of gated) {
     assert.equal(requiresSession(path), true, path);

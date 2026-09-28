@@ -2,9 +2,11 @@ import type { Metadata } from "next";
 import { approveSocial, cancelSocial, queueSocialPostForm } from "@/app/actions/automation";
 import { CopyButton } from "@/components/crm/copy-button";
 import { CommandShell } from "@/components/crm/command-shell";
+import { SocialDraftsPanel } from "@/components/social/drafts-panel";
 import { formatWhen } from "@/lib/automation/ids";
 import { loadCommandData } from "@/lib/automation/page-data";
 import { trackedUrl } from "@/lib/automation/social";
+import { loadSocialDrafts } from "@/lib/social/load";
 
 export const dynamic = "force-dynamic";
 
@@ -14,7 +16,8 @@ export const metadata: Metadata = {
 };
 
 export default async function SocialPage() {
-  const { workspace, sendingEnabled } = await loadCommandData();
+  const { workspace, sendingEnabled, tenant } = await loadCommandData();
+  const drafts = await loadSocialDrafts({ mode: tenant.mode, orgId: tenant.active.id });
   const posts = workspace.state.socialPosts.slice().sort((a, b) => a.scheduledFor.localeCompare(b.scheduledFor));
 
   return (
@@ -23,7 +26,16 @@ export default async function SocialPage() {
         <div>
           <h1 className="font-display text-2xl font-bold text-[#0B1F3A]">Social calendar</h1>
           <p className="text-sm text-slate-500">
-            Facebook, Instagram, and LinkedIn stay queued until sending is on. Copy and post is always available.
+            Week 1 drafts stay in this workspace. Publish, Post now, and Go live are refused until Billy approves sends. Nothing is posted.
+          </p>
+        </div>
+
+        <SocialDraftsPanel mode={drafts.mode} orgSlug={tenant.active.slug} drafts={drafts.drafts} notice={drafts.notice} />
+
+        <div>
+          <h2 className="font-display text-lg font-bold text-[#0B1F3A]">Copy and post</h2>
+          <p className="text-sm text-slate-500">
+            Copy the text and post it yourself. This list does not call a provider from this page.
           </p>
         </div>
 

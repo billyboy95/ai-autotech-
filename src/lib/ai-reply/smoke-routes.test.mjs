@@ -21,6 +21,8 @@ test("inbox, conversation AI, calendars, reviews, referrals, and public pages re
       META_CONNECT_STUB_ENABLED: "",
       CAMPAIGN_CSV_IMPORT_ENABLED: "",
       EMAIL_SMS_CONNECT_STUB_ENABLED: "",
+      SOCIAL_DRAFTS_ENABLED: "",
+      TIKTOK_LINKEDIN_CONNECT_STUB_ENABLED: "",
     },
     stdio: ["ignore", "pipe", "pipe"],
   });
@@ -196,6 +198,9 @@ test("inbox, conversation AI, calendars, reviews, referrals, and public pages re
     assert.match(connectHtml, /BulkSMS/);
     assert.match(connectHtml, /Clickatell/);
     assert.match(connectHtml, /placeholders/);
+    assert.match(connectHtml, /TikTok/);
+    assert.match(connectHtml, /LinkedIn/);
+    assert.match(connectHtml, /Billy must add the keys later/);
     assert.doesNotMatch(connectHtml, /start with (these )?(3|three)/i);
 
     const whatsappStub = await fetch(`http://127.0.0.1:${port}/command-centre/connect-accounts/whatsapp`, { redirect: "manual" });
@@ -235,6 +240,43 @@ test("inbox, conversation AI, calendars, reviews, referrals, and public pages re
     assert.match(metaHtml, /Facebook \/ Instagram/);
     assert.match(metaHtml, /Sandbox stub/);
     assert.match(metaHtml, /Nothing is sent/);
+
+    const tiktokStub = await fetch(`http://127.0.0.1:${port}/command-centre/connect-accounts/tiktok`, { redirect: "manual" });
+    assert.equal(tiktokStub.status, 200);
+    const tiktokHtml = await tiktokStub.text();
+    assert.match(tiktokHtml, /Billy must add TikTok keys later/);
+    assert.match(tiktokHtml, /No OAuth/);
+    assert.match(tiktokHtml, /Needs provider keys/);
+    assert.match(tiktokHtml, /Send test/);
+    assert.match(tiktokHtml, /Publish/);
+    assert.match(tiktokHtml, /Nothing is posted/);
+    assert.doesNotMatch(tiktokHtml, /start with (these )?(3|three)/i);
+
+    const linkedinStub = await fetch(`http://127.0.0.1:${port}/command-centre/connect-accounts/linkedin`, { redirect: "manual" });
+    assert.equal(linkedinStub.status, 200);
+    const linkedinHtml = await linkedinStub.text();
+    assert.match(linkedinHtml, /Billy must add LinkedIn keys later/);
+    assert.match(linkedinHtml, /No OAuth/);
+    assert.match(linkedinHtml, /Needs provider keys/);
+    assert.match(linkedinHtml, /Publish/);
+    assert.match(linkedinHtml, /Nothing is posted/);
+    assert.doesNotMatch(linkedinHtml, /start with (these )?(3|three)/i);
+
+    const social = await fetch(`http://127.0.0.1:${port}/command-centre/social`, { redirect: "manual" });
+    assert.equal(social.status, 200);
+    const socialHtml = await social.text();
+    assert.match(socialHtml, /Sandbox social drafts/);
+    assert.match(socialHtml, /Week 1/);
+    assert.match(socialHtml, /Introduce the business/);
+    assert.match(socialHtml, /SOCIAL_DRAFTS_ENABLED/);
+    assert.match(socialHtml, /Billy must approve sends/);
+    assert.match(socialHtml, /Publish/);
+    assert.match(socialHtml, /Post now/);
+    assert.match(socialHtml, /Go live/);
+    assert.match(socialHtml, /are refused/);
+    assert.match(socialHtml, /Nothing is posted/);
+    assert.match(socialHtml, /Outbox queued: 0/);
+    assert.doesNotMatch(socialHtml, /start with (these )?(3|three)/i);
 
     const importContacts = await fetch(`http://127.0.0.1:${port}/command-centre/import-contacts`, { redirect: "manual" });
     assert.equal(importContacts.status, 200);

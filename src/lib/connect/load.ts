@@ -7,6 +7,7 @@ import {
 } from "@/lib/connect/accounts";
 import { channelConnectDisplayMode, channelStubBadges, isChannelStubAccount, missingChannelStubMigration, type ChannelStubStatus } from "@/lib/connect/channel-stub";
 import { isMetaStubAccount, metaConnectDisplayMode, metaStubBadges, missingMetaStubMigration, type MetaStubStatus } from "@/lib/connect/meta-stub";
+import { isSocialStubAccount, missingSocialStubMigration, socialConnectDisplayMode, socialStubBadges, type SocialStubStatus } from "@/lib/connect/social-stub";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export type ConnectCard = {
@@ -16,6 +17,7 @@ export type ConnectCard = {
   state: ConnectState;
   metaStub: MetaStubStatus[] | null;
   channelStub: ChannelStubStatus[] | null;
+  socialStub: SocialStubStatus[] | null;
 };
 
 export type ConnectPageData = {
@@ -34,6 +36,7 @@ function cardsFrom(input: {
   connections: StoredConnection[];
   metaStubs: Set<string>;
   channelStubs: Set<string>;
+  socialStubs: Set<string>;
 }): ConnectCard[] {
   return CONNECT_ACCOUNTS.map((account) => ({
     key: account.key,
@@ -50,6 +53,9 @@ function cardsFrom(input: {
     channelStub: isChannelStubAccount(account.key)
       ? channelStubBadges({ stubStored: input.channelStubs.has(account.key), providerKeysPresent: false })
       : null,
+    socialStub: isSocialStubAccount(account.key)
+      ? socialStubBadges({ stubStored: input.socialStubs.has(account.key), providerKeysPresent: false })
+      : null,
   }));
 }
 
@@ -57,7 +63,7 @@ export async function loadConnectAccounts(input: {
   mode: string;
   orgId: string;
 }): Promise<ConnectPageData> {
-  const empty = cardsFrom({ checklist: new Map(), connections: [], metaStubs: new Set(), channelStubs: new Set() });
+  const empty = cardsFrom({ checklist: new Map(), connections: [], metaStubs: new Set(), channelStubs: new Set(), socialStubs: new Set() });
   if (!configured() || input.mode !== "member" || input.orgId.startsWith("preview-")) {
     return {
       preview: true,
@@ -131,10 +137,24 @@ export async function loadConnectAccounts(input: {
     }
   }
 
+  const socialStubs = new Set<string>();
+  if (socialConnectDisplayMode({ tenantMode: input.mode }) === "sandbox") {
+    const stubs = await supabase.from("social_connect_stubs").select("account_key").eq("org_id", input.orgId);
+    if (stubs.error) {
+      if (!notice) {
+        notice = missingSocialStubMigration(stubs.error.message)
+          ? "Sandbox stub. Apply step 28 before saving TikTok or LinkedIn status. No key is stored and nothing is posted."
+          : stubs.error.message;
+      }
+    } else {
+      for (const row of stubs.data ?? []) socialStubs.add(String(row.account_key));
+    }
+  }
+
   return {
     preview: false,
     tableReady,
-    cards: cardsFrom({ checklist: checklistRows, connections: stored, metaStubs, channelStubs }),
+    cards: cardsFrom({ checklist: checklistRows, connections: stored, metaStubs, channelStubs, socialStubs }),
     notice,
   };
 }

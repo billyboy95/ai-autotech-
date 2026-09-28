@@ -1,11 +1,15 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { importCampaignCsv, loadDraftProspects, saveCampaignForm, setProspectConsent } from "@/app/actions/automation";
+import { CsvImportPanel } from "@/components/campaigns/csv-import-panel";
 import { DryRunPanel } from "@/components/campaigns/dry-run-panel";
 import { CommandShell } from "@/components/crm/command-shell";
 import { defaultCampaignSteps } from "@/lib/automation/campaigns";
 import { formatWhen } from "@/lib/automation/ids";
 import { loadCommandData } from "@/lib/automation/page-data";
+import { FIXTURE_CAMPAIGN_CSV, planCampaignCsvImport } from "@/lib/campaigns/csv-import";
+import { FIXTURE_CAMPAIGN_NAME } from "@/lib/campaigns/dry-run";
+import { campaignCsvImportDisplayMode } from "@/lib/campaigns/flag";
 import { loadDryRunPreview, previewReport } from "@/lib/campaigns/load";
 import { mentionsPlatform, presentWorkspace } from "@/lib/brand/present";
 import { AGENCY_SLUG } from "@/lib/tenant/types";
@@ -25,6 +29,13 @@ export default async function CampaignsPage() {
     prospects: workspace.state.prospects,
   });
   const campaigns = workspace.state.campaigns;
+  const csvPreview = planCampaignCsvImport({
+    csv: FIXTURE_CAMPAIGN_CSV,
+    campaignName: FIXTURE_CAMPAIGN_NAME,
+    intent: "dry_load",
+    sendingEnabled,
+    source: "fixture",
+  });
   const brand = presentWorkspace(tenant.active);
   const steps = defaultCampaignSteps().map((step) => {
     if (brand.showPlatformName || !mentionsPlatform(`${step.subject} ${step.body}`)) return step;
@@ -52,6 +63,13 @@ export default async function CampaignsPage() {
           preview={previewReport(dryRun)}
           sendingEnabled={sendingEnabled}
           notice={dryRun.notice}
+        />
+
+        <CsvImportPanel
+          mode={campaignCsvImportDisplayMode({ tenantMode: tenant.mode })}
+          orgSlug={tenant.active.slug}
+          preview={csvPreview}
+          sendingEnabled={sendingEnabled}
         />
 
         <form action={importCampaignCsv} className="grid min-w-0 gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">

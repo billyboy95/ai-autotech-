@@ -27,7 +27,7 @@ export const CONNECT_ACCOUNTS: ConnectAccount[] = [
   {
     key: "gmail",
     label: "Email / Gmail",
-    detail: "Mailbox for the team. A sandbox placeholder uses the email channel. No Gmail call is made.",
+    detail: "Email via Resend or SMTP. This card is a sandbox stub. Billy adds those keys later. No email is sent.",
     channels: [{ channel: "email", provider: "resend" }],
   },
   {
@@ -39,7 +39,7 @@ export const CONNECT_ACCOUNTS: ConnectAccount[] = [
   {
     key: "sms",
     label: "SMS",
-    detail: "SMS provider. Needs keys in Vault. No SMS is sent.",
+    detail: "SMSPortal, BulkSMS, or Clickatell. These names are placeholders. Billy adds the keys later. No SMS is sent.",
     channels: [{ channel: "sms", provider: "smsportal" }],
   },
   {

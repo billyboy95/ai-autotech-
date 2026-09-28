@@ -5,6 +5,7 @@ import {
   type ConnectState,
   type StoredConnection,
 } from "@/lib/connect/accounts";
+import { channelConnectDisplayMode, channelStubBadges, isChannelStubAccount, missingChannelStubMigration, type ChannelStubStatus } from "@/lib/connect/channel-stub";
 import { isMetaStubAccount, metaConnectDisplayMode, metaStubBadges, missingMetaStubMigration, type MetaStubStatus } from "@/lib/connect/meta-stub";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -14,6 +15,7 @@ export type ConnectCard = {
   detail: string;
   state: ConnectState;
   metaStub: MetaStubStatus[] | null;
+  channelStub: ChannelStubStatus[] | null;
 };
 
 export type ConnectPageData = {
@@ -31,6 +33,7 @@ function cardsFrom(input: {
   checklist: Map<string, string>;
   connections: StoredConnection[];
   metaStubs: Set<string>;
+  channelStubs: Set<string>;
 }): ConnectCard[] {
   return CONNECT_ACCOUNTS.map((account) => ({
     key: account.key,
@@ -44,6 +47,9 @@ function cardsFrom(input: {
     metaStub: isMetaStubAccount(account.key)
       ? metaStubBadges({ stubStored: input.metaStubs.has(account.key), providerKeysPresent: false })
       : null,
+    channelStub: isChannelStubAccount(account.key)
+      ? channelStubBadges({ stubStored: input.channelStubs.has(account.key), providerKeysPresent: false })
+      : null,
   }));
 }
 
@@ -51,7 +57,7 @@ export async function loadConnectAccounts(input: {
   mode: string;
   orgId: string;
 }): Promise<ConnectPageData> {
-  const empty = cardsFrom({ checklist: new Map(), connections: [], metaStubs: new Set() });
+  const empty = cardsFrom({ checklist: new Map(), connections: [], metaStubs: new Set(), channelStubs: new Set() });
   if (!configured() || input.mode !== "member" || input.orgId.startsWith("preview-")) {
     return {
       preview: true,
@@ -111,10 +117,24 @@ export async function loadConnectAccounts(input: {
     }
   }
 
+  const channelStubs = new Set<string>();
+  if (channelConnectDisplayMode({ tenantMode: input.mode }) === "sandbox") {
+    const stubs = await supabase.from("channel_connect_stubs").select("account_key").eq("org_id", input.orgId);
+    if (stubs.error) {
+      if (!notice) {
+        notice = missingChannelStubMigration(stubs.error.message)
+          ? "Sandbox stub. Apply step 27 before saving Email or SMS status. No key is stored and nothing is sent."
+          : stubs.error.message;
+      }
+    } else {
+      for (const row of stubs.data ?? []) channelStubs.add(String(row.account_key));
+    }
+  }
+
   return {
     preview: false,
     tableReady,
-    cards: cardsFrom({ checklist: checklistRows, connections: stored, metaStubs }),
+    cards: cardsFrom({ checklist: checklistRows, connections: stored, metaStubs, channelStubs }),
     notice,
   };
 }

@@ -19,6 +19,8 @@ test("inbox, conversation AI, calendars, reviews, referrals, and public pages re
       AI_REPLY_API_KEY: "",
       CAMPAIGN_DRY_RUN_ENABLED: "",
       META_CONNECT_STUB_ENABLED: "",
+      CAMPAIGN_CSV_IMPORT_ENABLED: "",
+      EMAIL_SMS_CONNECT_STUB_ENABLED: "",
     },
     stdio: ["ignore", "pipe", "pipe"],
   });
@@ -168,6 +170,13 @@ test("inbox, conversation AI, calendars, reviews, referrals, and public pages re
     assert.match(campaignsHtml, /POPIA/);
     assert.match(campaignsHtml, /STOP/);
     assert.match(campaignsHtml, /Outbox queued: 0/);
+    assert.match(campaignsHtml, /Sandbox CSV import/);
+    assert.match(campaignsHtml, /Imported/);
+    assert.match(campaignsHtml, /missing consent/);
+    assert.match(campaignsHtml, /CAMPAIGN_CSV_IMPORT_ENABLED/);
+    assert.match(campaignsHtml, /Dry-load CSV/);
+    assert.match(campaignsHtml, /POPIA blocked/);
+    assert.match(campaignsHtml, /STOP blocked/);
     assert.doesNotMatch(campaignsHtml, /start with (these )?(3|three)/i);
 
     const connectAccounts = await fetch(`http://127.0.0.1:${port}/command-centre/connect-accounts`, { redirect: "manual" });
@@ -182,6 +191,11 @@ test("inbox, conversation AI, calendars, reviews, referrals, and public pages re
     assert.match(connectHtml, /Sandbox stub/);
     assert.match(connectHtml, /Needs provider keys/);
     assert.match(connectHtml, /Nothing is sent/);
+    assert.match(connectHtml, /Resend or SMTP/);
+    assert.match(connectHtml, /SMSPortal/);
+    assert.match(connectHtml, /BulkSMS/);
+    assert.match(connectHtml, /Clickatell/);
+    assert.match(connectHtml, /placeholders/);
     assert.doesNotMatch(connectHtml, /start with (these )?(3|three)/i);
 
     const whatsappStub = await fetch(`http://127.0.0.1:${port}/command-centre/connect-accounts/whatsapp`, { redirect: "manual" });
@@ -193,6 +207,27 @@ test("inbox, conversation AI, calendars, reviews, referrals, and public pages re
     assert.match(whatsappHtml, /Send test/);
     assert.match(whatsappHtml, /Outbox queued: 0/);
     assert.doesNotMatch(whatsappHtml, /start with (these )?(3|three)/i);
+
+    const emailStub = await fetch(`http://127.0.0.1:${port}/command-centre/connect-accounts/gmail`, { redirect: "manual" });
+    assert.equal(emailStub.status, 200);
+    const emailHtml = await emailStub.text();
+    assert.match(emailHtml, /Billy must add Resend or SMTP keys later/);
+    assert.match(emailHtml, /No OAuth/);
+    assert.match(emailHtml, /Needs provider keys/);
+    assert.match(emailHtml, /Send test/);
+    assert.match(emailHtml, /Outbox queued: 0/);
+    assert.doesNotMatch(emailHtml, /start with (these )?(3|three)/i);
+
+    const smsStub = await fetch(`http://127.0.0.1:${port}/command-centre/connect-accounts/sms`, { redirect: "manual" });
+    assert.equal(smsStub.status, 200);
+    const smsHtml = await smsStub.text();
+    assert.match(smsHtml, /SMSPortal/);
+    assert.match(smsHtml, /BulkSMS/);
+    assert.match(smsHtml, /Clickatell/);
+    assert.match(smsHtml, /placeholders/);
+    assert.match(smsHtml, /Send test/);
+    assert.match(smsHtml, /Nothing is sent/);
+    assert.doesNotMatch(smsHtml, /start with (these )?(3|three)/i);
 
     const metaStub = await fetch(`http://127.0.0.1:${port}/command-centre/connect-accounts/meta`, { redirect: "manual" });
     assert.equal(metaStub.status, 200);

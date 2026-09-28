@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { markConnectAccount } from "@/app/actions/connect";
 import { CONNECT_STATE_LABEL, type ConnectState } from "@/lib/connect/accounts";
+import { CHANNEL_STUB_LABEL, type ChannelStubStatus } from "@/lib/connect/channel-stub";
 import { META_STUB_LABEL, type MetaStubStatus } from "@/lib/connect/meta-stub";
 import type { ConnectCard } from "@/lib/connect/load";
 
@@ -13,6 +14,12 @@ const badgeClass: Record<ConnectState, string> = {
 };
 
 const metaBadgeClass: Record<MetaStubStatus, string> = {
+  not_connected: "bg-slate-100 text-slate-800",
+  sandbox_stub: "bg-sky-100 text-sky-950",
+  needs_provider_keys: "bg-amber-100 text-amber-950",
+};
+
+const channelBadgeClass: Record<ChannelStubStatus, string> = {
   not_connected: "bg-slate-100 text-slate-800",
   sandbox_stub: "bg-sky-100 text-sky-950",
   needs_provider_keys: "bg-amber-100 text-amber-950",
@@ -46,6 +53,11 @@ export function AccountCards({
           Connect opens a page that explains Billy must add Meta app credentials later. No OAuth runs and no key is stored.
           Send test is refused while provider keys are missing.
         </p>
+        <p className="mt-2 max-w-2xl text-sm text-slate-700">
+          Email (Resend or SMTP) and SMS (SMSPortal, BulkSMS, or Clickatell) use a sandbox stub. The status is Not connected, Sandbox stub, or Needs provider keys.
+          Connect opens a page that explains Billy must add provider keys later. SMS provider names are placeholders. No OAuth runs and no key is stored.
+          Send test is refused while provider keys are missing. Nothing is sent.
+        </p>
       </div>
       {preview ? (
         <p className="rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-950">
@@ -66,6 +78,14 @@ export function AccountCards({
                     </p>
                   ))}
                 </div>
+              ) : card.channelStub ? (
+                <div className="flex flex-wrap gap-1">
+                  {card.channelStub.map((status) => (
+                    <p key={status} data-channel-stub={status} className={`rounded-full px-2 py-1 text-xs font-semibold ${channelBadgeClass[status]}`}>
+                      {CHANNEL_STUB_LABEL[status]}
+                    </p>
+                  ))}
+                </div>
               ) : (
                 <p data-connect-state={card.state} className={`rounded-full px-2 py-1 text-xs font-semibold ${badgeClass[card.state]}`}>
                   {CONNECT_STATE_LABEL[card.state]}
@@ -76,6 +96,10 @@ export function AccountCards({
             {card.metaStub ? (
               <Link href={`/command-centre/connect-accounts/${card.key}`} className={buttonClass}>
                 {card.metaStub.includes("not_connected") ? `Connect ${card.label}` : "Open sandbox stub"}
+              </Link>
+            ) : card.channelStub ? (
+              <Link href={`/command-centre/connect-accounts/${card.key}`} className={buttonClass}>
+                {card.channelStub.includes("not_connected") ? `Connect ${card.label}` : "Open sandbox stub"}
               </Link>
             ) : card.state === "connect" ? (
               <form action={markConnectAccount}>

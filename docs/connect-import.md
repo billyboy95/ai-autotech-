@@ -41,6 +41,10 @@ With Supabase keys set and no session, both URLs redirect to `/login`.
 
 WhatsApp (Meta Cloud) and Facebook / Instagram also show Not connected, Sandbox stub, and Needs provider keys. Connect opens a sandbox stub. Billy adds the Meta app credentials later. No key is stored and Send test is refused. See `docs/campaign-dry-run.md`.
 
+## Email and SMS
+
+Email (Resend or SMTP) and SMS (SMSPortal, BulkSMS, or Clickatell) use the same three statuses. Connect opens `/command-centre/connect-accounts/gmail` or `/command-centre/connect-accounts/sms`. Billy adds the provider keys later. SMS names are placeholders. No OAuth runs, no key is stored, and Send test is refused. Leave `EMAIL_SMS_CONNECT_STUB_ENABLED` unset until step 27 is applied. See `docs/campaign-csv-import.md`.
+
 ## After import
 
 The home assistant is the next step. See `docs/home-chat.md`. It stays fixture-only until `HOME_CHAT_ENABLED` is the string `true`. Nothing is sent.

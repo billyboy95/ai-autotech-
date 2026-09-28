@@ -24,6 +24,11 @@ test("inbox, conversation AI, calendars, reviews, referrals, and public pages re
       SOCIAL_DRAFTS_ENABLED: "",
       TIKTOK_LINKEDIN_CONNECT_STUB_ENABLED: "",
       ZENTRIX_WORKSPACE_PACK_ENABLED: "",
+      EAST_RAND_CAMPAIGN_SEED_ENABLED: "",
+      AUTOMATION_SEND_ENABLED: "",
+      BILLING_SANDBOX: "",
+      CRON_SECRET: "",
+      PAYFAST_MERCHANT_ID: "",
     },
     stdio: ["ignore", "pipe", "pipe"],
   });
@@ -149,6 +154,13 @@ test("inbox, conversation AI, calendars, reviews, referrals, and public pages re
     assert.match(homeHtml, /What do you want to do\?/);
     assert.match(homeHtml, /Nothing is sent/);
     assert.match(homeHtml, /Ask the assistant/);
+    assert.match(homeHtml, /Ops readiness/);
+    assert.match(homeHtml, /Steps 20 through 29/);
+    assert.match(homeHtml, /sending_enabled stays false/);
+    assert.match(homeHtml, /CRON_SECRET/);
+    assert.match(homeHtml, /Needs Billy/);
+    assert.match(homeHtml, /BILLING_SANDBOX/);
+    assert.match(homeHtml, /ZENTRIX_WORKSPACE_PACK_ENABLED/);
     assert.doesNotMatch(homeHtml, /start with (these )?(3|three)/i);
 
     const assistant = await fetch(`http://127.0.0.1:${port}/command-centre/assistant`, { redirect: "manual" });
@@ -178,6 +190,10 @@ test("inbox, conversation AI, calendars, reviews, referrals, and public pages re
     assert.match(campaignsHtml, /missing consent/);
     assert.match(campaignsHtml, /CAMPAIGN_CSV_IMPORT_ENABLED/);
     assert.match(campaignsHtml, /Dry-load CSV/);
+    assert.match(campaignsHtml, /East Rand sandbox seed/);
+    assert.match(campaignsHtml, /EAST_RAND_CAMPAIGN_SEED_ENABLED/);
+    assert.match(campaignsHtml, /Load sandbox seed/);
+    assert.match(campaignsHtml, /Go live/);
     assert.match(campaignsHtml, /POPIA blocked/);
     assert.match(campaignsHtml, /STOP blocked/);
     assert.doesNotMatch(campaignsHtml, /start with (these )?(3|three)/i);
@@ -374,6 +390,12 @@ test("inbox, conversation AI, calendars, reviews, referrals, and public pages re
       assert.equal(response.status, 200, path);
     }
     const agencyHtml = await (await fetch(`http://127.0.0.1:${port}/agency`, { redirect: "manual" })).text();
+    assert.match(agencyHtml, /Ops readiness/);
+    assert.match(agencyHtml, /Steps 20 through 29/);
+    assert.match(agencyHtml, /sending_enabled stays false/);
+    assert.match(agencyHtml, /CRON_SECRET/);
+    assert.match(agencyHtml, /Needs Billy/);
+    assert.match(agencyHtml, /BILLING_SANDBOX/);
     assert.match(agencyHtml, /Apply Education pack to EASTC/);
     assert.match(agencyHtml, /Apply Zentrix pack to Zentrix Online/);
     assert.match(agencyHtml, /ZENTRIX_WORKSPACE_PACK_ENABLED/);

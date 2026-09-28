@@ -18,7 +18,7 @@ export function ApplyZentrixPackForm({ mode = "fixture" }: { mode?: ZentrixPackM
   const [confirming, setConfirming] = useState(false);
 
   return (
-    <section className="min-w-0 rounded-xl border border-slate-200 bg-white p-4 shadow-sm" data-testid="apply-zentrix-pack">
+    <section id="zentrix-pack" className="min-w-0 rounded-xl border border-slate-200 bg-white p-4 shadow-sm" data-testid="apply-zentrix-pack">
       <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#16A34A]">Zentrix Online</p>
       <h2 className="mt-1 font-display text-lg font-bold text-[#0B1F3A]">Zentrix workspace pack</h2>
       <p className="mt-2 text-sm leading-6 text-slate-600">

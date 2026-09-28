@@ -2,6 +2,8 @@ import Link from "next/link";
 import { AgencyRollupTable } from "@/components/agency-rollup";
 import { ApplyEducationPackForm } from "@/components/apply-education-pack-form";
 import { ApplyZentrixPackForm } from "@/components/apply-zentrix-pack-form";
+import { OpsReadinessPanel } from "@/components/ops/readiness-panel";
+import type { OpsCheck } from "@/lib/ops/readiness";
 import type { ZentrixPackMode } from "@/lib/zentrix/pack";
 import type { RollupClient } from "@/lib/agency/load";
 import { formatCurrency } from "@/lib/utils";
@@ -25,6 +27,7 @@ export function AgencyView({
   showEducationPack = false,
   showZentrixPack = false,
   zentrixPackMode = "fixture",
+  opsChecks = [],
 }: {
   agency: WorkspaceSummary;
   clients: ClientMetric[];
@@ -37,6 +40,7 @@ export function AgencyView({
   showEducationPack?: boolean;
   showZentrixPack?: boolean;
   zentrixPackMode?: ZentrixPackMode;
+  opsChecks?: OpsCheck[];
 }) {
   return (
     <div className="min-h-screen bg-[#F3F4F6] text-[#111827]">
@@ -76,6 +80,7 @@ export function AgencyView({
             {signedInEmail ? ` Signed in as ${signedInEmail}.` : ""}
           </p>
         ) : null}
+        {opsChecks.length ? <OpsReadinessPanel checks={opsChecks} /> : null}
         {showEducationPack ? <ApplyEducationPackForm /> : null}
         {showZentrixPack ? <ApplyZentrixPackForm mode={zentrixPackMode} /> : null}
         <AgencyRollupTable rows={rollup} sample={rollupSample} fromDay={fromDay} toDay={toDay} />

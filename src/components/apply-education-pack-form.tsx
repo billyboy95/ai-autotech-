@@ -10,7 +10,7 @@ export function ApplyEducationPackForm() {
   const [confirming, setConfirming] = useState(false);
 
   return (
-    <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm" data-testid="apply-education-pack">
+    <section id="education-pack" className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm" data-testid="apply-education-pack">
       <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#2563EB]">EASTC</p>
       <h2 className="mt-1 font-display text-lg font-bold text-[#0B1F3A]">Education pack</h2>
       <p className="mt-2 text-sm leading-6 text-slate-600">

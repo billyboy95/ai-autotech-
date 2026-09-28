@@ -6,6 +6,8 @@ AI AutoTech Pty Ltd is the parent agency. EASTC (East Sea Technocentric Varsity,
 
 ## 1. Apply the migrations
 
+The only safe order for files that are still unapplied is `supabase/APPLY-ORDER.md`. Steps 20 through 29 are still waiting. After Billy re-authenticates Supabase, run step 20, then 21, and on through step 28, then step 29 (`supabase/migrations/20261104120000_phase5h_zentrix_workspace_pack.sql`). Do not claim that SQL is already applied. Then sign in as an agency owner and use Apply Education pack to EASTC. Apply the Zentrix Online pack later, after `ZENTRIX_WORKSPACE_PACK_ENABLED` is the string `true`. Do not turn sending on. See `docs/zentrix-workspace-pack.md`.
+
 In the Supabase SQL editor, run these files in order if they are not already applied:
 
 1. `supabase/migrations/20260903000000_company_crm.sql` (already live if the CRM is storing leads)
@@ -80,8 +82,8 @@ That inserts one `memberships` row: your user, the AI AutoTech organisation, rol
 
 4. Open `/login` and sign in. You should land on `/agency`.
 5. EASTC is already there, with enrolment stages: Enquiry, Contacted, Campus visit booked, Application, Enrolled, Lost.
-6. Zentrix Online is the second workspace: Pets, Auto, Kitchens, Camping, Holidays, Home, Beauty, Baby, Fitness, and Tools. Its pipeline is Visitor/lead, Subscriber, Cart abandoned, Customer, Repeat customer, Lost.
-7. Shopify is not called. On `/agency/zentrix/settings`, paste the Admin API token and webhook secret when you have them. In Shopify admin, send orders, customers, and checkouts to `POST /api/shopify/webhook`. Paid orders then show as revenue on `/agency`. Until the secret is saved, the webhook refuses the request and writes nothing.
+6. Zentrix Online is the second workspace: Pets, Auto, Kitchens, Camping, Holidays, Home, Beauty, Baby, Fitness, and Tools. Its pipeline is Visitor/lead, Subscriber, Cart abandoned, Customer, Repeat customer, Lost. The sandbox pack on `/agency` and `/agency/zentrix/settings` is separate. After step 29 and `ZENTRIX_WORKSPACE_PACK_ENABLED=true`, it stores three stubs on this same workspace: Pets (`w1y2f0-rk`) and Kitchens (`desj1r-ic`) as priority, and Auto (`80ce1e-p8`) as QA / reference. It does not store a Shopify Admin API token, it does not call Shopify, and it does not turn sending on.
+7. Shopify is not called. On `/agency/zentrix/settings`, paste the Admin API token and webhook secret when you have them. In Shopify admin, send orders, customers, and checkouts to `POST /api/shopify/webhook`. Paid orders then show as revenue on `/agency`. Until the secret is saved, the webhook refuses the request and writes nothing. The Phase 5h pack on that page does not write those secrets.
 8. Sending is off for every workspace until you, as agency owner, tick "Sending enabled" on that workspace's settings. Marketing still needs a consent record or an existing-customer basis, and every outbound message adds the sender name plus an opt-out. Opt-outs land on the workspace suppression list.
 
 ## 4. What stays public

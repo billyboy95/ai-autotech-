@@ -8,6 +8,7 @@ import { zentrixStores } from "@/lib/shopify/catalog";
 import { resolveWorkspace, loadOrganizations } from "@/lib/tenant/context";
 import { clientMetrics } from "@/lib/tenant/data";
 import { showEducationPack } from "@/lib/snapshots/eastc-pack";
+import { showZentrixPack, zentrixPackDisplayMode } from "@/lib/zentrix/pack";
 import { AGENCY_SLUG } from "@/lib/tenant/types";
 
 export const dynamic = "force-dynamic";
@@ -57,6 +58,8 @@ export default async function AgencyPage({
         fromDay="2026-09-01"
         toDay="2026-09-03"
         showEducationPack={showEducationPack({ surface: "agency", canManageAgency: workspace.canManageAgency })}
+        showZentrixPack={showZentrixPack({ surface: "agency", canManageAgency: workspace.canManageAgency })}
+        zentrixPackMode={zentrixPackDisplayMode({ tenantMode: workspace.mode })}
         clients={[
           {
             workspace: eastc,
@@ -102,6 +105,8 @@ export default async function AgencyPage({
       fromDay={live ? bounds.fromDay : "2026-09-01"}
       toDay={live ? bounds.toDay : "2026-09-03"}
       showEducationPack={showEducationPack({ surface: "agency", canManageAgency: workspace.canManageAgency })}
+      showZentrixPack={showZentrixPack({ surface: "agency", canManageAgency: workspace.canManageAgency })}
+      zentrixPackMode={zentrixPackDisplayMode({ tenantMode: workspace.mode })}
     />
   );
 }

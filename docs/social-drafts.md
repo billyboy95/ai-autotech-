@@ -51,6 +51,8 @@ This is step 28 in `supabase/APPLY-ORDER.md`, after step 27:
 
 Apply it after step 27. Do not run it until `SUPABASE_DB_URL` is available. It does not turn sending on. It does not schedule a cron.
 
+Step 29 is the Zentrix Online workspace pack. Leave `ZENTRIX_WORKSPACE_PACK_ENABLED` unset until that file is applied. See `docs/zentrix-workspace-pack.md`.
+
 ## Fixture check
 
 With Supabase keys empty, open `/command-centre/social`. The sandbox list should show the week 1 topics. Publish, Post now, and Go live are refused, and the page says Billy must approve sends. Nothing is posted.

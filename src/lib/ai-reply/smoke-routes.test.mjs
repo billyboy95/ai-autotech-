@@ -23,6 +23,7 @@ test("inbox, conversation AI, calendars, reviews, referrals, and public pages re
       EMAIL_SMS_CONNECT_STUB_ENABLED: "",
       SOCIAL_DRAFTS_ENABLED: "",
       TIKTOK_LINKEDIN_CONNECT_STUB_ENABLED: "",
+      ZENTRIX_WORKSPACE_PACK_ENABLED: "",
     },
     stdio: ["ignore", "pipe", "pipe"],
   });
@@ -374,11 +375,21 @@ test("inbox, conversation AI, calendars, reviews, referrals, and public pages re
     }
     const agencyHtml = await (await fetch(`http://127.0.0.1:${port}/agency`, { redirect: "manual" })).text();
     assert.match(agencyHtml, /Apply Education pack to EASTC/);
+    assert.match(agencyHtml, /Apply Zentrix pack to Zentrix Online/);
+    assert.match(agencyHtml, /ZENTRIX_WORKSPACE_PACK_ENABLED/);
+    assert.match(agencyHtml, /w1y2f0-rk/);
+    assert.match(agencyHtml, /desj1r-ic/);
+    assert.match(agencyHtml, /80ce1e-p8/);
     assert.match(agencyHtml, /\/command-centre\/lead-agent/);
     const eastcSettings = await (await fetch(`http://127.0.0.1:${port}/agency/eastc/settings`, { redirect: "manual" })).text();
     assert.match(eastcSettings, /Apply Education pack to EASTC/);
+    assert.equal(eastcSettings.includes("Apply Zentrix pack to Zentrix Online"), false);
     const zentrixSettings = await (await fetch(`http://127.0.0.1:${port}/agency/zentrix/settings`, { redirect: "manual" })).text();
     assert.equal(zentrixSettings.includes("Apply Education pack to EASTC"), false);
+    assert.match(zentrixSettings, /Apply Zentrix pack to Zentrix Online/);
+    assert.match(zentrixSettings, /Priority/);
+    assert.match(zentrixSettings, /QA \/ reference/);
+    assert.match(zentrixSettings, /Nothing is posted/);
     const snapshotsHtml = await (await fetch(`http://127.0.0.1:${port}/agency/snapshots`, { redirect: "manual" })).text();
     assert.match(snapshotsHtml, /existing EASTC workspace/);
   } finally {

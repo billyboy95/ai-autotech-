@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { ApplyEducationPackForm } from "@/components/apply-education-pack-form";
+import { ApplyZentrixPackForm } from "@/components/apply-zentrix-pack-form";
 import { ChannelConnectForm, type ChannelConnectionView } from "@/components/channel-connect-form";
 import { WorkspaceBillingPanel } from "@/components/workspace-billing-panel";
 import { WorkspaceSettingsForm } from "@/components/workspace-settings-form";
@@ -13,6 +14,7 @@ import { previewWorkspaces } from "@/lib/tenant/blueprints";
 import { resolveWorkspace } from "@/lib/tenant/context";
 import { findOrgBySlug, listMembers, listShopifyStores, listStages } from "@/lib/tenant/data";
 import { showEducationPack } from "@/lib/snapshots/eastc-pack";
+import { showZentrixPack, zentrixPackDisplayMode } from "@/lib/zentrix/pack";
 import { isAgencyRole } from "@/lib/tenant/types";
 
 export const dynamic = "force-dynamic";
@@ -42,6 +44,9 @@ export default async function WorkspaceSettingsPage({ params }: { params: Promis
           <WorkspaceSettingsForm workspace={org} stages={stages} members={[]} stores={stores} canEdit={false} canToggleSending={false} />
           {showEducationPack({ surface: "settings", slug: org.slug, canManageAgency: workspace.canManageAgency }) ? (
             <ApplyEducationPackForm />
+          ) : null}
+          {showZentrixPack({ surface: "settings", slug: org.slug, canManageAgency: workspace.canManageAgency }) ? (
+            <ApplyZentrixPackForm mode={zentrixPackDisplayMode({ tenantMode: workspace.mode })} />
           ) : null}
           <AiReplySettingsLink slug={org.slug} />
           <WorkspaceBillingPanel billing={await loadBillingPage({ orgId: null, orgName: org.name, slug: org.slug, email: "", role: null, preview: true })} />
@@ -92,6 +97,9 @@ export default async function WorkspaceSettingsPage({ params }: { params: Promis
         <WorkspaceBillingPanel billing={billing} />
         {showEducationPack({ surface: "settings", slug: org.slug, canManageAgency: workspace.canManageAgency }) ? (
           <ApplyEducationPackForm />
+        ) : null}
+        {showZentrixPack({ surface: "settings", slug: org.slug, canManageAgency: workspace.canManageAgency }) ? (
+          <ApplyZentrixPackForm mode={zentrixPackDisplayMode({ tenantMode: workspace.mode })} />
         ) : null}
         <AiReplySettingsLink slug={org.slug} />
         <ChannelConnectForm slug={org.slug} canEdit={canEdit && !billing.readOnly} connections={await listConnections(org.id)} />

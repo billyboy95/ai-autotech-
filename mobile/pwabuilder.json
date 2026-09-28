@@ -1,0 +1,20 @@
+{
+  "name": "AI AutoTech / AIOS",
+  "shortName": "AIOS",
+  "startUrl": "/command-centre",
+  "manifestUrl": "/manifest.webmanifest",
+  "packageId": "za.co.aiautotech.aios",
+  "platforms": {
+    "android": "za.co.aiautotech.aios",
+    "ios": "za.co.aiautotech.aios",
+    "windows": "AIAutoTech.AIOS"
+  },
+  "themeColor": "#0B1F3A",
+  "backgroundColor": "#F3F4F6",
+  "stores": {
+    "googlePlay": "not-submitted",
+    "appleAppStore": "not-submitted",
+    "microsoftStore": "not-submitted"
+  },
+  "spend": "none"
+}

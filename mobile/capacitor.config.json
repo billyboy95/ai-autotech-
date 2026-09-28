@@ -1,0 +1,10 @@
+{
+  "appId": "za.co.aiautotech.aios",
+  "appName": "AI AutoTech / AIOS",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "https",
+    "iosScheme": "https",
+    "hostname": "localhost"
+  }
+}

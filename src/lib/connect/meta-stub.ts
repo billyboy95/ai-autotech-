@@ -57,6 +57,16 @@ export function refuseMetaTestSend(input: { providerKeysPresent: boolean }) {
   };
 }
 
+export const EMPTY_META_STUB_ACTION = {
+  id: "",
+  intent: "",
+  stored: false,
+  refused: false,
+  queued: 0 as const,
+  sent: 0 as const,
+  message: "",
+};
+
 export function missingMetaStubMigration(message: string) {
   return /meta_connect_stubs|save_meta_connect_stub|refuse_meta_test_send|schema cache|could not find the function/i.test(message);
 }

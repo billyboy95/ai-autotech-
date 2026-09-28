@@ -2,8 +2,8 @@
 
 import { useActionState } from "react";
 import Link from "next/link";
-import { EMPTY_DRY_RUN, runCampaignDryRun } from "@/app/actions/campaign-dry-run";
-import { formatDryRunZar, type CampaignDryRunReport } from "@/lib/campaigns/dry-run";
+import { runCampaignDryRun } from "@/app/actions/campaign-dry-run";
+import { EMPTY_CAMPAIGN_ACTION, formatDryRunZar, type CampaignDryRunReport } from "@/lib/campaigns/dry-run";
 import type { CampaignDryRunMode } from "@/lib/campaigns/flag";
 
 const buttonClass = "inline-flex h-11 w-full items-center justify-center rounded-md px-4 text-sm font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0B1F3A] sm:w-fit";
@@ -21,7 +21,7 @@ export function DryRunPanel({
   sendingEnabled: boolean;
   notice?: string | null;
 }) {
-  const [state, act] = useActionState(runCampaignDryRun, EMPTY_DRY_RUN);
+  const [state, act] = useActionState(runCampaignDryRun, { ...EMPTY_CAMPAIGN_ACTION, id: "", stored: false });
   const report = state.report ?? preview;
   const queued = 0;
 
@@ -44,9 +44,9 @@ export function DryRunPanel({
       )}
       {notice ? <p className="rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-950" role="status">{notice}</p> : null}
       {sendingEnabled ? (
-        <p className="text-sm text-slate-700">This dry run does not send. Outbox queued: {queued}.</p>
+        <p className="text-sm text-slate-700">{`This dry run does not send. Outbox queued: ${queued}.`}</p>
       ) : (
-        <p className="text-sm text-slate-700">Sending stays off. Send now and go live are refused. Outbox queued: {queued}.</p>
+        <p className="text-sm text-slate-700">{`Sending stays off. Send now and go live are refused. Outbox queued: ${queued}.`}</p>
       )}
       <dl className="grid gap-2 text-sm sm:grid-cols-3">
         <div className="rounded-md bg-slate-50 px-3 py-2">
@@ -62,12 +62,8 @@ export function DryRunPanel({
           <dd className="font-semibold text-[#0B1F3A]">{report.blocked}</dd>
         </div>
       </dl>
-      <p className="text-sm text-slate-700">
-        consent_basis: consent {report.breakdown.consent} · existing_customer {report.breakdown.existing_customer} · missing {report.breakdown.missing} · opted_out {report.breakdown.opted_out} · STOP {report.breakdown.stop}
-      </p>
-      <p className="text-sm text-slate-700">
-        Estimated cost {formatDryRunZar(report.estimatedCostCents)}. Not charged.
-      </p>
+      <p className="text-sm text-slate-700">{`consent_basis: consent ${report.breakdown.consent} · existing_customer ${report.breakdown.existing_customer} · missing ${report.breakdown.missing} · opted_out ${report.breakdown.opted_out} · STOP ${report.breakdown.stop}`}</p>
+      <p className="text-sm text-slate-700">{`Estimated cost ${formatDryRunZar(report.estimatedCostCents)}. Not charged.`}</p>
       {report.recipientCount === 0 ? (
         <p className="text-sm text-slate-700">
           No sandbox contacts yet. <Link href="/command-centre/import-contacts" className="font-semibold text-[#2563EB]">Import contacts</Link>, then dry-run. Nothing is sent.
@@ -92,11 +88,12 @@ export function DryRunPanel({
       </form>
       {state.message ? (
         <p data-testid="dry-run-result" className="rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-950" role="status">
-          {state.message} Outbox queued: {queued}.
+          {`${state.message} Outbox queued: ${queued}.`}
         </p>
       ) : null}
       <p className="text-sm text-slate-700">
-        <Link href="/command-centre/outbox" className="font-semibold text-[#2563EB]">Open the outbox</Link>. Queued stays {queued}.
+        <Link href="/command-centre/outbox" className="font-semibold text-[#2563EB]">Open the outbox</Link>
+        {`. Queued stays ${queued}.`}
       </p>
     </section>
   );

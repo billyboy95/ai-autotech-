@@ -253,6 +253,14 @@ export function planCampaignAction(input: {
   };
 }
 
+export const EMPTY_CAMPAIGN_ACTION: CampaignActionPlan = {
+  refused: false,
+  queued: 0,
+  sent: 0,
+  message: "",
+  report: null,
+};
+
 export function recipientPayload(recipients: DryRunRecipient[]) {
   return recipients.map((recipient) => ({
     name: recipient.name,

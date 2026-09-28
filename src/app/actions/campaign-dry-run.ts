@@ -19,16 +19,6 @@ export type DryRunActionState = CampaignActionPlan & {
   stored: boolean;
 };
 
-export const EMPTY_DRY_RUN: DryRunActionState = {
-  id: "",
-  stored: false,
-  refused: false,
-  queued: 0,
-  sent: 0,
-  message: "",
-  report: null,
-};
-
 function canManage(role: string | null) {
   return role === "client_admin" || isAgencyRole(role as "agency_owner" | "agency_staff" | null);
 }

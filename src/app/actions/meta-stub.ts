@@ -16,16 +16,6 @@ export type MetaStubActionState = {
   message: string;
 };
 
-export const EMPTY_META_STUB: MetaStubActionState = {
-  id: "",
-  intent: "",
-  stored: false,
-  refused: false,
-  queued: 0,
-  sent: 0,
-  message: "",
-};
-
 function canManage(role: string | null) {
   return role === "client_admin" || isAgencyRole(role as "agency_owner" | "agency_staff" | null);
 }

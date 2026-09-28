@@ -37,6 +37,10 @@ With Supabase keys empty, open `/command-centre/connect-accounts`. The page shou
 
 With Supabase keys set and no session, both URLs redirect to `/login`.
 
+## WhatsApp and Facebook / Instagram
+
+WhatsApp (Meta Cloud) and Facebook / Instagram also show Not connected, Sandbox stub, and Needs provider keys. Connect opens a sandbox stub. Billy adds the Meta app credentials later. No key is stored and Send test is refused. See `docs/campaign-dry-run.md`.
+
 ## After import
 
 The home assistant is the next step. See `docs/home-chat.md`. It stays fixture-only until `HOME_CHAT_ENABLED` is the string `true`. Nothing is sent.

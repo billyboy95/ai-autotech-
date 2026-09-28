@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { importCampaignCsv, loadDraftProspects, saveCampaignForm, setProspectConsent } from "@/app/actions/automation";
+import { DryRunPanel } from "@/components/campaigns/dry-run-panel";
 import { CommandShell } from "@/components/crm/command-shell";
 import { defaultCampaignSteps } from "@/lib/automation/campaigns";
 import { formatWhen } from "@/lib/automation/ids";
 import { loadCommandData } from "@/lib/automation/page-data";
+import { loadDryRunPreview, previewReport } from "@/lib/campaigns/load";
 import { mentionsPlatform, presentWorkspace } from "@/lib/brand/present";
 import { AGENCY_SLUG } from "@/lib/tenant/types";
 
@@ -17,6 +19,11 @@ export const metadata: Metadata = {
 
 export default async function CampaignsPage() {
   const { workspace, sendingEnabled, tenant } = await loadCommandData();
+  const dryRun = await loadDryRunPreview({
+    tenantMode: tenant.mode,
+    orgId: tenant.active.id,
+    prospects: workspace.state.prospects,
+  });
   const campaigns = workspace.state.campaigns;
   const brand = presentWorkspace(tenant.active);
   const steps = defaultCampaignSteps().map((step) => {
@@ -38,6 +45,14 @@ export default async function CampaignsPage() {
             Prospects stay off the pipeline until they reply or book. A CSV import is not marketing consent. Messages wait in the outbox while sending is off, and a marketing send stays blocked until opt-in is recorded.
           </p>
         </div>
+
+        <DryRunPanel
+          mode={dryRun.mode}
+          orgSlug={tenant.active.slug}
+          preview={previewReport(dryRun)}
+          sendingEnabled={sendingEnabled}
+          notice={dryRun.notice}
+        />
 
         <form action={importCampaignCsv} className="grid min-w-0 gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
           <h2 className="font-display text-lg font-bold text-[#0B1F3A]">Import prospects</h2>

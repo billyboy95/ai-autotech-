@@ -17,6 +17,8 @@ test("inbox, conversation AI, calendars, reviews, referrals, and public pages re
       VERCEL_ENV: "",
       AI_REPLY_CRON_ENABLED: "",
       AI_REPLY_API_KEY: "",
+      CAMPAIGN_DRY_RUN_ENABLED: "",
+      META_CONNECT_STUB_ENABLED: "",
     },
     stdio: ["ignore", "pipe", "pipe"],
   });
@@ -153,6 +155,21 @@ test("inbox, conversation AI, calendars, reviews, referrals, and public pages re
     assert.match(assistantHtml, /Nothing is sent/);
     assert.doesNotMatch(assistantHtml, /start with (these )?(3|three)/i);
 
+    const campaigns = await fetch(`http://127.0.0.1:${port}/command-centre/campaigns`, { redirect: "manual" });
+    assert.equal(campaigns.status, 200);
+    const campaignsHtml = await campaigns.text();
+    assert.match(campaignsHtml, /Campaign dry run/);
+    assert.match(campaignsHtml, /consent_basis/);
+    assert.match(campaignsHtml, /Not charged/);
+    assert.match(campaignsHtml, /Sending stays off/);
+    assert.match(campaignsHtml, /Dry run/);
+    assert.match(campaignsHtml, /Send now/);
+    assert.match(campaignsHtml, /would receive/);
+    assert.match(campaignsHtml, /POPIA/);
+    assert.match(campaignsHtml, /STOP/);
+    assert.match(campaignsHtml, /Outbox queued: 0/);
+    assert.doesNotMatch(campaignsHtml, /start with (these )?(3|three)/i);
+
     const connectAccounts = await fetch(`http://127.0.0.1:${port}/command-centre/connect-accounts`, { redirect: "manual" });
     assert.equal(connectAccounts.status, 200);
     const connectHtml = await connectAccounts.text();
@@ -161,8 +178,28 @@ test("inbox, conversation AI, calendars, reviews, referrals, and public pages re
     assert.match(connectHtml, /WhatsApp \(Meta Cloud\)/);
     assert.match(connectHtml, /Needs keys/);
     assert.match(connectHtml, /Connected/);
+    assert.match(connectHtml, /Not connected/);
+    assert.match(connectHtml, /Sandbox stub/);
+    assert.match(connectHtml, /Needs provider keys/);
     assert.match(connectHtml, /Nothing is sent/);
     assert.doesNotMatch(connectHtml, /start with (these )?(3|three)/i);
+
+    const whatsappStub = await fetch(`http://127.0.0.1:${port}/command-centre/connect-accounts/whatsapp`, { redirect: "manual" });
+    assert.equal(whatsappStub.status, 200);
+    const whatsappHtml = await whatsappStub.text();
+    assert.match(whatsappHtml, /Billy must add Meta app credentials later/);
+    assert.match(whatsappHtml, /No OAuth/);
+    assert.match(whatsappHtml, /Needs provider keys/);
+    assert.match(whatsappHtml, /Send test/);
+    assert.match(whatsappHtml, /Outbox queued: 0/);
+    assert.doesNotMatch(whatsappHtml, /start with (these )?(3|three)/i);
+
+    const metaStub = await fetch(`http://127.0.0.1:${port}/command-centre/connect-accounts/meta`, { redirect: "manual" });
+    assert.equal(metaStub.status, 200);
+    const metaHtml = await metaStub.text();
+    assert.match(metaHtml, /Facebook \/ Instagram/);
+    assert.match(metaHtml, /Sandbox stub/);
+    assert.match(metaHtml, /Nothing is sent/);
 
     const importContacts = await fetch(`http://127.0.0.1:${port}/command-centre/import-contacts`, { redirect: "manual" });
     assert.equal(importContacts.status, 200);

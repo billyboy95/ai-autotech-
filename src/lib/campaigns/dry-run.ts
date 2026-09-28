@@ -97,24 +97,24 @@ export function recipientsFromProspects(prospects: Array<{
   consentBasis?: string;
   status?: string;
 }>): DryRunRecipient[] {
-  return prospects
-    .map((prospect) => {
-      const name = prospect.name.trim();
-      if (!name) return null;
-      const channel: DryRunRecipient["channel"] = prospect.phone?.trim()
-        ? "whatsapp"
-        : prospect.email?.trim()
-          ? "email"
-          : "";
-      return {
-        name,
-        channel,
-        consentBasis: prospect.consentBasis ?? "",
-        stopped: prospect.status === "stopped",
-        suppressed: false,
-      };
-    })
-    .filter((row): row is DryRunRecipient => row !== null);
+  const parsed: DryRunRecipient[] = [];
+  for (const prospect of prospects) {
+    const name = prospect.name.trim();
+    if (!name) continue;
+    const channel: DryRunRecipient["channel"] = prospect.phone?.trim()
+      ? "whatsapp"
+      : prospect.email?.trim()
+        ? "email"
+        : "";
+    parsed.push({
+      name,
+      channel,
+      consentBasis: prospect.consentBasis ?? "",
+      stopped: prospect.status === "stopped",
+      suppressed: false,
+    });
+  }
+  return parsed;
 }
 
 export function recipientsFromImport(rows: unknown): DryRunRecipient[] {

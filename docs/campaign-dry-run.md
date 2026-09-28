@@ -57,6 +57,8 @@ This is step 26 in `supabase/APPLY-ORDER.md`, after step 25:
 
 Apply it after step 25. Do not run it until `SUPABASE_DB_URL` is available. It does not turn sending on. It does not schedule a cron.
 
+Step 27 dry-loads a consent-ready campaign CSV and adds Email and SMS connect stubs. Leave `CAMPAIGN_CSV_IMPORT_ENABLED` and `EMAIL_SMS_CONNECT_STUB_ENABLED` unset until that file is applied. See `docs/campaign-csv-import.md`.
+
 ## Fixture check
 
 With Supabase keys empty, open `/command-centre/campaigns`. The page should load the dry-run panel, show `consent_basis`, an estimated cost that is not charged, and say sending stays off. Dry run does not queue. Send now is refused. Open `/command-centre/outbox` and the queued count stays 0.

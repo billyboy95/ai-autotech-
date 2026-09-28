@@ -5,6 +5,7 @@ import {
   type ConnectState,
   type StoredConnection,
 } from "@/lib/connect/accounts";
+import { isMetaStubAccount, metaConnectDisplayMode, metaStubBadges, missingMetaStubMigration, type MetaStubStatus } from "@/lib/connect/meta-stub";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export type ConnectCard = {
@@ -12,6 +13,7 @@ export type ConnectCard = {
   label: string;
   detail: string;
   state: ConnectState;
+  metaStub: MetaStubStatus[] | null;
 };
 
 export type ConnectPageData = {
@@ -28,6 +30,7 @@ function configured() {
 function cardsFrom(input: {
   checklist: Map<string, string>;
   connections: StoredConnection[];
+  metaStubs: Set<string>;
 }): ConnectCard[] {
   return CONNECT_ACCOUNTS.map((account) => ({
     key: account.key,
@@ -38,6 +41,9 @@ function cardsFrom(input: {
       checklistStatus: input.checklist.get(account.key) ?? null,
       connections: input.connections,
     }),
+    metaStub: isMetaStubAccount(account.key)
+      ? metaStubBadges({ stubStored: input.metaStubs.has(account.key), providerKeysPresent: false })
+      : null,
   }));
 }
 
@@ -45,7 +51,7 @@ export async function loadConnectAccounts(input: {
   mode: string;
   orgId: string;
 }): Promise<ConnectPageData> {
-  const empty = cardsFrom({ checklist: new Map(), connections: [] });
+  const empty = cardsFrom({ checklist: new Map(), connections: [], metaStubs: new Set() });
   if (!configured() || input.mode !== "member" || input.orgId.startsWith("preview-")) {
     return {
       preview: true,
@@ -91,10 +97,24 @@ export async function loadConnectAccounts(input: {
     }
   }
 
+  const metaStubs = new Set<string>();
+  if (metaConnectDisplayMode({ tenantMode: input.mode }) === "sandbox") {
+    const stubs = await supabase.from("meta_connect_stubs").select("account_key").eq("org_id", input.orgId);
+    if (stubs.error) {
+      if (!notice) {
+        notice = missingMetaStubMigration(stubs.error.message)
+          ? "Sandbox stub. Apply step 26 before saving WhatsApp or Facebook / Instagram status. No key is stored and nothing is sent."
+          : stubs.error.message;
+      }
+    } else {
+      for (const row of stubs.data ?? []) metaStubs.add(String(row.account_key));
+    }
+  }
+
   return {
     preview: false,
     tableReady,
-    cards: cardsFrom({ checklist: checklistRows, connections: stored }),
+    cards: cardsFrom({ checklist: checklistRows, connections: stored, metaStubs }),
     notice,
   };
 }

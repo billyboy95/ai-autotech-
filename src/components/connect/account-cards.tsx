@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { markConnectAccount } from "@/app/actions/connect";
 import { CONNECT_STATE_LABEL, type ConnectState } from "@/lib/connect/accounts";
+import { META_STUB_LABEL, type MetaStubStatus } from "@/lib/connect/meta-stub";
 import type { ConnectCard } from "@/lib/connect/load";
 
 const buttonClass = "inline-flex h-11 items-center rounded-md bg-[#2563EB] px-4 text-sm font-semibold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0B1F3A]";
@@ -9,6 +10,12 @@ const badgeClass: Record<ConnectState, string> = {
   connect: "bg-slate-100 text-slate-800",
   needs_keys: "bg-amber-100 text-amber-950",
   connected: "bg-emerald-100 text-emerald-900",
+};
+
+const metaBadgeClass: Record<MetaStubStatus, string> = {
+  not_connected: "bg-slate-100 text-slate-800",
+  sandbox_stub: "bg-sky-100 text-sky-950",
+  needs_provider_keys: "bg-amber-100 text-amber-950",
 };
 
 export function AccountCards({
@@ -34,6 +41,11 @@ export function AccountCards({
           Connect means not started. Needs keys means a sandbox placeholder is saved and Vault has no secret.
           Connected means every mapped channel row is connected and a secret id is stored.
         </p>
+        <p className="mt-2 max-w-2xl text-sm text-slate-700">
+          WhatsApp (Meta Cloud) and Facebook / Instagram use a sandbox stub. The status is Not connected, Sandbox stub, or Needs provider keys.
+          Connect opens a page that explains Billy must add Meta app credentials later. No OAuth runs and no key is stored.
+          Send test is refused while provider keys are missing.
+        </p>
       </div>
       {preview ? (
         <p className="rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-950">
@@ -46,12 +58,26 @@ export function AccountCards({
           <li key={card.key} className="grid gap-2 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
             <div className="flex flex-wrap items-start justify-between gap-2">
               <h2 className="font-display text-lg font-bold text-[#0B1F3A]">{card.label}</h2>
-              <p data-connect-state={card.state} className={`rounded-full px-2 py-1 text-xs font-semibold ${badgeClass[card.state]}`}>
-                {CONNECT_STATE_LABEL[card.state]}
-              </p>
+              {card.metaStub ? (
+                <div className="flex flex-wrap gap-1">
+                  {card.metaStub.map((status) => (
+                    <p key={status} data-meta-stub={status} className={`rounded-full px-2 py-1 text-xs font-semibold ${metaBadgeClass[status]}`}>
+                      {META_STUB_LABEL[status]}
+                    </p>
+                  ))}
+                </div>
+              ) : (
+                <p data-connect-state={card.state} className={`rounded-full px-2 py-1 text-xs font-semibold ${badgeClass[card.state]}`}>
+                  {CONNECT_STATE_LABEL[card.state]}
+                </p>
+              )}
             </div>
             <p className="text-sm text-slate-700">{card.detail}</p>
-            {card.state === "connect" ? (
+            {card.metaStub ? (
+              <Link href={`/command-centre/connect-accounts/${card.key}`} className={buttonClass}>
+                {card.metaStub.includes("not_connected") ? `Connect ${card.label}` : "Open sandbox stub"}
+              </Link>
+            ) : card.state === "connect" ? (
               <form action={markConnectAccount}>
                 <input type="hidden" name="slug" value={orgSlug} />
                 <input type="hidden" name="account" value={card.key} />

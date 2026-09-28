@@ -7,6 +7,7 @@ import { previewWorkspaces, EDUCATION_BLUEPRINT, ECOMMERCE_BLUEPRINT } from "@/l
 import { zentrixStores } from "@/lib/shopify/catalog";
 import { resolveWorkspace, loadOrganizations } from "@/lib/tenant/context";
 import { clientMetrics } from "@/lib/tenant/data";
+import { loadOpsReadiness } from "@/lib/ops/readiness";
 import { showEducationPack } from "@/lib/snapshots/eastc-pack";
 import { showZentrixPack, zentrixPackDisplayMode } from "@/lib/zentrix/pack";
 import { AGENCY_SLUG } from "@/lib/tenant/types";
@@ -46,6 +47,10 @@ export default async function AgencyPage({
   const bounds = periodBounds(params);
   const workspace = await resolveWorkspace();
   if (workspace.mode === "preview") {
+    const opsChecks = await loadOpsReadiness({
+      mode: workspace.mode,
+      workspaceSendingEnabled: workspace.active.sendingEnabled,
+    });
     const [agency, eastc, zentrix] = previewWorkspaces();
     const sample = sampleRollup();
     return (
@@ -60,6 +65,7 @@ export default async function AgencyPage({
         showEducationPack={showEducationPack({ surface: "agency", canManageAgency: workspace.canManageAgency })}
         showZentrixPack={showZentrixPack({ surface: "agency", canManageAgency: workspace.canManageAgency })}
         zentrixPackMode={zentrixPackDisplayMode({ tenantMode: workspace.mode })}
+        opsChecks={opsChecks}
         clients={[
           {
             workspace: eastc,
@@ -92,6 +98,10 @@ export default async function AgencyPage({
   const agency = orgs.find((org) => org.slug === AGENCY_SLUG) ?? orgs.find((org) => org.orgType === "agency") ?? workspace.active;
   const clients = orgs.filter((org) => org.orgType === "client" && allowed.has(org.slug));
   const metrics = await clientMetrics(clients);
+  const opsChecks = await loadOpsReadiness({
+    mode: workspace.mode,
+    workspaceSendingEnabled: agency.sendingEnabled,
+  });
   const live = await loadAgencyRollup(agency.id, bounds.from, bounds.to);
   const rollup = live ?? sampleRollup().filter((row) => clients.some((client) => client.slug === row.slug));
   return (
@@ -107,6 +117,7 @@ export default async function AgencyPage({
       showEducationPack={showEducationPack({ surface: "agency", canManageAgency: workspace.canManageAgency })}
       showZentrixPack={showZentrixPack({ surface: "agency", canManageAgency: workspace.canManageAgency })}
       zentrixPackMode={zentrixPackDisplayMode({ tenantMode: workspace.mode })}
+      opsChecks={opsChecks}
     />
   );
 }

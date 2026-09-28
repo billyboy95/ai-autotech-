@@ -5,6 +5,7 @@ import { runAutomationsNow } from "@/app/actions/automation";
 import { PeriodMetricsPanel } from "@/components/agency-rollup";
 import { AssistantPanel } from "@/components/bots/assistant-panel";
 import { HomeChatPanel } from "@/components/home-chat/panel";
+import { OpsReadinessPanel } from "@/components/ops/readiness-panel";
 import { CommandShell } from "@/components/crm/command-shell";
 import { Advanced } from "@/components/ui/advanced";
 import { PageLead } from "@/components/ui/page-lead";
@@ -15,6 +16,7 @@ import { eastcPeriodFixture, periodBounds, periodMetrics, zentrixPeriodFixture }
 import { formatZar } from "@/lib/automation/ids";
 import { loadCommandData } from "@/lib/automation/page-data";
 import { buildReport } from "@/lib/automation/report";
+import { loadOpsReadiness } from "@/lib/ops/readiness";
 
 export const dynamic = "force-dynamic";
 
@@ -34,6 +36,10 @@ export default async function CommandCentrePage({
   const params = await searchParams;
   const bounds = periodBounds(params);
   const { workspace, classic, sendingEnabled, tenant } = await loadCommandData();
+  const opsChecks = await loadOpsReadiness({
+    mode: tenant.mode,
+    workspaceSendingEnabled: tenant.active.sendingEnabled,
+  });
   const report = buildReport(workspace.state, new Date(), sendingEnabled);
   const livePeriod = tenant.mode === "member" && tenant.role && !tenant.requiresLogin
     ? await loadWorkspacePeriod(tenant.active.id, bounds.from, bounds.to)
@@ -61,6 +67,8 @@ export default async function CommandCentrePage({
         <HomeChatPanel mode={homeChatDisplayMode({ tenantMode: tenant.mode })} orgSlug={tenant.active.slug} />
 
         <AssistantPanel enabled={isBotAssistantEnabled()} />
+
+        <OpsReadinessPanel checks={opsChecks} />
 
         <Advanced>
           <form action={runAutomationsNow}>

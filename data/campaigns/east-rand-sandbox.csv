@@ -1,0 +1,23 @@
+name,business,niche,website,phone,email,opening line,consent_basis
+Sandbox Sipho Example,Sandbox Dental Benoni,dental,https://sandbox.example/benoni,0820000201,sipho@sandbox.example,Sandbox opening for a fake East Rand clinic.,consent
+Sandbox Lerato Example,Sandbox Workshop Boksburg,workshop,https://sandbox.example/boksburg,0820000202,lerato@sandbox.example,Sandbox opening for a fake workshop.,consent
+Sandbox Amina Example,Sandbox Salon Germiston,salon,https://sandbox.example/germiston,0820000203,amina@sandbox.example,Sandbox opening for a fake salon.,consent
+Sandbox Johan Example,Sandbox Trades Springs,trades,https://sandbox.example/springs,0820000204,johan@sandbox.example,Sandbox opening for a fake trades desk.,consent
+Sandbox Nomsa Example,Sandbox Clinic Brakpan,clinic,https://sandbox.example/brakpan,0820000205,nomsa@sandbox.example,Sandbox opening for a fake clinic.,consent
+Sandbox Thabo Example,Sandbox Fitness Kempton,fitness,https://sandbox.example/kempton,0820000206,thabo@sandbox.example,Sandbox opening for a fake gym.,consent
+Sandbox Priya Example,Sandbox Legal Alberton,legal,https://sandbox.example/alberton,0820000207,priya@sandbox.example,Sandbox opening for a fake firm.,consent
+Sandbox Pieter Example,Sandbox Auto Edenvale,automotive,https://sandbox.example/edenvale,0820000208,pieter@sandbox.example,Sandbox opening for a fake workshop.,consent
+Sandbox Zanele Example,Sandbox Beauty Nigel,beauty,https://sandbox.example/nigel,0820000209,zanele@sandbox.example,Sandbox opening for a fake studio.,consent
+Sandbox David Example,Sandbox Pharmacy Tembisa,pharmacy,https://sandbox.example/tembisa,0820000210,david@sandbox.example,Sandbox opening for a fake pharmacy.,consent
+Sandbox Fatima Example,Sandbox School Vosloorus,education,https://sandbox.example/vosloorus,0820000211,fatima@sandbox.example,Sandbox opening for a fake school desk.,consent
+Sandbox Karel Example,Sandbox Hardware Boksburg,hardware,https://sandbox.example/hardware,0820000212,karel@sandbox.example,Sandbox opening for a fake store.,consent
+Sandbox Ayesha Example,Sandbox Cafe Benoni,cafe,https://sandbox.example/cafe,0820000213,ayesha@sandbox.example,Sandbox opening for a fake cafe.,consent
+Sandbox Mandla Example,Sandbox Panel Germiston,panel,https://sandbox.example/panel,0820000214,mandla@sandbox.example,Sandbox opening for a fake panel shop.,consent
+Sandbox Elena Example,Sandbox Optom Springs,optometry,https://sandbox.example/optom,0820000215,elena@sandbox.example,Sandbox opening for a fake practice.,consent
+Sandbox Yusuf Example,Sandbox Tyres Brakpan,tyres,https://sandbox.example/tyres,0820000216,yusuf@sandbox.example,Sandbox opening for a fake tyre shop.,consent
+Sandbox Naledi Example,Sandbox Physio Kempton,physio,https://sandbox.example/physio,,naledi@sandbox.example,Sandbox opening for an existing customer.,existing_customer
+Sandbox Ruan Example,Sandbox Bakery Edenvale,bakery,https://sandbox.example/bakery,0820000218,ruan@sandbox.example,Sandbox opening for an existing customer.,existing_customer
+Sandbox Lindi Example,Sandbox Spa Alberton,spa,https://sandbox.example/spa,0820000219,lindi@sandbox.example,Sandbox opening for an existing customer.,existing_customer
+Sandbox Chris Example,Sandbox Blank Consent,clinic,https://sandbox.example/blank,0820000220,chris@sandbox.example,Sandbox row with missing consent.,
+Sandbox Olga Example,Sandbox Opt Out,salon,https://sandbox.example/optout,0820000221,olga@sandbox.example,Sandbox row that opted out.,opted_out
+Sandbox Sam Example,Sandbox Stop,trades,https://sandbox.example/stop,0820000222,sam@sandbox.example,Sandbox row that sent STOP.,stopped

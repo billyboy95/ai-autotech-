@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { importCampaignCsv, loadDraftProspects, saveCampaignForm, setProspectConsent } from "@/app/actions/automation";
 import { CsvImportPanel } from "@/components/campaigns/csv-import-panel";
+import { EastRandSeedPanel } from "@/components/campaigns/east-rand-seed-panel";
 import { DryRunPanel } from "@/components/campaigns/dry-run-panel";
 import { CommandShell } from "@/components/crm/command-shell";
 import { defaultCampaignSteps } from "@/lib/automation/campaigns";
@@ -9,6 +10,7 @@ import { formatWhen } from "@/lib/automation/ids";
 import { loadCommandData } from "@/lib/automation/page-data";
 import { FIXTURE_CAMPAIGN_CSV, planCampaignCsvImport } from "@/lib/campaigns/csv-import";
 import { FIXTURE_CAMPAIGN_NAME } from "@/lib/campaigns/dry-run";
+import { eastRandSeedDisplayMode, planEastRandSandboxSeed } from "@/lib/campaigns/east-rand-seed";
 import { campaignCsvImportDisplayMode } from "@/lib/campaigns/flag";
 import { loadDryRunPreview, previewReport } from "@/lib/campaigns/load";
 import { mentionsPlatform, presentWorkspace } from "@/lib/brand/present";
@@ -33,6 +35,11 @@ export default async function CampaignsPage() {
     csv: FIXTURE_CAMPAIGN_CSV,
     campaignName: FIXTURE_CAMPAIGN_NAME,
     intent: "dry_load",
+    sendingEnabled,
+    source: "fixture",
+  });
+  const eastRandSeed = planEastRandSandboxSeed({
+    intent: "seed",
     sendingEnabled,
     source: "fixture",
   });
@@ -71,6 +78,15 @@ export default async function CampaignsPage() {
           preview={csvPreview}
           sendingEnabled={sendingEnabled}
         />
+
+        {tenant.active.slug === AGENCY_SLUG ? (
+          <EastRandSeedPanel
+            mode={eastRandSeedDisplayMode({ tenantMode: tenant.mode })}
+            orgSlug={tenant.active.slug}
+            preview={eastRandSeed}
+            sendingEnabled={sendingEnabled}
+          />
+        ) : null}
 
         <form action={importCampaignCsv} className="grid min-w-0 gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
           <h2 className="font-display text-lg font-bold text-[#0B1F3A]">Import prospects</h2>

@@ -22,6 +22,7 @@ test("connect cards cover the full account list and do not phase it", () => {
     "meta",
     "google_calendar",
     "tiktok",
+    "linkedin",
   ]);
   assert.equal(CONNECT_ACCOUNTS.some((account) => account.label.includes("Gmail")), true);
   assert.equal(CONNECT_ACCOUNTS.some((account) => account.label.includes("WhatsApp")), true);
@@ -29,6 +30,7 @@ test("connect cards cover the full account list and do not phase it", () => {
   assert.equal(CONNECT_ACCOUNTS.some((account) => account.label.includes("Facebook")), true);
   assert.equal(CONNECT_ACCOUNTS.some((account) => account.label.includes("Calendar")), true);
   assert.equal(CONNECT_ACCOUNTS.some((account) => account.label.includes("TikTok")), true);
+  assert.equal(CONNECT_ACCOUNTS.some((account) => account.label === "LinkedIn"), true);
 });
 
 test("card state is connect, needs keys, or connected without inventing a secret", () => {

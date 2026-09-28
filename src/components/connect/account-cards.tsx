@@ -3,6 +3,7 @@ import { markConnectAccount } from "@/app/actions/connect";
 import { CONNECT_STATE_LABEL, type ConnectState } from "@/lib/connect/accounts";
 import { CHANNEL_STUB_LABEL, type ChannelStubStatus } from "@/lib/connect/channel-stub";
 import { META_STUB_LABEL, type MetaStubStatus } from "@/lib/connect/meta-stub";
+import { SOCIAL_STUB_LABEL, type SocialStubStatus } from "@/lib/connect/social-stub";
 import type { ConnectCard } from "@/lib/connect/load";
 
 const buttonClass = "inline-flex h-11 items-center rounded-md bg-[#2563EB] px-4 text-sm font-semibold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0B1F3A]";
@@ -20,6 +21,12 @@ const metaBadgeClass: Record<MetaStubStatus, string> = {
 };
 
 const channelBadgeClass: Record<ChannelStubStatus, string> = {
+  not_connected: "bg-slate-100 text-slate-800",
+  sandbox_stub: "bg-sky-100 text-sky-950",
+  needs_provider_keys: "bg-amber-100 text-amber-950",
+};
+
+const socialBadgeClass: Record<SocialStubStatus, string> = {
   not_connected: "bg-slate-100 text-slate-800",
   sandbox_stub: "bg-sky-100 text-sky-950",
   needs_provider_keys: "bg-amber-100 text-amber-950",
@@ -58,6 +65,12 @@ export function AccountCards({
           Connect opens a page that explains Billy must add provider keys later. SMS provider names are placeholders. No OAuth runs and no key is stored.
           Send test is refused while provider keys are missing. Nothing is sent.
         </p>
+        <p className="mt-2 max-w-2xl text-sm text-slate-700">
+          TikTok and LinkedIn use a sandbox stub beside WhatsApp, Facebook / Instagram, Email, and SMS.
+          The status is Not connected, Sandbox stub, or Needs provider keys.
+          Connect opens a page that explains Billy must add the keys later. No OAuth runs and no key is stored.
+          Send, test, and publish are refused while provider keys are missing. Nothing is posted and no ad is bought.
+        </p>
       </div>
       {preview ? (
         <p className="rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-950">
@@ -86,6 +99,14 @@ export function AccountCards({
                     </p>
                   ))}
                 </div>
+              ) : card.socialStub ? (
+                <div className="flex flex-wrap gap-1">
+                  {card.socialStub.map((status) => (
+                    <p key={status} data-social-stub={status} className={`rounded-full px-2 py-1 text-xs font-semibold ${socialBadgeClass[status]}`}>
+                      {SOCIAL_STUB_LABEL[status]}
+                    </p>
+                  ))}
+                </div>
               ) : (
                 <p data-connect-state={card.state} className={`rounded-full px-2 py-1 text-xs font-semibold ${badgeClass[card.state]}`}>
                   {CONNECT_STATE_LABEL[card.state]}
@@ -100,6 +121,10 @@ export function AccountCards({
             ) : card.channelStub ? (
               <Link href={`/command-centre/connect-accounts/${card.key}`} className={buttonClass}>
                 {card.channelStub.includes("not_connected") ? `Connect ${card.label}` : "Open sandbox stub"}
+              </Link>
+            ) : card.socialStub ? (
+              <Link href={`/command-centre/connect-accounts/${card.key}`} className={buttonClass}>
+                {card.socialStub.includes("not_connected") ? `Connect ${card.label}` : "Open sandbox stub"}
               </Link>
             ) : card.state === "connect" ? (
               <form action={markConnectAccount}>

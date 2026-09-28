@@ -34,7 +34,7 @@ Status badges:
 
 Send test is a dry run only. It is refused while provider keys are missing.
 
-WhatsApp and Facebook / Instagram stay on the step 26 stub. Calendar and TikTok stay on the step 24 checklist.
+WhatsApp and Facebook / Instagram stay on the step 26 stub. Email and SMS stay on this step. Calendar stays on the step 24 checklist. TikTok and LinkedIn are sandbox stubs in step 28. See `docs/social-drafts.md`.
 
 ## Feature flags
 

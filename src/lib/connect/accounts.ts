@@ -1,4 +1,4 @@
-export const CONNECT_ACCOUNT_KEYS = ["gmail", "whatsapp", "sms", "meta", "google_calendar", "tiktok"] as const;
+export const CONNECT_ACCOUNT_KEYS = ["gmail", "whatsapp", "sms", "meta", "google_calendar", "tiktok", "linkedin"] as const;
 
 export type ConnectAccountKey = (typeof CONNECT_ACCOUNT_KEYS)[number];
 
@@ -60,7 +60,13 @@ export const CONNECT_ACCOUNTS: ConnectAccount[] = [
   {
     key: "tiktok",
     label: "TikTok",
-    detail: "TikTok or social. The checklist records progress. No TikTok call is made and no ad is bought.",
+    detail: "TikTok. This card is a sandbox stub. Billy adds the keys later. No OAuth runs, nothing is posted, and no ad is bought.",
+    channels: [],
+  },
+  {
+    key: "linkedin",
+    label: "LinkedIn",
+    detail: "LinkedIn. This card is a sandbox stub. Billy adds the keys later. No OAuth runs and nothing is posted.",
     channels: [],
   },
 ];
@@ -80,7 +86,8 @@ export type StoredConnection = {
  * Connect: not started.
  * Needs keys: a checklist row or a channel placeholder exists, and Vault has no secret.
  * Connected: every mapped channel row is connected and has a secret id.
- * Calendar and TikTok have no channel_connections row, so they stay on Connect or Needs keys.
+ * Calendar has no channel_connections row, so it stays on Connect or Needs keys.
+ * TikTok and LinkedIn use the step 28 sandbox stub and are not written here.
  */
 export function resolveConnectState(input: {
   account: ConnectAccount;

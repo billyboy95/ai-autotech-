@@ -6,7 +6,7 @@ AI AutoTech Pty Ltd is the parent agency. EASTC (East Sea Technocentric Varsity,
 
 ## 1. Apply the migrations
 
-The only safe order for files that are still unapplied is `supabase/APPLY-ORDER.md`. Steps 20 through 29 are still waiting. After Billy re-authenticates Supabase, run step 20, then 21, and on through step 28, then step 29 (`supabase/migrations/20261104120000_phase5h_zentrix_workspace_pack.sql`). Do not claim that SQL is already applied. Then sign in as an agency owner and use Apply Education pack to EASTC. Apply the Zentrix Online pack later, after `ZENTRIX_WORKSPACE_PACK_ENABLED` is the string `true`. Do not turn sending on. See `docs/zentrix-workspace-pack.md`.
+The only safe order for files that are still unapplied is `supabase/APPLY-ORDER.md`. Steps 20 through 29 are still waiting. After Billy re-authenticates Supabase, run step 20, then 21, and on through step 28, then step 29 (`supabase/migrations/20261104120000_phase5h_zentrix_workspace_pack.sql`). Do not claim that SQL is already applied. Then sign in as an agency owner and use Apply Education pack to EASTC. Apply the Zentrix Online pack later, after `ZENTRIX_WORKSPACE_PACK_ENABLED` is the string `true`. Do not turn sending on. See `docs/zentrix-workspace-pack.md`. Step 30 (`supabase/migrations/20261105120000_phase5i_campaign_seed_ops.sql`) is also unapplied. The East Rand sandbox seed stays fixture-only until `EAST_RAND_CAMPAIGN_SEED_ENABLED` is the string `true`. See `docs/phase-5i-sandbox-readiness.md`.
 
 In the Supabase SQL editor, run these files in order if they are not already applied:
 

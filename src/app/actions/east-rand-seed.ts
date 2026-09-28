@@ -10,6 +10,7 @@ import {
   missingEastRandSeedMigration,
   planEastRandSandboxSeed,
 } from "@/lib/campaigns/east-rand-seed";
+import { readEastRandSandboxCsv } from "@/lib/campaigns/east-rand-fixture";
 import type { CsvImportPlan } from "@/lib/campaigns/csv-import";
 import { isLiveSendIntent, type CampaignDryRunReport } from "@/lib/campaigns/dry-run";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -49,7 +50,12 @@ export async function submitEastRandSandboxSeed(_state: EastRandSeedState, formD
   const intent = String(formData.get("intent") ?? "seed");
   const { tenant, sendingEnabled } = await loadCommandData();
   const mode = eastRandSeedDisplayMode({ tenantMode: tenant.mode });
-  const planned = planEastRandSandboxSeed({ intent, sendingEnabled, source: mode });
+  const planned = planEastRandSandboxSeed({
+    csv: readEastRandSandboxCsv(),
+    intent,
+    sendingEnabled,
+    source: mode,
+  });
   const base: EastRandSeedState = {
     ...planned,
     id: crypto.randomUUID(),

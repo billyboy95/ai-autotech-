@@ -1,5 +1,3 @@
-import { readFileSync } from "node:fs";
-import path from "node:path";
 import { csvImportPayload, planCampaignCsvImport, type CsvImportPlan } from "@/lib/campaigns/csv-import";
 import type { CampaignDryRunMode } from "@/lib/campaigns/flag";
 
@@ -22,18 +20,14 @@ export function missingEastRandSeedMigration(message: string) {
   return /seed_east_rand_sandbox_campaign|refuse_east_rand_seed_send|save_campaign_csv_import|campaign_csv_imports|schema cache|could not find the function/i.test(message);
 }
 
-export function readEastRandSandboxCsv() {
-  return readFileSync(path.join(process.cwd(), EAST_RAND_SANDBOX_FILE), "utf8");
-}
-
 export function planEastRandSandboxSeed(input: {
+  csv: string;
   intent?: string;
   sendingEnabled: boolean;
   source: CampaignDryRunMode;
-  csv?: string;
 }): CsvImportPlan {
   return planCampaignCsvImport({
-    csv: input.csv ?? readEastRandSandboxCsv(),
+    csv: input.csv,
     campaignName: EAST_RAND_SANDBOX_CAMPAIGN_NAME,
     intent: input.intent,
     sendingEnabled: input.sendingEnabled,

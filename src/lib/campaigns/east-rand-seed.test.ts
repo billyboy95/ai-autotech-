@@ -2,13 +2,13 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 import { PHASED_TEAM_COPY } from "@/lib/bots/onboarding";
+import { readEastRandSandboxCsv } from "@/lib/campaigns/east-rand-fixture";
 import {
   EAST_RAND_SANDBOX_CAMPAIGN_NAME,
   EAST_RAND_SANDBOX_LABEL,
   eastRandSeedDisplayMode,
   eastRandSeedMode,
   planEastRandSandboxSeed,
-  readEastRandSandboxCsv,
 } from "@/lib/campaigns/east-rand-seed";
 
 function digitRuns(text: string) {
@@ -65,6 +65,7 @@ test("the sandbox fixture is fake, consent-ready, and does not queue", () => {
 test("East Rand seed copy does not phase the team or turn sending on", () => {
   const files = [
     "src/lib/campaigns/east-rand-seed.ts",
+    "src/lib/campaigns/east-rand-fixture.ts",
     "src/app/actions/east-rand-seed.ts",
     "src/components/campaigns/east-rand-seed-panel.tsx",
     "src/app/command-centre/campaigns/page.tsx",

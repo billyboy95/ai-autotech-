@@ -50,7 +50,7 @@ PR #3 is merged. Its files are on `main` and are still unapplied. Run them after
 29. `supabase/migrations/20261104120000_phase5h_zentrix_workspace_pack.sql`
 30. `supabase/migrations/20261105120000_phase5i_campaign_seed_ops.sql`
 
-Steps 20 through 30 are still unapplied. After Billy re-authenticates Supabase, run step 20, then 21, and on through step 29, then step 30. Do not claim this SQL is already applied. Then sign in as an agency owner and use Apply Education pack to EASTC on `/agency`. Apply the Zentrix Online pack later, after `ZENTRIX_WORKSPACE_PACK_ENABLED` is the string `true`. The East Rand sandbox seed stays fixture-only until `EAST_RAND_CAMPAIGN_SEED_ENABLED` is the string `true`. Do not turn sending on.
+Steps 20 through 29 are still unapplied. Step 30 is also unapplied. After Billy re-authenticates Supabase, run step 20, then 21, and on through step 29, then step 30. Do not claim this SQL is already applied. Then sign in as an agency owner and use Apply Education pack to EASTC on `/agency`. Apply the Zentrix Online pack later, after `ZENTRIX_WORKSPACE_PACK_ENABLED` is the string `true`. The East Rand sandbox seed stays fixture-only until `EAST_RAND_CAMPAIGN_SEED_ENABLED` is the string `true`. Do not turn sending on.
 
 Why this order:
 

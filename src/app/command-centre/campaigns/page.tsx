@@ -11,6 +11,7 @@ import { loadCommandData } from "@/lib/automation/page-data";
 import { FIXTURE_CAMPAIGN_CSV, planCampaignCsvImport } from "@/lib/campaigns/csv-import";
 import { FIXTURE_CAMPAIGN_NAME } from "@/lib/campaigns/dry-run";
 import { eastRandSeedDisplayMode, planEastRandSandboxSeed } from "@/lib/campaigns/east-rand-seed";
+import { readEastRandSandboxCsv } from "@/lib/campaigns/east-rand-fixture";
 import { campaignCsvImportDisplayMode } from "@/lib/campaigns/flag";
 import { loadDryRunPreview, previewReport } from "@/lib/campaigns/load";
 import { mentionsPlatform, presentWorkspace } from "@/lib/brand/present";
@@ -39,6 +40,7 @@ export default async function CampaignsPage() {
     source: "fixture",
   });
   const eastRandSeed = planEastRandSandboxSeed({
+    csv: readEastRandSandboxCsv(),
     intent: "seed",
     sendingEnabled,
     source: "fixture",

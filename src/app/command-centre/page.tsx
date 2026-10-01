@@ -68,6 +68,14 @@ export default async function CommandCentrePage({
 
         <AssistantPanel enabled={isBotAssistantEnabled()} />
 
+        <Link href="/command-centre/setup" data-testid="setup-wizard-card" className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm hover:border-[#2563EB]">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#2563EB]">Go-live</p>
+          <h2 className="font-display text-lg font-bold text-[#0B1F3A]">Setup wizard</h2>
+          <p className="mt-1 text-sm text-slate-700">
+            Open the checklist for SQL steps 20 through 31, owner attach, CRON_SECRET, channels, and PayFast. Nothing is sent.
+          </p>
+        </Link>
+
         <OpsReadinessPanel checks={opsChecks} />
 
         <Advanced>

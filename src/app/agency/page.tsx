@@ -66,6 +66,8 @@ export default async function AgencyPage({
         showZentrixPack={showZentrixPack({ surface: "agency", canManageAgency: workspace.canManageAgency })}
         zentrixPackMode={zentrixPackDisplayMode({ tenantMode: workspace.mode })}
         opsChecks={opsChecks}
+        migrationTenantMode={workspace.mode}
+        migrationOrgSlug={workspace.active.slug}
         clients={[
           {
             workspace: eastc,
@@ -118,6 +120,8 @@ export default async function AgencyPage({
       showZentrixPack={showZentrixPack({ surface: "agency", canManageAgency: workspace.canManageAgency })}
       zentrixPackMode={zentrixPackDisplayMode({ tenantMode: workspace.mode })}
       opsChecks={opsChecks}
+      migrationTenantMode={workspace.mode}
+      migrationOrgSlug={workspace.active.slug}
     />
   );
 }

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { AgencyRollupTable } from "@/components/agency-rollup";
 import { ApplyEducationPackForm } from "@/components/apply-education-pack-form";
 import { ApplyZentrixPackForm } from "@/components/apply-zentrix-pack-form";
+import { PendingSqlPanel } from "@/components/migrations/pending-sql-panel";
 import { OpsReadinessPanel } from "@/components/ops/readiness-panel";
 import type { OpsCheck } from "@/lib/ops/readiness";
 import type { ZentrixPackMode } from "@/lib/zentrix/pack";
@@ -28,6 +29,8 @@ export function AgencyView({
   showZentrixPack = false,
   zentrixPackMode = "fixture",
   opsChecks = [],
+  migrationTenantMode = "preview",
+  migrationOrgSlug = "ai-autotech",
 }: {
   agency: WorkspaceSummary;
   clients: ClientMetric[];
@@ -41,6 +44,8 @@ export function AgencyView({
   showZentrixPack?: boolean;
   zentrixPackMode?: ZentrixPackMode;
   opsChecks?: OpsCheck[];
+  migrationTenantMode?: string;
+  migrationOrgSlug?: string;
 }) {
   return (
     <div className="min-h-screen bg-[#F3F4F6] text-[#111827]">
@@ -54,6 +59,9 @@ export function AgencyView({
           <div className="flex flex-wrap gap-2">
             <Link href="/command-centre/setup" className="h-10 rounded-md border border-slate-200 px-3 text-sm font-semibold leading-10 text-[#0B1F3A]">
               Setup wizard
+            </Link>
+            <Link href="/command-centre/migrations" className="h-10 rounded-md border border-slate-200 px-3 text-sm font-semibold leading-10 text-[#0B1F3A]">
+              Migration runner
             </Link>
             <Link href="/command-centre/lead-agent" className="h-10 rounded-md border border-slate-200 px-3 text-sm font-semibold leading-10 text-[#0B1F3A]">
               Lead Agent
@@ -84,6 +92,7 @@ export function AgencyView({
           </p>
         ) : null}
         {opsChecks.length ? <OpsReadinessPanel checks={opsChecks} /> : null}
+        <PendingSqlPanel tenantMode={migrationTenantMode} orgSlug={migrationOrgSlug} />
         {showEducationPack ? <ApplyEducationPackForm /> : null}
         {showZentrixPack ? <ApplyZentrixPackForm mode={zentrixPackMode} /> : null}
         <AgencyRollupTable rows={rollup} sample={rollupSample} fromDay={fromDay} toDay={toDay} />

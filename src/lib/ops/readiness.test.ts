@@ -51,6 +51,11 @@ test("ops readiness stays read-only and does not print secrets", () => {
   assert.equal(checks.find((check) => check.id === "setup-wizard")?.href, "/command-centre/setup");
   assert.equal(checks.find((check) => check.id === "setup-wizard")?.hrefLabel, "Open setup wizard");
   assert.match(text, /Step 32 is also unapplied/);
+  assert.match(text, /Step 33 is also unapplied/);
+  assert.match(text, /MIGRATION_RUNNER_ENABLED stays unset/);
+  assert.match(text, /does not apply SQL/);
+  assert.equal(checks.find((check) => check.id === "migrations")?.href, "/command-centre/migrations");
+  assert.equal(checks.find((check) => check.id === "migrations")?.hrefLabel, "Open migration runner");
   assert.match(text, /SETUP_WIZARD_ENABLED stays unset/);
 });
 

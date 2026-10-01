@@ -69,7 +69,9 @@ export function buildOpsReadiness(input: OpsReadinessInput): OpsCheck[] {
       label: "Supabase migrations",
       status: "pending",
       detail:
-        "Steps 20 through 29 are still unapplied. Step 30 is also unapplied. Step 31 is also unapplied. Step 32 is also unapplied. Do not claim this SQL is applied. Paste each file from supabase/APPLY-ORDER.md after Billy re-authenticates Supabase.",
+        "Steps 20 through 29 are still unapplied. Step 30 is also unapplied. Step 31 is also unapplied. Step 32 is also unapplied. Step 33 is also unapplied. Do not claim this SQL is applied. Paste each file from supabase/APPLY-ORDER.md after Billy re-authenticates Supabase. The migration runner lists steps 20 through 33 as pending until verified. MIGRATION_RUNNER_ENABLED stays unset. This checklist does not apply SQL.",
+      href: "/command-centre/migrations",
+      hrefLabel: "Open migration runner",
     },
     {
       id: "agency-owner",

@@ -13,6 +13,7 @@ const EXTRA_PHRASES: Record<string, string[]> = {
   "/command-centre": ["home", "today"],
   "/command-centre/assistant": ["assistant"],
   "/command-centre/setup": ["setup", "set up"],
+  "/command-centre/migrations": ["migrations", "pending sql"],
   "/command-centre/install": ["install", "install aios"],
   "/command-centre/connect-accounts": ["connect accounts"],
   "/command-centre/import-contacts": ["import contacts"],

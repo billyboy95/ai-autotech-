@@ -27,6 +27,8 @@ test("inbox, conversation AI, calendars, reviews, referrals, and public pages re
       EAST_RAND_CAMPAIGN_SEED_ENABLED: "",
       PWA_INSTALL_SHELL_ENABLED: "",
       SETUP_WIZARD_ENABLED: "",
+      MIGRATION_RUNNER_ENABLED: "",
+      SUPABASE_DB_URL: "",
       AUTOMATION_SEND_ENABLED: "",
       BILLING_SANDBOX: "",
       CRON_SECRET: "",
@@ -152,6 +154,23 @@ test("inbox, conversation AI, calendars, reviews, referrals, and public pages re
     assert.match(setupHtml, /ZENTRIX_WORKSPACE_PACK_ENABLED/);
     assert.match(setupHtml, /PWA_INSTALL_SHELL_ENABLED/);
     assert.match(setupHtml, /writes nothing/);
+    assert.match(setupHtml, /MIGRATION_RUNNER_ENABLED/);
+    assert.match(setupHtml, /Step 33 is also unapplied/);
+
+    const migrations = await fetch(`http://127.0.0.1:${port}/command-centre/migrations`, { redirect: "manual" });
+    assert.equal(migrations.status, 200);
+    const migrationsHtml = await migrations.text();
+    assert.match(migrationsHtml, /Migration runner/);
+    assert.match(migrationsHtml, /phase4c_aios_pricing/);
+    assert.match(migrationsHtml, /phase5l_migration_runner/);
+    assert.match(migrationsHtml, /MIGRATION_RUNNER_ENABLED is unset/);
+    assert.match(migrationsHtml, /SUPABASE_DB_URL is missing/);
+    assert.match(migrationsHtml, /SQL is not applied/);
+    assert.match(migrationsHtml, /write: false/);
+    assert.match(migrationsHtml, /data-write="false"/);
+    assert.match(migrationsHtml, /data-status="pending"/);
+    assert.equal(migrationsHtml.includes('data-status="applied"'), false);
+    assert.equal(migrationsHtml.includes("sbp_"), false);
 
     const leadAgent = await fetch(`http://127.0.0.1:${port}/command-centre/lead-agent`, { redirect: "manual" });
     assert.equal(leadAgent.status, 200);
@@ -184,7 +203,16 @@ test("inbox, conversation AI, calendars, reviews, referrals, and public pages re
     assert.match(homeHtml, /Step 30 is also unapplied/);
     assert.match(homeHtml, /Step 31 is also unapplied/);
     assert.match(homeHtml, /Step 32 is also unapplied/);
+    assert.match(homeHtml, /Step 33 is also unapplied/);
     assert.match(homeHtml, /Open setup wizard/);
+    assert.match(homeHtml, /Migration runner/);
+    assert.match(homeHtml, /phase5l_migration_runner/);
+    assert.match(homeHtml, /MIGRATION_RUNNER_ENABLED is unset/);
+    assert.match(homeHtml, /SUPABASE_DB_URL is missing/);
+    assert.match(homeHtml, /SQL is not applied/);
+    assert.match(homeHtml, /data-write="false"/);
+    assert.match(homeHtml, /data-status="pending"/);
+    assert.equal(homeHtml.includes('data-status="applied"'), false);
     assert.match(homeHtml, /\/command-centre\/setup/);
     assert.match(homeHtml, /PWA install/);
     assert.match(homeHtml, /Optional/);
@@ -437,6 +465,12 @@ test("inbox, conversation AI, calendars, reviews, referrals, and public pages re
     assert.match(agencyHtml, /Open setup wizard/);
     assert.match(agencyHtml, /\/command-centre\/setup/);
     assert.match(agencyHtml, /Step 32 is also unapplied/);
+    assert.match(agencyHtml, /Step 33 is also unapplied/);
+    assert.match(agencyHtml, /phase5l_migration_runner/);
+    assert.match(agencyHtml, /MIGRATION_RUNNER_ENABLED is unset/);
+    assert.match(agencyHtml, /SQL is not applied/);
+    assert.match(agencyHtml, /data-status="pending"/);
+    assert.equal(agencyHtml.includes('data-status="applied"'), false);
     const eastcSettings = await (await fetch(`http://127.0.0.1:${port}/agency/eastc/settings`, { redirect: "manual" })).text();
     assert.match(eastcSettings, /Apply Education pack to EASTC/);
     assert.equal(eastcSettings.includes("Apply Zentrix pack to Zentrix Online"), false);

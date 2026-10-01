@@ -60,6 +60,7 @@ export const PHASE5_FLAGS = [
   { key: "PWA_INSTALL_SHELL_ENABLED", step: 31, purpose: "PWA install intent" },
   { key: "COMPUTER_PROVIDER_ENABLED", step: 22, purpose: "Agent computer provider" },
   { key: "SETUP_WIZARD_ENABLED", step: 32, purpose: "This setup wizard" },
+  { key: "MIGRATION_RUNNER_ENABLED", step: 33, purpose: "Pending SQL migration runner" },
 ] as const;
 
 export const CHANNEL_LINKS = [
@@ -222,7 +223,7 @@ function sqlItem(): WizardItem {
     label: "Supabase SQL steps 20–31",
     status: "pending",
     detail:
-      "Steps 20 through 31 are pending. Step 32 is also unapplied. Do not claim this SQL is applied. Paste supabase/APPLY-ORDER.md in order after re-authenticating the Supabase SQL editor. This page does not apply SQL and does not ask for a database URL.",
+      "Steps 20 through 31 are pending. Step 32 is also unapplied. Step 33 is also unapplied. Do not claim this SQL is applied. Paste supabase/APPLY-ORDER.md in order after re-authenticating the Supabase SQL editor. This page does not apply SQL and does not ask for a database URL.",
   };
 }
 

@@ -53,7 +53,47 @@ A finished run prints `Success. Steps 20–36 applied.`
 
 This script does not turn `sending_enabled` on, does not schedule a cron, and does not call Apply Education pack or the Zentrix pack. If the box is unreachable, use the SQL editor in section 1 and paste one file at a time, in the same order.
 
-### 3. After SQL Success
+### 3. Phone-first: Vercel Environment Variables
+
+Do this on the phone after the `sbp_` token step and the apply of steps 20–36 above. Stay on the Vercel session you already have. Do not sign out between names. Steps 20 through 36 are still unapplied until that apply prints `Success. Steps 20–36 applied.` Saving a variable does not apply SQL, does not send, and does not spend. This page lists names only. Do not paste a secret value into git, a pull request, chat, or this file.
+
+Each name stays unset until Billy says yes to that name. A yes for one name is not a yes for the others.
+
+1. On the phone, open Vercel → the CRM project → Settings → Environment Variables. This is the same screen as the `SUPABASE_ACCESS_TOKEN` row in step 1. Leave that token row as the `sbp_` value from step 1.
+2. Add one name at a time. Save it for Production. Add Preview only when Billy says yes to Preview. Mark a secret Sensitive so the phone does not keep the value on screen after save.
+3. A saved variable is read on the next deployment. This checklist does not ask for a redeploy, a cron registration, a purchase, or a send.
+
+Owner auto-attach (PR #17). When `OWNER_EMAILS` is unset or blank, the app already uses this address. Set the variable when Billy says yes:
+
+- `OWNER_EMAILS` = `billyfaber06@gmail.com`
+
+Cron routes (`/api/cron/automation`, `/api/cron/workflows`, `/api/cron/billing`, `/api/cron/ai-replies`) read `CRON_SECRET`. Leave it unset until Billy says yes. This checklist does not register a cron:
+
+- `CRON_SECRET`
+
+Sandbox billing only. Leave these unset until Billy says yes to sandbox billing. Checkout stays closed unless `BILLING_SANDBOX` is the string `true`. The only merchant id the app accepts is PayFast’s published sandbox merchant `10000100`. Any other id is refused. Do not put a live merchant id in the environment. Do not invent a merchant key, a passphrase, or a service-role key. No charge is sent from this checklist:
+
+- `BILLING_SANDBOX`
+- `PAYFAST_MERCHANT_ID` = `10000100`
+- `PAYFAST_MERCHANT_KEY`
+- `PAYFAST_PASSPHRASE`
+- `SUPABASE_SERVICE_ROLE_KEY` (server only; owner auto-attach also uses it)
+
+Outbound channel keys are required before a real send. Saving a key leaves `sending_enabled` false. `sending_enabled` stays false on every workspace until Billy says yes:
+
+- Email: `RESEND_API_KEY`, or `SMTP_HOST` with `SMTP_USER` and `SMTP_PASS`
+- WhatsApp: `WHATSAPP_TOKEN` and `WHATSAPP_PHONE_NUMBER_ID`
+- Meta: `META_PAGE_ACCESS_TOKEN` with `META_PAGE_ID` or `META_IG_USER_ID`
+- SMS: one of `SMSPORTAL_CLIENT_ID` plus `SMSPORTAL_API_SECRET`, `BULKSMS_TOKEN_ID` plus `BULKSMS_TOKEN_SECRET`, `CLICKATELL_API_KEY`, or `TWILIO_ACCOUNT_SID` plus `TWILIO_AUTH_TOKEN` plus `TWILIO_FROM_NUMBER`
+
+Phase 5 feature flags stay unset until the SQL step that introduces them has been applied. The names are in section 3 below (Leave flags unset until their SQL is applied). Unset, blank, or any value other than the string `true` keeps that page fixture-only. Setting a flag stores a sandbox note only. It does not apply SQL and it does not send. Gated command-centre panels stay paused until steps 20 through 36 are applied. Also leave `AI_REPLY_CRON_ENABLED`, `E2B_API_KEY`, `BROWSERBASE_API_KEY`, and `COMPUTER_PROVIDER_ENABLED` unset.
+
+Website pull requests on `billyboy95/aiautotech` stay open until Billy says yes to publish. Do not merge them from this agent. This checklist does not publish the site:
+
+- [aiautotech#4](https://github.com/billyboy95/aiautotech/pull/4) — Publish week-1 guide topics as on-site resource articles
+- [aiautotech#5](https://github.com/billyboy95/aiautotech/pull/5) — Align public prices with the 27 Sep 2026 AIOS sheet
+
+### 4. After SQL Success
 
 Only after the apply prints `Success. Steps 20–36 applied.`, or after the SQL editor has run step 36 without error:
 
@@ -69,27 +109,9 @@ That refreshes the PostgREST schema cache. It does not apply another migration, 
 
 3. Leave the Zentrix Online pack unclicked until `ZENTRIX_WORKSPACE_PACK_ENABLED` is the string `true`, and only after step 29 is applied. While that flag is unset, the button stays fixture-only and does not store stubs. The pack does not call Shopify and does not turn sending on. This checklist does not set the flag.
 
-### 4. Secrets still needed (names only)
-
-Set these on the box and in Vercel when Billy has the values. This page does not supply the values. Do not paste a value into git, a pull request, or chat.
-
-- `CRON_SECRET`
-- `OWNER_EMAILS` = `billyfaber06@gmail.com` (the documented agency owner, and the default in `.env.example`)
-- Outbound channel keys, one provider per channel when Billy is ready to connect it: email `RESEND_API_KEY`, or `SMTP_HOST` with `SMTP_USER` and `SMTP_PASS`; WhatsApp `WHATSAPP_TOKEN` and `WHATSAPP_PHONE_NUMBER_ID`; Meta `META_PAGE_ACCESS_TOKEN` with `META_PAGE_ID` or `META_IG_USER_ID`; SMS one of `SMSPORTAL_CLIENT_ID` plus `SMSPORTAL_API_SECRET`, `BULKSMS_TOKEN_ID` plus `BULKSMS_TOKEN_SECRET`, `CLICKATELL_API_KEY`, or `TWILIO_ACCOUNT_SID` plus `TWILIO_AUTH_TOKEN` plus `TWILIO_FROM_NUMBER`
-- PayFast sandbox only: `PAYFAST_MERCHANT_ID`, `PAYFAST_MERCHANT_KEY`, `PAYFAST_PASSPHRASE`, and `BILLING_SANDBOX`. Do not put a live merchant id in the environment. Also `SUPABASE_SERVICE_ROLE_KEY` (server only)
-
-Gated Phase 5 flags stay unset until their own SQL is applied and Billy is ready to store a sandbox note. Unset, blank, or any value other than the string `true` keeps that page fixture-only. Setting a flag stores a sandbox note only. It does not apply SQL and it does not send. The names are in section 3. Also leave `AI_REPLY_CRON_ENABLED`, `E2B_API_KEY`, `BROWSERBASE_API_KEY`, and `COMPUTER_PROVIDER_ENABLED` unset.
-
 ### 5. Wait for an explicit yes
 
-No ad spend, no purchases, and no outbound sends unless Billy explicitly says yes. `sending_enabled` stays false on every workspace. Do not register a cron that sends. Do not create a paid developer account and do not submit a store listing.
-
-Website pull requests stay unpublished until Billy says yes to publish:
-
-- [aiautotech#4](https://github.com/billyboy95/aiautotech/pull/4) — Publish week-1 guide topics as on-site resource articles
-- [aiautotech#5](https://github.com/billyboy95/aiautotech/pull/5) — Align public prices with the 27 Sep 2026 AIOS sheet
-
-This runbook does not publish the site.
+No ad spend, no purchases, and no outbound sends unless Billy explicitly says yes. `sending_enabled` stays false on every workspace. Do not register a cron that sends. Do not create a paid developer account and do not submit a store listing. The Vercel names, including `CRON_SECRET`, stay unset until that yes. Website pull requests [aiautotech#4](https://github.com/billyboy95/aiautotech/pull/4) and [aiautotech#5](https://github.com/billyboy95/aiautotech/pull/5) stay open until Billy says yes to publish. Do not merge them from this agent. This runbook does not publish the site.
 
 ## 1. Apply SQL steps 20 through 36
 
@@ -163,11 +185,11 @@ Also leave `AI_REPLY_CRON_ENABLED`, `E2B_API_KEY`, `BROWSERBASE_API_KEY`, and `C
 
 ## 4. Apply the Education pack
 
-After the SQL above is applied, sign in as an agency owner and use Apply Education pack to EASTC on `/agency`. That is step 3 of Phone-first unblock. Step 21 adds the function and does not apply the pack by itself. A `client_admin` cannot call it. Contacts, messages, secrets, and outbox rows are not copied.
+After the SQL above is applied, sign in as an agency owner and use Apply Education pack to EASTC on `/agency`. That is step 4 of Phone-first unblock. Step 21 adds the function and does not apply the pack by itself. A `client_admin` cannot call it. Contacts, messages, secrets, and outbox rows are not copied.
 
 ## 5. Zentrix pack
 
-Apply the Zentrix Online pack only after `ZENTRIX_WORKSPACE_PACK_ENABLED=true`, and only after step 29 is applied. That is step 3 of Phone-first unblock. While that flag is unset, the button stays fixture-only and does not store stubs. The pack does not call Shopify and does not turn sending on. This runbook does not set the flag.
+Apply the Zentrix Online pack only after `ZENTRIX_WORKSPACE_PACK_ENABLED=true`, and only after step 29 is applied. That is step 4 of Phone-first unblock. While that flag is unset, the button stays fixture-only and does not store stubs. The pack does not call Shopify and does not turn sending on. This runbook does not set the flag.
 
 ## 6. Owner Auth user, then owner SQL
 
@@ -175,14 +197,14 @@ Create the Auth user in the Supabase dashboard first (Authentication → Users).
 
 ## 7. Blockers Billy decides
 
-Names only. The ordered list is Phone-first unblock, step 4. This runbook does not supply the values.
+Names only. The phone checklist is Phone-first unblock, step 3 (Vercel → the CRM project → Settings → Environment Variables). Each name needs Billy’s yes before live use. This runbook does not supply secret values.
 
-- `CRON_SECRET`
-- `OWNER_EMAILS` = `billyfaber06@gmail.com`
-- Outbound channel keys: email (`RESEND_API_KEY` or SMTP), WhatsApp / Meta, and SMS
-- PayFast sandbox: `PAYFAST_MERCHANT_ID`, `PAYFAST_MERCHANT_KEY`, `PAYFAST_PASSPHRASE`, and `BILLING_SANDBOX`. Do not put a live merchant id in the environment. Also `SUPABASE_SERVICE_ROLE_KEY`
-- Gated Phase 5 flags stay unset until their SQL is applied and Billy is ready (section 3)
-- Website publish: [aiautotech#4](https://github.com/billyboy95/aiautotech/pull/4) and [aiautotech#5](https://github.com/billyboy95/aiautotech/pull/5) wait for Billy's explicit yes. This runbook does not publish the site.
+- `OWNER_EMAILS` = `billyfaber06@gmail.com` (owner auto-attach, PR #17)
+- `CRON_SECRET` (cron routes; leave unset until Billy says yes)
+- Sandbox billing only: `BILLING_SANDBOX`, `PAYFAST_MERCHANT_ID` = `10000100` (PayFast’s published sandbox merchant), `PAYFAST_MERCHANT_KEY`, `PAYFAST_PASSPHRASE`, and `SUPABASE_SERVICE_ROLE_KEY`. Do not invent the key, the passphrase, or the service-role key. Do not put a live merchant id in the environment.
+- Outbound channel keys are required before a real send. `sending_enabled` stays false until Billy says yes.
+- Gated Phase 5 flags stay unset until their SQL is applied (section 3, Leave flags unset until their SQL is applied). Command-centre panels stay paused until then.
+- Website publish: [aiautotech#4](https://github.com/billyboy95/aiautotech/pull/4) and [aiautotech#5](https://github.com/billyboy95/aiautotech/pull/5) wait for Billy’s explicit yes. Do not merge them from this agent. This runbook does not publish the site.
 
 ## 8. Sending stays off
 

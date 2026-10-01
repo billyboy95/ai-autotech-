@@ -125,7 +125,6 @@ test("the panel names the documented owner, shows the SQL, and does not claim st
       SETUP_WIZARD_ENABLED: "",
       CRON_SECRET: secret,
       SUPABASE_DB_URL: databaseUrl,
-      SUPABASE_SERVICE_ROLE_KEY: secret,
     } as NodeJS.ProcessEnv,
     tenantMode: "preview",
     authUser: "unread",
@@ -226,7 +225,7 @@ test("the panel names the documented owner, shows the SQL, and does not claim st
 test("owner bootstrap copy does not send, spend, create users, or turn flags on", () => {
   const files = [
     "src/lib/owner/bootstrap.ts",
-    "src/lib/owner/auth-lookup.ts",
+    "src/server/workers/owner-auth-status.ts",
     "src/app/actions/owner-bootstrap.ts",
     "src/app/command-centre/owner/page.tsx",
     "src/components/owner/owner-bootstrap-panel.tsx",

@@ -1,5 +1,5 @@
 import { OwnerNoteForm } from "@/components/owner/owner-note-form";
-import { loadDocumentedOwnerAuth } from "@/lib/owner/auth-lookup";
+import { loadDocumentedOwnerAuth } from "@/server/workers/owner-auth-status";
 import { buildOwnerBootstrap, type OwnerBootstrapModel } from "@/lib/owner/bootstrap";
 
 const tone: Record<string, string> = {

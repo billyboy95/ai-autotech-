@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { loadCommandData } from "@/lib/automation/page-data";
-import { loadDocumentedOwnerAuth } from "@/lib/owner/auth-lookup";
+import { loadDocumentedOwnerAuth } from "@/server/workers/owner-auth-status";
 import {
   FIXTURE_OWNER_COPY,
   SECRET_REFUSAL_COPY,

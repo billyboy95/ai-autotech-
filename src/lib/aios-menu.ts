@@ -11,6 +11,7 @@ export const AIOS_SECTIONS = [
       ["/command-centre/migrations", "Migrations"],
       ["/command-centre/owner", "Owner bootstrap"],
       ["/command-centre/ops-secrets", "Ops secrets"],
+      ["/command-centre/go-live", "Go-live checklist"],
       ["/command-centre/install", "Install"],
       ["/command-centre/connect-accounts", "Connect accounts"],
       ["/command-centre/import-contacts", "Import contacts"],

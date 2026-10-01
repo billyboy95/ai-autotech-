@@ -71,6 +71,9 @@ export function AgencyView({
             <Link href="/command-centre/ops-secrets" className="h-10 rounded-md border border-slate-200 px-3 text-sm font-semibold leading-10 text-[#0B1F3A]">
               Ops secrets
             </Link>
+            <Link href="/command-centre/go-live" className="h-10 rounded-md border border-slate-200 px-3 text-sm font-semibold leading-10 text-[#0B1F3A]">
+              Go-live checklist
+            </Link>
             <Link href="/command-centre/lead-agent" className="h-10 rounded-md border border-slate-200 px-3 text-sm font-semibold leading-10 text-[#0B1F3A]">
               Lead Agent
             </Link>

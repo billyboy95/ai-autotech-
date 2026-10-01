@@ -30,6 +30,7 @@ test("inbox, conversation AI, calendars, reviews, referrals, and public pages re
       MIGRATION_RUNNER_ENABLED: "",
       OWNER_BOOTSTRAP_UI_ENABLED: "",
       OPS_SECRETS_READY_ENABLED: "",
+      GOLIVE_CHECKLIST_ENABLED: "",
       RESEND_API_KEY: "",
       SMTP_HOST: "",
       SMTP_PASS: "",
@@ -177,6 +178,8 @@ test("inbox, conversation AI, calendars, reviews, referrals, and public pages re
     assert.match(setupHtml, /OWNER_BOOTSTRAP_UI_ENABLED/);
     assert.match(setupHtml, /OPS_SECRETS_READY_ENABLED/);
     assert.match(setupHtml, /Open ops secrets/);
+    assert.match(setupHtml, /\/command-centre\/go-live/);
+    assert.match(setupHtml, /Go-live checklist/);
     assert.match(setupHtml, /data-cron="fixture"/);
     assert.match(setupHtml, /data-registered="false"/);
     assert.match(setupHtml, /workflow-engine/);
@@ -243,6 +246,30 @@ test("inbox, conversation AI, calendars, reviews, referrals, and public pages re
     assert.equal(opsHtml.includes("sbp_"), false);
     assert.equal(opsHtml.includes("re_"), false);
 
+    const golive = await fetch(`http://127.0.0.1:${port}/command-centre/go-live`, { redirect: "manual" });
+    assert.equal(golive.status, 200);
+    const goliveHtml = await golive.text();
+    assert.match(goliveHtml, /Go-live checklist/);
+    assert.match(goliveHtml, /GOLIVE_CHECKLIST_ENABLED is unset/);
+    assert.match(goliveHtml, /data-write="false"/);
+    assert.match(goliveHtml, /data-migrations="fixture"/);
+    assert.match(goliveHtml, /data-sending="blocked"/);
+    assert.match(goliveHtml, /sending_enabled is OFF/);
+    assert.match(goliveHtml, /Blocked for go-live/);
+    assert.match(goliveHtml, /Education pack/);
+    assert.match(goliveHtml, /Do not click Apply/);
+    assert.match(goliveHtml, /ZENTRIX_WORKSPACE_PACK_ENABLED is unset/);
+    assert.match(goliveHtml, /PWA_INSTALL_SHELL_ENABLED is unset/);
+    assert.match(goliveHtml, /Step 36 is also unapplied/);
+    assert.match(goliveHtml, /The value is not shown/);
+    assert.match(goliveHtml, /\/command-centre\/migrations/);
+    assert.match(goliveHtml, /\/command-centre\/setup/);
+    assert.match(goliveHtml, /\/command-centre\/owner/);
+    assert.match(goliveHtml, /\/command-centre\/ops-secrets/);
+    assert.equal(goliveHtml.includes("sbp_"), false);
+    assert.equal(goliveHtml.includes("re_"), false);
+    assert.equal(goliveHtml.includes("Apply Education pack"), false);
+
     const leadAgent = await fetch(`http://127.0.0.1:${port}/command-centre/lead-agent`, { redirect: "manual" });
     assert.equal(leadAgent.status, 200);
     const leadHtml = await leadAgent.text();
@@ -280,6 +307,8 @@ test("inbox, conversation AI, calendars, reviews, referrals, and public pages re
     assert.match(homeHtml, /Open owner bootstrap/);
     assert.match(homeHtml, /Open ops secrets/);
     assert.match(homeHtml, /\/command-centre\/ops-secrets/);
+    assert.match(homeHtml, /\/command-centre\/go-live/);
+    assert.match(homeHtml, /Go-live checklist/);
     assert.match(homeHtml, /Open setup wizard/);
     assert.match(homeHtml, /Migration runner/);
     assert.match(homeHtml, /phase5l_migration_runner/);
@@ -550,6 +579,8 @@ test("inbox, conversation AI, calendars, reviews, referrals, and public pages re
     assert.match(agencyHtml, /data-cron="fixture"/);
     assert.match(agencyHtml, /data-registered="false"/);
     assert.match(agencyHtml, /Open ops secrets/);
+    assert.match(agencyHtml, /\/command-centre\/go-live/);
+    assert.match(agencyHtml, /Go-live checklist/);
     assert.match(agencyHtml, /Auth attach is fixture/);
     assert.match(agencyHtml, /OWNER_BOOTSTRAP_UI_ENABLED is unset/);
     assert.match(agencyHtml, /Open SQL editor/);

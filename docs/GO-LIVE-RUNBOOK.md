@@ -30,9 +30,38 @@ Run one file at a time, in this order:
 
 SQL editor: sign in again, open the project SQL editor, and paste each file once. The project ref already used in `docs/agency-owner-setup.md` is `fnysxlswzufdnlbhndxc`.
 
-CLI: the Supabase CLI reads `SUPABASE_ACCESS_TOKEN`. That value is a Personal Access Token from the Supabase account page (Access Tokens). A real token starts with `sbp_`. Billy supplies it. Do not commit it, and do not invent one. If the token is not available, use the SQL editor instead.
+CLI: use `scripts/apply-pending-migrations.mjs` (Phone or box, below). It reads `SUPABASE_ACCESS_TOKEN`. That value is a Personal Access Token from the Supabase account page (Access Tokens). A real token starts with `sbp_`. Billy supplies it. Do not commit it, and do not invent one. If the token is not available, use the SQL editor instead.
 
-Link the existing project, then run `db query` with the file flag once per file, in the order above. Do not push the whole migrations folder. A database URL Billy provides can be used the same way with `psql` and `ON_ERROR_STOP`. This page does not include either secret.
+Do not push the whole migrations folder. A database URL Billy provides can be used with `psql` and `ON_ERROR_STOP`, one file at a time, in the order above. This page does not include either secret.
+
+### Phone or box
+
+`scripts/apply-pending-migrations.mjs` applies steps 20 through 36 from this repo. It does not add a page under `/command-centre` or `/agency`. Dry-run is the default and sends no SQL.
+
+1. Open Supabase → Account → Access Tokens: https://supabase.com/dashboard/account/tokens. Create a Personal Access Token and copy it once. A real token starts with `sbp_`. If the box `SUPABASE_ACCESS_TOKEN` is a chat note or any other value that does not start with `sbp_`, replace it. Do not commit the token and do not paste it into chat.
+2. From the repo root, export the token and the project ref, then dry-run:
+
+```bash
+export SUPABASE_ACCESS_TOKEN='sbp_…'
+export SUPABASE_PROJECT_REF='fnysxlswzufdnlbhndxc'
+node scripts/apply-pending-migrations.mjs
+```
+
+The project ref is the one already named in `docs/agency-owner-setup.md`. `--project-ref` overrides the env var. `SUPABASE_PROJECT_ID` is also accepted, as is `NEXT_PUBLIC_SUPABASE_URL` when it is exactly `https://<ref>.supabase.co`.
+
+With no token, the dry-run lists steps 20–36, prints that `--apply` needs a token starting with `sbp_`, and exits 0. If a value is set and it is not an `sbp_` token, the script exits non-zero and applies nothing. The token is never printed.
+
+3. Apply in order. The script stops on the first failure and prints `Success` or `Fail` for each step:
+
+```bash
+node scripts/apply-pending-migrations.mjs --apply
+```
+
+The default transport is the Supabase Management API, `POST /v1/projects/{ref}/database/query`. No database password is required. `--via cli` runs `supabase db query --linked --file` when that command is on `PATH`. `--via auto` uses the CLI when `supabase db query` exists, and the Management API otherwise.
+
+Resume at the step that failed with `--from 21` (use the failed step number). Then run the schema reload in section 2.
+
+This script does not turn `sending_enabled` on, does not schedule a cron, and does not call Apply Education pack or the Zentrix pack.
 
 ## 2. Reload the API schema
 

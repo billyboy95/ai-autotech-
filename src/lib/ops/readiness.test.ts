@@ -48,6 +48,10 @@ test("ops readiness stays read-only and does not print secrets", () => {
   assert.equal(checks.find((check) => check.id === "sending")?.status, "ok");
   assert.equal(checks.find((check) => check.id === "pwa-install")?.status, "optional");
   assert.equal(checks.find((check) => check.id === "pwa-install")?.href, "/command-centre/install");
+  assert.equal(checks.find((check) => check.id === "setup-wizard")?.href, "/command-centre/setup");
+  assert.equal(checks.find((check) => check.id === "setup-wizard")?.hrefLabel, "Open setup wizard");
+  assert.match(text, /Step 32 is also unapplied/);
+  assert.match(text, /SETUP_WIZARD_ENABLED stays unset/);
 });
 
 test("a live agency owner claim and a present cron secret stay boolean", () => {

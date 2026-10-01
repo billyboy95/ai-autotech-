@@ -52,6 +52,9 @@ export function AgencyView({
             <p className="text-sm text-slate-500">{agency.location} · client workspaces stay separate</p>
           </div>
           <div className="flex flex-wrap gap-2">
+            <Link href="/command-centre/setup" className="h-10 rounded-md border border-slate-200 px-3 text-sm font-semibold leading-10 text-[#0B1F3A]">
+              Setup wizard
+            </Link>
             <Link href="/command-centre/lead-agent" className="h-10 rounded-md border border-slate-200 px-3 text-sm font-semibold leading-10 text-[#0B1F3A]">
               Lead Agent
             </Link>

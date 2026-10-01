@@ -26,6 +26,7 @@ test("inbox, conversation AI, calendars, reviews, referrals, and public pages re
       ZENTRIX_WORKSPACE_PACK_ENABLED: "",
       EAST_RAND_CAMPAIGN_SEED_ENABLED: "",
       PWA_INSTALL_SHELL_ENABLED: "",
+      SETUP_WIZARD_ENABLED: "",
       AUTOMATION_SEND_ENABLED: "",
       BILLING_SANDBOX: "",
       CRON_SECRET: "",
@@ -133,6 +134,24 @@ test("inbox, conversation AI, calendars, reviews, referrals, and public pages re
     const setupHtml = await setup.text();
     assert.match(setupHtml, /Lead Agent/);
     assert.match(setupHtml, /Clinic/);
+    assert.match(setupHtml, /Setup \/ go-live wizard/);
+    assert.match(setupHtml, /billyfaber06@gmail.com/);
+    assert.match(setupHtml, /phase4c_aios_pricing/);
+    assert.match(setupHtml, /phase5j_pwa_mobile_shell/);
+    assert.match(setupHtml, /Do not claim applied/);
+    assert.match(setupHtml, /CRON_SECRET/);
+    assert.match(setupHtml, /Missing/);
+    assert.match(setupHtml, /APPLY-ORDER\.md/);
+    assert.match(setupHtml, /SETUP_WIZARD_ENABLED/);
+    assert.match(setupHtml, /write: false/);
+    assert.match(setupHtml, /data-write="false"/);
+    assert.match(setupHtml, /\/command-centre\/connect-accounts\/whatsapp/);
+    assert.match(setupHtml, /Not connected/);
+    assert.match(setupHtml, /BILLING_SANDBOX/);
+    assert.match(setupHtml, /EAST_RAND_CAMPAIGN_SEED_ENABLED/);
+    assert.match(setupHtml, /ZENTRIX_WORKSPACE_PACK_ENABLED/);
+    assert.match(setupHtml, /PWA_INSTALL_SHELL_ENABLED/);
+    assert.match(setupHtml, /writes nothing/);
 
     const leadAgent = await fetch(`http://127.0.0.1:${port}/command-centre/lead-agent`, { redirect: "manual" });
     assert.equal(leadAgent.status, 200);
@@ -164,6 +183,9 @@ test("inbox, conversation AI, calendars, reviews, referrals, and public pages re
     assert.match(homeHtml, /ZENTRIX_WORKSPACE_PACK_ENABLED/);
     assert.match(homeHtml, /Step 30 is also unapplied/);
     assert.match(homeHtml, /Step 31 is also unapplied/);
+    assert.match(homeHtml, /Step 32 is also unapplied/);
+    assert.match(homeHtml, /Open setup wizard/);
+    assert.match(homeHtml, /\/command-centre\/setup/);
     assert.match(homeHtml, /PWA install/);
     assert.match(homeHtml, /Optional/);
     assert.match(homeHtml, /Not a go-live blocker/);
@@ -412,6 +434,9 @@ test("inbox, conversation AI, calendars, reviews, referrals, and public pages re
     assert.match(agencyHtml, /desj1r-ic/);
     assert.match(agencyHtml, /80ce1e-p8/);
     assert.match(agencyHtml, /\/command-centre\/lead-agent/);
+    assert.match(agencyHtml, /Open setup wizard/);
+    assert.match(agencyHtml, /\/command-centre\/setup/);
+    assert.match(agencyHtml, /Step 32 is also unapplied/);
     const eastcSettings = await (await fetch(`http://127.0.0.1:${port}/agency/eastc/settings`, { redirect: "manual" })).text();
     assert.match(eastcSettings, /Apply Education pack to EASTC/);
     assert.equal(eastcSettings.includes("Apply Zentrix pack to Zentrix Online"), false);

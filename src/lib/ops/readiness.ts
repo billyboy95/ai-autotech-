@@ -69,7 +69,7 @@ export function buildOpsReadiness(input: OpsReadinessInput): OpsCheck[] {
       label: "Supabase migrations",
       status: "pending",
       detail:
-        "Steps 20 through 29 are still unapplied. Step 30 is also unapplied. Step 31 is also unapplied. Do not claim this SQL is applied. Paste each file from supabase/APPLY-ORDER.md after Billy re-authenticates Supabase.",
+        "Steps 20 through 29 are still unapplied. Step 30 is also unapplied. Step 31 is also unapplied. Step 32 is also unapplied. Do not claim this SQL is applied. Paste each file from supabase/APPLY-ORDER.md after Billy re-authenticates Supabase.",
     },
     {
       id: "agency-owner",
@@ -132,6 +132,15 @@ export function buildOpsReadiness(input: OpsReadinessInput): OpsCheck[] {
         : "Optional. Not a go-live blocker. Browser install only. No store listing is live. PWA_INSTALL_SHELL_ENABLED is unset, so the install page stays fixture-only and writes nothing.",
       href: "/command-centre/install",
       hrefLabel: "Install AIOS on your phone",
+    },
+    {
+      id: "setup-wizard",
+      label: "Setup wizard",
+      status: "pending",
+      detail:
+        "The setup / go-live wizard lists steps 20 through 31, owner attach, CRON_SECRET, channels, PayFast, and the phase 5 flags. SETUP_WIZARD_ENABLED stays unset. This checklist does not write.",
+      href: "/command-centre/setup",
+      hrefLabel: "Open setup wizard",
     },
   ];
 }

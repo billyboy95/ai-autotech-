@@ -18,6 +18,11 @@ export function OpsReadinessPanel({ checks }: { checks: OpsCheck[] }) {
         <p className="mt-1 text-sm text-slate-700">
           Read-only checklist. It does not write secrets, call Vercel, send a message, or spend money. sending_enabled stays false.
         </p>
+        <p className="mt-2">
+          <Link href="/command-centre/setup" className="font-semibold text-[#2563EB]">
+            Open setup wizard
+          </Link>
+        </p>
       </div>
       <ul className="grid gap-2">
         {checks.map((check) => (

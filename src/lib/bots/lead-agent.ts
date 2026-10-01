@@ -14,6 +14,7 @@ const EXTRA_PHRASES: Record<string, string[]> = {
   "/command-centre/assistant": ["assistant"],
   "/command-centre/setup": ["setup", "set up"],
   "/command-centre/migrations": ["migrations", "pending sql"],
+  "/command-centre/owner": ["owner bootstrap", "owner attach"],
   "/command-centre/install": ["install", "install aios"],
   "/command-centre/connect-accounts": ["connect accounts"],
   "/command-centre/import-contacts": ["import contacts"],

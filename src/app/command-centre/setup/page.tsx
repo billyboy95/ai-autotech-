@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { SetupInterview } from "@/components/bots/setup-interview";
 import { SetupReady } from "@/components/bots/setup-ready";
+import { OwnerBootstrapPanel } from "@/components/owner/owner-bootstrap-panel";
 import { GoLiveWizard } from "@/components/setup/go-live-wizard";
 import { CommandShell } from "@/components/crm/command-shell";
 import { loadCommandData } from "@/lib/automation/page-data";
@@ -38,6 +39,7 @@ export default async function SetupPage({
     <CommandShell setupError={workspace.setupError} sendingEnabled={sendingEnabled} requestedSlug={params.org}>
       <div className="grid gap-6">
         <GoLiveWizard model={wizard} orgSlug={tenant.active.slug} />
+        <OwnerBootstrapPanel tenantMode={tenant.mode} orgSlug={tenant.active.slug} />
         {ready ? (
           <SetupReady orgSlug={tenant.active.slug} teamSlug={params.team || ""} notice={params.notice} />
         ) : (

@@ -62,6 +62,7 @@ export const PHASE5_FLAGS = [
   { key: "SETUP_WIZARD_ENABLED", step: 32, purpose: "This setup wizard" },
   { key: "MIGRATION_RUNNER_ENABLED", step: 33, purpose: "Pending SQL migration runner" },
   { key: "OWNER_BOOTSTRAP_UI_ENABLED", step: 34, purpose: "Owner bootstrap attach notes" },
+  { key: "OPS_SECRETS_READY_ENABLED", step: 35, purpose: "Ops secrets readiness notes" },
 ] as const;
 
 export const CHANNEL_LINKS = [
@@ -224,7 +225,7 @@ function sqlItem(): WizardItem {
     label: "Supabase SQL steps 20–31",
     status: "pending",
     detail:
-      "Steps 20 through 31 are pending. Step 32 is also unapplied. Step 33 is also unapplied. Step 34 is also unapplied. Do not claim this SQL is applied. Paste supabase/APPLY-ORDER.md in order after re-authenticating the Supabase SQL editor. This page does not apply SQL and does not ask for a database URL.",
+      "Steps 20 through 31 are pending. Step 32 is also unapplied. Step 33 is also unapplied. Step 34 is also unapplied. Step 35 is also unapplied. Do not claim this SQL is applied. Paste supabase/APPLY-ORDER.md in order after re-authenticating the Supabase SQL editor. This page does not apply SQL and does not ask for a database URL.",
   };
 }
 
@@ -312,7 +313,7 @@ function flagItem(flags: SetupFlagRow[]): WizardItem {
     order: 8,
     label: "Phase 5 flags",
     status: "leave_unset",
-    detail: `${lines} EAST_RAND_CAMPAIGN_SEED_ENABLED, ZENTRIX_WORKSPACE_PACK_ENABLED, and PWA_INSTALL_SHELL_ENABLED stay unset. sending_enabled stays false.`,
+    detail: `${lines} EAST_RAND_CAMPAIGN_SEED_ENABLED, ZENTRIX_WORKSPACE_PACK_ENABLED, PWA_INSTALL_SHELL_ENABLED, and OPS_SECRETS_READY_ENABLED stay unset. sending_enabled stays false.`,
   };
 }
 

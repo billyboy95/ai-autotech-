@@ -43,7 +43,8 @@ export function GoLiveWizard({ model, orgSlug }: { model: SetupWizardModel; orgS
         <h2 className="font-display text-lg font-bold text-[#0B1F3A]">Copy helper</h2>
         <p className="mt-2 text-sm text-slate-700">{model.paste}</p>
         <p className="mt-2 text-sm text-slate-700">
-          Step 32 is also unapplied. Set SETUP_WIZARD_ENABLED to the string true only after that file is applied. Do not turn on East Rand seed, the Zentrix pack, or the PWA write flag from this page. Step 33 is also unapplied. Leave MIGRATION_RUNNER_ENABLED unset. The migration runner does not apply SQL. Step 34 is also unapplied. Leave OWNER_BOOTSTRAP_UI_ENABLED unset. The owner bootstrap panel does not create an Auth user and does not run owner-bootstrap.sql.
+          Step 32 is also unapplied. Set SETUP_WIZARD_ENABLED to the string true only after that file is applied. Do not turn on East Rand seed, the Zentrix pack, or the PWA write flag from this page. Step 33 is also unapplied. Leave MIGRATION_RUNNER_ENABLED unset. The migration runner does not apply SQL. Step 34 is also unapplied. Leave OWNER_BOOTSTRAP_UI_ENABLED unset. The owner bootstrap panel does not create an Auth user and does not run owner-bootstrap.sql. Step 35 is also unapplied. Leave OPS_SECRETS_READY_ENABLED unset. The ops secrets panel stores presence only and does not register a cron.{" "}
+          <Link href="/command-centre/ops-secrets" className="font-semibold text-[#2563EB]">Open ops secrets</Link>
         </p>
       </div>
 

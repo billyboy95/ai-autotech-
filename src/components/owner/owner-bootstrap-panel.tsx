@@ -65,7 +65,7 @@ export function OwnerBootstrapView({ model, orgSlug }: { model: OwnerBootstrapMo
       <div>
         <h3 className="font-display text-base font-bold text-[#0B1F3A]">owner-bootstrap.sql</h3>
         <p className="mt-1 text-sm text-slate-700">
-          Read-only copy from {model.sqlFile}. Checksum {model.checksum}. Paste it in the SQL editor after the Auth user exists. Steps 20 through 33 are not applied. Step 34 is also unapplied.
+          Read-only copy from {model.sqlFile}. Checksum {model.checksum}. Paste it in the SQL editor after the Auth user exists. Steps 20 through 33 are not applied. Step 34 is also unapplied. Step 35 is also unapplied.
         </p>
         <p className="mt-2 flex flex-wrap gap-3 text-sm">
           <a href={model.authUsersUrl} className="font-semibold text-[#2563EB]" rel="noreferrer" target="_blank">

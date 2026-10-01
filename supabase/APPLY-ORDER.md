@@ -5,7 +5,16 @@ The command centre still reports that `public.crm_lead_activity` is missing.
 Paste each file into the Supabase SQL editor and run it once, in this order only.
 Do not sort the folder by filename. Two timestamps are shared, and filename order applies `phase2a_access` before `send_compliance` and `agency_tenancy` before `crm_automation`.
 
-These files are additive. They do not delete existing leads. Do not turn sending on while applying them. The operator sequence for steps 20 through 36 is `docs/GO-LIVE-RUNBOOK.md`.
+These files are additive. They do not delete existing leads. Do not turn sending on while applying them. The operator sequence for steps 20 through 36 is the phone-first unblock in `docs/GO-LIVE-RUNBOOK.md`.
+
+The secret named `SUPABASE_ACCESS_TOKEN` on the box and in Vercel is still a chat note. Replace it with a Personal Access Token from Account → Access Tokens. A real token starts with `sbp_`. Do not paste the token into git, a pull request, or this file. Then, from the repo root, dry-run and apply with `SUPABASE_PROJECT_REF=fnysxlswzufdnlbhndxc`:
+
+```bash
+node scripts/apply-pending-migrations.mjs
+node scripts/apply-pending-migrations.mjs --apply
+```
+
+The script stops on the first failure. The Management API path does not need `SUPABASE_DB_URL` or a database password. Steps 20 through 36 stay unapplied until that apply prints Success. After Success, run `NOTIFY pgrst, 'reload schema';`, then Apply Education pack as an agency owner. Apply the Zentrix pack only once `ZENTRIX_WORKSPACE_PACK_ENABLED` is the string `true`.
 
 ## Already live
 
@@ -56,7 +65,7 @@ PR #3 is merged. Its files are on `main` and are still unapplied. Run them after
 35. `supabase/migrations/20261110120000_phase5n_ops_secrets_ready.sql`
 36. `supabase/migrations/20261111120000_phase5o_golive_checklist.sql`
 
-Steps 20 through 29 are still unapplied. Step 30 is also unapplied. Step 31 is also unapplied. Step 32 is also unapplied. Step 33 is also unapplied. Step 34 is also unapplied. Step 35 is also unapplied. Step 36 is also unapplied. After Billy re-authenticates Supabase, run step 20, then 21, and on through step 29, then step 30, then step 31, then step 32, then step 33, then step 34, then step 35, then step 36. Do not claim this SQL is already applied. Then sign in as an agency owner and use Apply Education pack to EASTC on `/agency`. Apply the Zentrix Online pack later, after `ZENTRIX_WORKSPACE_PACK_ENABLED` is the string `true`. The East Rand sandbox seed stays fixture-only until `EAST_RAND_CAMPAIGN_SEED_ENABLED` is the string `true`. PWA install is optional and is not a go-live blocker. Leave `PWA_INSTALL_SHELL_ENABLED` unset until step 31 is applied. Leave `SETUP_WIZARD_ENABLED` unset until step 32 is applied. Leave `MIGRATION_RUNNER_ENABLED` unset until step 33 is applied. The migration runner lists steps 20 through 33 as pending until verified and does not apply SQL. Leave `OWNER_BOOTSTRAP_UI_ENABLED` unset until step 34 is applied. The owner bootstrap panel does not create an Auth user and does not run `supabase/owner-bootstrap.sql`. Leave `OPS_SECRETS_READY_ENABLED` unset until step 35 is applied. The ops secrets panel stores presence only and does not register a cron. Leave `GOLIVE_CHECKLIST_ENABLED` unset until step 36 is applied. The go-live checklist stores pending, ready, blocked, or fixture only and does not run SQL. Do not turn sending on. Do not create a store account and do not submit a listing.
+Steps 20 through 29 are still unapplied. Step 30 is also unapplied. Step 31 is also unapplied. Step 32 is also unapplied. Step 33 is also unapplied. Step 34 is also unapplied. Step 35 is also unapplied. Step 36 is also unapplied. After the phone-first token replace in `docs/GO-LIVE-RUNBOOK.md`, run step 20, then 21, and on through step 29, then step 30, then step 31, then step 32, then step 33, then step 34, then step 35, then step 36. Do not claim this SQL is already applied. Then sign in as an agency owner and use Apply Education pack to EASTC on `/agency`. Apply the Zentrix Online pack later, after `ZENTRIX_WORKSPACE_PACK_ENABLED` is the string `true`. The East Rand sandbox seed stays fixture-only until `EAST_RAND_CAMPAIGN_SEED_ENABLED` is the string `true`. PWA install is optional and is not a go-live blocker. Leave `PWA_INSTALL_SHELL_ENABLED` unset until step 31 is applied. Leave `SETUP_WIZARD_ENABLED` unset until step 32 is applied. Leave `MIGRATION_RUNNER_ENABLED` unset until step 33 is applied. The migration runner lists steps 20 through 33 as pending until verified and does not apply SQL. Leave `OWNER_BOOTSTRAP_UI_ENABLED` unset until step 34 is applied. The owner bootstrap panel does not create an Auth user and does not run `supabase/owner-bootstrap.sql`. Leave `OPS_SECRETS_READY_ENABLED` unset until step 35 is applied. The ops secrets panel stores presence only and does not register a cron. Leave `GOLIVE_CHECKLIST_ENABLED` unset until step 36 is applied. The go-live checklist stores pending, ready, blocked, or fixture only and does not run SQL. Do not turn sending on. Do not create a store account and do not submit a listing.
 
 ## Flags left unset (steps 20–36)
 

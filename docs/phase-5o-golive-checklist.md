@@ -54,7 +54,7 @@ This is step 36 in `supabase/APPLY-ORDER.md`, after step 35:
 
 `supabase/migrations/20261111120000_phase5o_golive_checklist.sql`
 
-Steps 20 through 35 are still unapplied. Step 36 is also unapplied. After Billy re-authenticates Supabase, run steps 20 through 35, then step 36. Do not claim this SQL is already applied.
+Steps 20 through 35 are still unapplied. Step 36 is also unapplied. After Billy re-authenticates Supabase, run steps 20 through 35, then step 36. Do not claim this SQL is already applied. The operator sequence (SQL editor or CLI, schema reload, flags, packs, owner SQL, and the decisions Billy still has to make) is `docs/GO-LIVE-RUNBOOK.md`. This page does not apply that sequence.
 
 Apply it after step 35. Do not run it until `SUPABASE_DB_URL` is available. It does not turn sending on. It does not register a cron.
 

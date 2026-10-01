@@ -5,7 +5,7 @@ The command centre still reports that `public.crm_lead_activity` is missing.
 Paste each file into the Supabase SQL editor and run it once, in this order only.
 Do not sort the folder by filename. Two timestamps are shared, and filename order applies `phase2a_access` before `send_compliance` and `agency_tenancy` before `crm_automation`.
 
-These files are additive. They do not delete existing leads. Do not turn sending on while applying them.
+These files are additive. They do not delete existing leads. Do not turn sending on while applying them. The operator sequence for steps 20 through 36 is `docs/GO-LIVE-RUNBOOK.md`.
 
 ## Already live
 
@@ -57,6 +57,30 @@ PR #3 is merged. Its files are on `main` and are still unapplied. Run them after
 36. `supabase/migrations/20261111120000_phase5o_golive_checklist.sql`
 
 Steps 20 through 29 are still unapplied. Step 30 is also unapplied. Step 31 is also unapplied. Step 32 is also unapplied. Step 33 is also unapplied. Step 34 is also unapplied. Step 35 is also unapplied. Step 36 is also unapplied. After Billy re-authenticates Supabase, run step 20, then 21, and on through step 29, then step 30, then step 31, then step 32, then step 33, then step 34, then step 35, then step 36. Do not claim this SQL is already applied. Then sign in as an agency owner and use Apply Education pack to EASTC on `/agency`. Apply the Zentrix Online pack later, after `ZENTRIX_WORKSPACE_PACK_ENABLED` is the string `true`. The East Rand sandbox seed stays fixture-only until `EAST_RAND_CAMPAIGN_SEED_ENABLED` is the string `true`. PWA install is optional and is not a go-live blocker. Leave `PWA_INSTALL_SHELL_ENABLED` unset until step 31 is applied. Leave `SETUP_WIZARD_ENABLED` unset until step 32 is applied. Leave `MIGRATION_RUNNER_ENABLED` unset until step 33 is applied. The migration runner lists steps 20 through 33 as pending until verified and does not apply SQL. Leave `OWNER_BOOTSTRAP_UI_ENABLED` unset until step 34 is applied. The owner bootstrap panel does not create an Auth user and does not run `supabase/owner-bootstrap.sql`. Leave `OPS_SECRETS_READY_ENABLED` unset until step 35 is applied. The ops secrets panel stores presence only and does not register a cron. Leave `GOLIVE_CHECKLIST_ENABLED` unset until step 36 is applied. The go-live checklist stores pending, ready, blocked, or fixture only and does not run SQL. Do not turn sending on. Do not create a store account and do not submit a listing.
+
+## Flags left unset (steps 20–36)
+
+Each row copies the leave-unset comment at the top of that migration. Unset, blank, or any value other than the string `true` keeps the matching page fixture-only. Setting a flag does not apply SQL and does not turn `sending_enabled` on. Steps 22 through 28 do not name an env flag in the SQL header. Their apply notes, in the list below, still leave the named flags unset until that file is applied.
+
+| Step | Migration | Leave unset |
+|---|---|---|
+| 20 | `phase4c_aios_pricing` | `AI_REPLY_CRON_ENABLED` |
+| 21 | `phase4d_eastc_education` | `AI_REPLY_CRON_ENABLED` |
+| 22 | `phase5a_agent_computers` | Header names no env flag. Apply note: `E2B_API_KEY`, `BROWSERBASE_API_KEY`, `COMPUTER_PROVIDER_ENABLED`, `AI_REPLY_CRON_ENABLED` |
+| 23 | `phase5b_lead_onboarding` | Header names no env flag. Apply note: `AI_REPLY_CRON_ENABLED`, `E2B_API_KEY`, `BROWSERBASE_API_KEY`, `COMPUTER_PROVIDER_ENABLED` |
+| 24 | `phase5c_connect_import` | Header names no env flag. Apply note: `AI_REPLY_CRON_ENABLED`, `CRON_SECRET`, `E2B_API_KEY`, `BROWSERBASE_API_KEY`, `COMPUTER_PROVIDER_ENABLED` |
+| 25 | `phase5d_home_chat` | Header names no env flag. Apply note: `HOME_CHAT_ENABLED` until this file is applied; also `AI_REPLY_CRON_ENABLED`, `CRON_SECRET`, `E2B_API_KEY`, `BROWSERBASE_API_KEY`, `COMPUTER_PROVIDER_ENABLED` |
+| 26 | `phase5e_campaign_dry_run` | Header names no env flag. Apply note: `CAMPAIGN_DRY_RUN_ENABLED` and `META_CONNECT_STUB_ENABLED` until this file is applied |
+| 27 | `phase5f_campaign_csv_channels` | Header names no env flag. Apply note: `CAMPAIGN_CSV_IMPORT_ENABLED` and `EMAIL_SMS_CONNECT_STUB_ENABLED` until this file is applied |
+| 28 | `phase5g_social_drafts` | Header names no env flag. Apply note: `SOCIAL_DRAFTS_ENABLED` and `TIKTOK_LINKEDIN_CONNECT_STUB_ENABLED` until this file is applied |
+| 29 | `phase5h_zentrix_workspace_pack` | `ZENTRIX_WORKSPACE_PACK_ENABLED` until this file is applied. `AI_REPLY_CRON_ENABLED` |
+| 30 | `phase5i_campaign_seed_ops` | `EAST_RAND_CAMPAIGN_SEED_ENABLED` until this file is applied. `AI_REPLY_CRON_ENABLED` |
+| 31 | `phase5j_pwa_mobile_shell` | `PWA_INSTALL_SHELL_ENABLED` until this file is applied. `AI_REPLY_CRON_ENABLED` |
+| 32 | `phase5k_setup_wizard` | `SETUP_WIZARD_ENABLED` until this file is applied. `AI_REPLY_CRON_ENABLED` |
+| 33 | `phase5l_migration_runner` | `MIGRATION_RUNNER_ENABLED` until this file is applied. `SETUP_WIZARD_ENABLED` and the earlier phase 5 flags. `AI_REPLY_CRON_ENABLED` |
+| 34 | `phase5m_owner_bootstrap` | `OWNER_BOOTSTRAP_UI_ENABLED` until this file is applied. `MIGRATION_RUNNER_ENABLED`, `SETUP_WIZARD_ENABLED`, and the earlier phase 5 flags. `AI_REPLY_CRON_ENABLED` |
+| 35 | `phase5n_ops_secrets_ready` | `OPS_SECRETS_READY_ENABLED` until this file is applied. `MIGRATION_RUNNER_ENABLED`, `SETUP_WIZARD_ENABLED`, `OWNER_BOOTSTRAP_UI_ENABLED`, and the earlier phase 5 flags. `AI_REPLY_CRON_ENABLED` |
+| 36 | `phase5o_golive_checklist` | `GOLIVE_CHECKLIST_ENABLED` until this file is applied. `MIGRATION_RUNNER_ENABLED`, `SETUP_WIZARD_ENABLED`, `OWNER_BOOTSTRAP_UI_ENABLED`, `OPS_SECRETS_READY_ENABLED`, and the earlier phase 5 flags. `AI_REPLY_CRON_ENABLED`, `ZENTRIX_WORKSPACE_PACK_ENABLED`, `EAST_RAND_CAMPAIGN_SEED_ENABLED`, and `PWA_INSTALL_SHELL_ENABLED` |
 
 Why this order:
 

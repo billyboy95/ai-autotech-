@@ -23,7 +23,8 @@ With the flag unset, the panel uses the fixture and does not write. With the fla
 
 `/agency` and `/command-centre` show a read-only checklist:
 
-- Steps 20 through 29 are still unapplied. Step 30 is also unapplied. The page does not claim the SQL is applied.
+- Steps 20 through 29 are still unapplied. Step 30 is also unapplied. Step 31 is also unapplied. The page does not claim the SQL is applied.
+- PWA install is optional. It is not a go-live blocker and it does not say needs Billy. No store listing is live. See `docs/phase-5j-pwa-mobile-shell.md`.
 - Whether the current user has `agency_owner` on `ai-autotech`. `OWNER_EMAILS` is reported as set or unset. The address list is not shown.
 - `CRON_SECRET` is present or missing. The value is not shown. A missing secret says needs Billy.
 - Meta, SMS, and email keys say needs Billy. The checklist does not read those values.
@@ -58,7 +59,7 @@ This is step 30 in `supabase/APPLY-ORDER.md`, after step 29:
 
 `supabase/migrations/20261105120000_phase5i_campaign_seed_ops.sql`
 
-Steps 20 through 30 are still unapplied. After Billy re-authenticates Supabase, run steps 20 through 29, then step 30. Do not claim this SQL is already applied.
+Steps 20 through 30 are still unapplied. Step 31 is also unapplied. After Billy re-authenticates Supabase, run steps 20 through 29, then step 30, then step 31. Do not claim this SQL is already applied.
 
 Apply it after step 29. Do not run it until `SUPABASE_DB_URL` is available. It does not turn sending on. It does not schedule a cron.
 
@@ -66,6 +67,6 @@ Apply it after step 29. Do not run it until `SUPABASE_DB_URL` is available. It d
 
 With Supabase keys empty, open `/command-centre/campaigns`. The East Rand sandbox seed shows sandbox rows, a missing-consent skip, a POPIA block, and a STOP block. Load sandbox seed does not queue. Send now and Go live are refused. The page names `EAST_RAND_CAMPAIGN_SEED_ENABLED`.
 
-Open `/agency` and `/command-centre`. Both show Ops readiness, steps 20 through 29, `sending_enabled`, `CRON_SECRET`, `BILLING_SANDBOX`, and `ZENTRIX_WORKSPACE_PACK_ENABLED`. Channel keys say needs Billy.
+Open `/agency` and `/command-centre`. Both show Ops readiness, steps 20 through 29, `sending_enabled`, `CRON_SECRET`, `BILLING_SANDBOX`, and `ZENTRIX_WORKSPACE_PACK_ENABLED`. Channel keys say needs Billy. Step 30 is also unapplied. Step 31 is also unapplied. PWA install is optional and is not a Billy blocker.
 
 With Supabase keys set and no session, `/command-centre/campaigns`, `/command-centre`, and `/agency` redirect to `/login`.

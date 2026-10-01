@@ -6,6 +6,7 @@ const tone: Record<OpsCheck["status"], string> = {
   blocked: "bg-rose-50 text-rose-950",
   needs_billy: "bg-amber-50 text-amber-950",
   pending: "bg-slate-100 text-slate-700",
+  optional: "bg-sky-50 text-sky-950",
 };
 
 export function OpsReadinessPanel({ checks }: { checks: OpsCheck[] }) {

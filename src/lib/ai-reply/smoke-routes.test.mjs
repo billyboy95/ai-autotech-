@@ -25,6 +25,7 @@ test("inbox, conversation AI, calendars, reviews, referrals, and public pages re
       TIKTOK_LINKEDIN_CONNECT_STUB_ENABLED: "",
       ZENTRIX_WORKSPACE_PACK_ENABLED: "",
       EAST_RAND_CAMPAIGN_SEED_ENABLED: "",
+      PWA_INSTALL_SHELL_ENABLED: "",
       AUTOMATION_SEND_ENABLED: "",
       BILLING_SANDBOX: "",
       CRON_SECRET: "",
@@ -161,6 +162,11 @@ test("inbox, conversation AI, calendars, reviews, referrals, and public pages re
     assert.match(homeHtml, /Needs Billy/);
     assert.match(homeHtml, /BILLING_SANDBOX/);
     assert.match(homeHtml, /ZENTRIX_WORKSPACE_PACK_ENABLED/);
+    assert.match(homeHtml, /Step 30 is also unapplied/);
+    assert.match(homeHtml, /Step 31 is also unapplied/);
+    assert.match(homeHtml, /PWA install/);
+    assert.match(homeHtml, /Optional/);
+    assert.match(homeHtml, /Not a go-live blocker/);
     assert.doesNotMatch(homeHtml, /start with (these )?(3|three)/i);
 
     const assistant = await fetch(`http://127.0.0.1:${port}/command-centre/assistant`, { redirect: "manual" });
@@ -399,6 +405,9 @@ test("inbox, conversation AI, calendars, reviews, referrals, and public pages re
     assert.match(agencyHtml, /Apply Education pack to EASTC/);
     assert.match(agencyHtml, /Apply Zentrix pack to Zentrix Online/);
     assert.match(agencyHtml, /ZENTRIX_WORKSPACE_PACK_ENABLED/);
+    assert.match(agencyHtml, /PWA install/);
+    assert.match(agencyHtml, /Optional/);
+    assert.match(agencyHtml, /Not a go-live blocker/);
     assert.match(agencyHtml, /w1y2f0-rk/);
     assert.match(agencyHtml, /desj1r-ic/);
     assert.match(agencyHtml, /80ce1e-p8/);
@@ -412,6 +421,42 @@ test("inbox, conversation AI, calendars, reviews, referrals, and public pages re
     assert.match(zentrixSettings, /Priority/);
     assert.match(zentrixSettings, /QA \/ reference/);
     assert.match(zentrixSettings, /Nothing is posted/);
+    const install = await fetch(`http://127.0.0.1:${port}/command-centre/install`, { redirect: "manual" });
+    assert.equal(install.status, 200);
+    const installHtml = await install.text();
+    assert.match(installHtml, /Install AIOS on your phone/);
+    assert.match(installHtml, /iOS Safari/);
+    assert.match(installHtml, /Add to Home Screen/);
+    assert.match(installHtml, /Android Chrome/);
+    assert.match(installHtml, /Add to Home screen/);
+    assert.match(installHtml, /Windows/);
+    assert.match(installHtml, /PWA/);
+    assert.match(installHtml, /No store listing is live/);
+    assert.match(installHtml, /PWA_INSTALL_SHELL_ENABLED/);
+    assert.match(installHtml, /Fixture only/);
+    assert.match(installHtml, /does not write an install event/);
+    assert.match(installHtml, /apple-mobile-web-app-capable|mobile-web-app-capable/);
+    assert.doesNotMatch(installHtml, /listing is now live|Get it on Google Play|Download on the App Store/i);
+
+    const settingsPage = await fetch(`http://127.0.0.1:${port}/command-centre/settings`, { redirect: "manual" });
+    assert.equal(settingsPage.status, 200);
+    const settingsPageHtml = await settingsPage.text();
+    assert.match(settingsPageHtml, /Install AIOS on your phone/);
+    assert.match(settingsPageHtml, /Open install steps/);
+
+    const manifest = await fetch(`http://127.0.0.1:${port}/manifest.webmanifest`, { redirect: "manual" });
+    assert.equal(manifest.status, 200);
+    const manifestJson = await manifest.json();
+    assert.equal(manifestJson.name, "AI AutoTech / AIOS");
+    assert.equal(manifestJson.short_name, "AIOS");
+    assert.equal(manifestJson.start_url, "/command-centre");
+    assert.equal(manifestJson.display, "standalone");
+    assert.equal(manifestJson.theme_color, "#0B1F3A");
+    assert.equal(manifestJson.prefer_related_applications, false);
+
+    const icon = await fetch(`http://127.0.0.1:${port}/icons/aios-192.png`, { redirect: "manual" });
+    assert.equal(icon.status, 200);
+
     const snapshotsHtml = await (await fetch(`http://127.0.0.1:${port}/agency/snapshots`, { redirect: "manual" })).text();
     assert.match(snapshotsHtml, /existing EASTC workspace/);
   } finally {

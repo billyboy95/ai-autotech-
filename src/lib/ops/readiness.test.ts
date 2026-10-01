@@ -17,10 +17,12 @@ test("ops readiness stays read-only and does not print secrets", () => {
     billingSandbox: false,
     payfastMerchant: "refused",
     zentrixPackEnabled: false,
+    pwaInstallEnabled: false,
   });
   const text = checks.map((check) => `${check.label} ${check.detail} ${check.hrefLabel ?? ""}`).join("\n");
   assert.match(text, /Steps 20 through 29 are still unapplied/);
   assert.match(text, /Step 30 is also unapplied/);
+  assert.match(text, /Step 31 is also unapplied/);
   assert.match(text, /Do not claim this SQL is applied/);
   assert.match(text, /not a live agency_owner claim on ai-autotech/);
   assert.match(text, /OWNER_EMAILS is set on the server/);
@@ -33,6 +35,10 @@ test("ops readiness stays read-only and does not print secrets", () => {
   assert.match(text, /The id is not shown/);
   assert.match(text, /Apply Education pack to EASTC/);
   assert.match(text, /ZENTRIX_WORKSPACE_PACK_ENABLED/);
+  assert.match(text, /Optional\. Not a go-live blocker/);
+  assert.match(text, /No store listing is live/);
+  assert.match(text, /PWA_INSTALL_SHELL_ENABLED is unset/);
+  assert.match(text, /writes nothing/);
   assert.equal(text.includes(secret), false);
   assert.equal(text.includes(merchant), false);
   assert.equal(text.includes("@"), false);
@@ -40,6 +46,8 @@ test("ops readiness stays read-only and does not print secrets", () => {
   assert.equal(checks.find((check) => check.id === "zentrix-pack")?.href, "/agency#zentrix-pack");
   assert.equal(checks.find((check) => check.id === "channel-keys")?.status, "needs_billy");
   assert.equal(checks.find((check) => check.id === "sending")?.status, "ok");
+  assert.equal(checks.find((check) => check.id === "pwa-install")?.status, "optional");
+  assert.equal(checks.find((check) => check.id === "pwa-install")?.href, "/command-centre/install");
 });
 
 test("a live agency owner claim and a present cron secret stay boolean", () => {
@@ -59,11 +67,14 @@ test("a live agency owner claim and a present cron secret stay boolean", () => {
     billingSandbox: true,
     payfastMerchant: "sandbox",
     zentrixPackEnabled: false,
+    pwaInstallEnabled: true,
   });
   const text = checks.map((check) => check.detail).join("\n");
   assert.match(text, /Current user has agency_owner on ai-autotech/);
   assert.match(text, /CRON_SECRET is present/);
   assert.match(text, /BILLING_SANDBOX is true/);
+  assert.match(text, /PWA_INSTALL_SHELL_ENABLED is the string true/);
+  assert.equal(checks.find((check) => check.id === "pwa-install")?.status, "optional");
   assert.equal(text.includes(secret), false);
   assert.equal(checks.find((check) => check.id === "sending")?.status, "ok");
 
@@ -76,6 +87,7 @@ test("a live agency owner claim and a present cron secret stay boolean", () => {
     billingSandbox: false,
     payfastMerchant: "unset",
     zentrixPackEnabled: true,
+    pwaInstallEnabled: false,
   });
   assert.equal(blocked.find((check) => check.id === "agency-owner")?.status, "blocked");
   assert.equal(blocked.find((check) => check.id === "sending")?.status, "blocked");

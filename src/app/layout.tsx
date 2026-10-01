@@ -1,7 +1,8 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Montserrat, Poppins } from "next/font/google";
 import Script from "next/script";
 import { resolveRequestBrand } from "@/lib/brand/request";
+import { PWA_THEME_COLOR } from "@/lib/pwa/manifest";
 import "./globals.css";
 
 const montserrat = Montserrat({
@@ -16,7 +17,38 @@ const poppins = Poppins({
   weight: ["400", "500", "600", "700"],
 });
 
+export const viewport: Viewport = {
+  themeColor: PWA_THEME_COLOR,
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+};
+
+function installShell(appleTitle: string): Metadata {
+  return {
+    applicationName: appleTitle,
+    appleWebApp: {
+      capable: true,
+      title: appleTitle,
+      statusBarStyle: "default",
+    },
+    icons: {
+      icon: [
+        { url: "/icons/aios-192.png", sizes: "192x192", type: "image/png" },
+        { url: "/icons/aios-512.png", sizes: "512x512", type: "image/png" },
+        { url: "/icons/aios.svg", type: "image/svg+xml" },
+      ],
+      apple: "/icons/apple-touch-icon.png",
+    },
+    other: {
+      "mobile-web-app-capable": "yes",
+      "apple-mobile-web-app-capable": "yes",
+    },
+  };
+}
+
 const platformMetadata: Metadata = {
+  ...installShell("AIOS"),
   metadataBase: new URL("https://ai-autotech.co.za"),
   title: {
     default: "AI AutoTech",
@@ -46,6 +78,7 @@ export async function generateMetadata(): Promise<Metadata> {
   if (!brand || brand.showPlatformName) return platformMetadata;
   const description = `${brand.productName} workspace.`;
   return {
+    ...installShell(brand.productName),
     title: {
       default: brand.productName,
       template: `%s | ${brand.productName}`,

@@ -1,11 +1,12 @@
 import { supabaseAuthConfigured } from "@/lib/auth/gate";
 import { isSendEnabled } from "@/lib/automation/channels";
 import { isBillingSandboxEnabled, PAYFAST_SANDBOX_MERCHANT_ID } from "@/lib/billing/flag";
+import { pwaInstallMode } from "@/lib/pwa/install";
 import { zentrixPackMode } from "@/lib/zentrix/pack";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { AGENCY_SLUG } from "@/lib/tenant/types";
 
-export type OpsCheckStatus = "ok" | "blocked" | "needs_billy" | "pending";
+export type OpsCheckStatus = "ok" | "blocked" | "needs_billy" | "pending" | "optional";
 
 export type OpsCheck = {
   id: string;
@@ -29,6 +30,7 @@ export type OpsReadinessInput = {
   billingSandbox: boolean;
   payfastMerchant: PayfastMerchantState;
   zentrixPackEnabled: boolean;
+  pwaInstallEnabled: boolean;
 };
 
 export function cronSecretPresent(env: NodeJS.ProcessEnv = process.env) {
@@ -67,7 +69,7 @@ export function buildOpsReadiness(input: OpsReadinessInput): OpsCheck[] {
       label: "Supabase migrations",
       status: "pending",
       detail:
-        "Steps 20 through 29 are still unapplied. Step 30 is also unapplied. Do not claim this SQL is applied. Paste each file from supabase/APPLY-ORDER.md after Billy re-authenticates Supabase.",
+        "Steps 20 through 29 are still unapplied. Step 30 is also unapplied. Step 31 is also unapplied. Do not claim this SQL is applied. Paste each file from supabase/APPLY-ORDER.md after Billy re-authenticates Supabase.",
     },
     {
       id: "agency-owner",
@@ -120,6 +122,16 @@ export function buildOpsReadiness(input: OpsReadinessInput): OpsCheck[] {
         : "Apply Zentrix pack to Zentrix Online. Leave ZENTRIX_WORKSPACE_PACK_ENABLED unset until step 29 is applied. Set it to the string true only after that. This checklist does not apply the pack.",
       href: "/agency#zentrix-pack",
       hrefLabel: "Apply Zentrix pack",
+    },
+    {
+      id: "pwa-install",
+      label: "PWA install",
+      status: "optional",
+      detail: input.pwaInstallEnabled
+        ? "Optional. Not a go-live blocker. Browser install only. No store listing is live. PWA_INSTALL_SHELL_ENABLED is the string true. An install intent can be stored after step 31 is applied. This checklist does not write one."
+        : "Optional. Not a go-live blocker. Browser install only. No store listing is live. PWA_INSTALL_SHELL_ENABLED is unset, so the install page stays fixture-only and writes nothing.",
+      href: "/command-centre/install",
+      hrefLabel: "Install AIOS on your phone",
     },
   ];
 }
@@ -181,6 +193,7 @@ export async function loadOpsReadiness(input: {
     billingSandbox: isBillingSandboxEnabled(env),
     payfastMerchant: payfastMerchantState(env),
     zentrixPackEnabled: zentrixPackMode(env) === "sandbox",
+    pwaInstallEnabled: pwaInstallMode(env) === "sandbox",
   });
 }
 
@@ -192,5 +205,6 @@ export function opsStatusLabel(status: OpsCheckStatus) {
   if (status === "ok") return "Ready";
   if (status === "blocked") return "Blocked";
   if (status === "needs_billy") return "Needs Billy";
+  if (status === "optional") return "Optional";
   return "Pending";
 }

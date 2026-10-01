@@ -29,6 +29,21 @@ test("inbox, conversation AI, calendars, reviews, referrals, and public pages re
       SETUP_WIZARD_ENABLED: "",
       MIGRATION_RUNNER_ENABLED: "",
       OWNER_BOOTSTRAP_UI_ENABLED: "",
+      OPS_SECRETS_READY_ENABLED: "",
+      RESEND_API_KEY: "",
+      SMTP_HOST: "",
+      SMTP_PASS: "",
+      WHATSAPP_TOKEN: "",
+      WHATSAPP_PHONE_NUMBER_ID: "",
+      META_PAGE_ACCESS_TOKEN: "",
+      META_PAGE_ID: "",
+      BULKSMS_TOKEN_ID: "",
+      BULKSMS_TOKEN_SECRET: "",
+      CLICKATELL_API_KEY: "",
+      TWILIO_AUTH_TOKEN: "",
+      SMSPORTAL_API_SECRET: "",
+      PAYFAST_MERCHANT_KEY: "",
+      PAYFAST_PASSPHRASE: "",
       SUPABASE_DB_URL: "",
       AUTOMATION_SEND_ENABLED: "",
       BILLING_SANDBOX: "",
@@ -158,7 +173,13 @@ test("inbox, conversation AI, calendars, reviews, referrals, and public pages re
     assert.match(setupHtml, /MIGRATION_RUNNER_ENABLED/);
     assert.match(setupHtml, /Step 33 is also unapplied/);
     assert.match(setupHtml, /Step 34 is also unapplied/);
+    assert.match(setupHtml, /Step 35 is also unapplied/);
     assert.match(setupHtml, /OWNER_BOOTSTRAP_UI_ENABLED/);
+    assert.match(setupHtml, /OPS_SECRETS_READY_ENABLED/);
+    assert.match(setupHtml, /Open ops secrets/);
+    assert.match(setupHtml, /data-cron="fixture"/);
+    assert.match(setupHtml, /data-registered="false"/);
+    assert.match(setupHtml, /workflow-engine/);
     assert.match(setupHtml, /Owner bootstrap/);
     assert.match(setupHtml, /Auth attach is fixture/);
     assert.match(setupHtml, /Open SQL editor/);
@@ -191,11 +212,36 @@ test("inbox, conversation AI, calendars, reviews, referrals, and public pages re
     assert.match(ownerHtml, /Open SQL editor/);
     assert.match(ownerHtml, /Steps 20 through 33 are not applied/);
     assert.match(ownerHtml, /Step 34 is also unapplied/);
+    assert.match(ownerHtml, /Step 35 is also unapplied/);
     assert.match(ownerHtml, /write: false/);
     assert.match(ownerHtml, /data-write="false"/);
     assert.match(ownerHtml, /data-auth-attach="fixture"/);
     assert.match(ownerHtml, /on conflict/);
     assert.equal(ownerHtml.includes("sbp_"), false);
+
+    const opsSecrets = await fetch(`http://127.0.0.1:${port}/command-centre/ops-secrets`, { redirect: "manual" });
+    assert.equal(opsSecrets.status, 200);
+    const opsHtml = await opsSecrets.text();
+    assert.match(opsHtml, /Ops secrets/);
+    assert.match(opsHtml, /CRON_SECRET is fixture/);
+    assert.match(opsHtml, /Email provider is fixture/);
+    assert.match(opsHtml, /WhatsApp \/ Meta is fixture/);
+    assert.match(opsHtml, /SMS provider is fixture/);
+    assert.match(opsHtml, /PayFast sandbox keys is fixture/);
+    assert.match(opsHtml, /The value is not shown/);
+    assert.match(opsHtml, /OPS_SECRETS_READY_ENABLED is unset/);
+    assert.match(opsHtml, /workflow-engine/);
+    assert.match(opsHtml, /billing-cycle/);
+    assert.match(opsHtml, /ai-reply-drafts/);
+    assert.match(opsHtml, /would be registered once CRON_SECRET exists/);
+    assert.match(opsHtml, /does not register them/);
+    assert.match(opsHtml, /Step 35 is also unapplied/);
+    assert.match(opsHtml, /write: false/);
+    assert.match(opsHtml, /data-write="false"/);
+    assert.match(opsHtml, /data-cron="fixture"/);
+    assert.match(opsHtml, /data-registered="false"/);
+    assert.equal(opsHtml.includes("sbp_"), false);
+    assert.equal(opsHtml.includes("re_"), false);
 
     const leadAgent = await fetch(`http://127.0.0.1:${port}/command-centre/lead-agent`, { redirect: "manual" });
     assert.equal(leadAgent.status, 200);
@@ -230,7 +276,10 @@ test("inbox, conversation AI, calendars, reviews, referrals, and public pages re
     assert.match(homeHtml, /Step 32 is also unapplied/);
     assert.match(homeHtml, /Step 33 is also unapplied/);
     assert.match(homeHtml, /Step 34 is also unapplied/);
+    assert.match(homeHtml, /Step 35 is also unapplied/);
     assert.match(homeHtml, /Open owner bootstrap/);
+    assert.match(homeHtml, /Open ops secrets/);
+    assert.match(homeHtml, /\/command-centre\/ops-secrets/);
     assert.match(homeHtml, /Open setup wizard/);
     assert.match(homeHtml, /Migration runner/);
     assert.match(homeHtml, /phase5l_migration_runner/);
@@ -494,7 +543,13 @@ test("inbox, conversation AI, calendars, reviews, referrals, and public pages re
     assert.match(agencyHtml, /Step 32 is also unapplied/);
     assert.match(agencyHtml, /Step 33 is also unapplied/);
     assert.match(agencyHtml, /Step 34 is also unapplied/);
+    assert.match(agencyHtml, /Step 35 is also unapplied/);
     assert.match(agencyHtml, /Owner bootstrap/);
+    assert.match(agencyHtml, /Ops secrets/);
+    assert.match(agencyHtml, /OPS_SECRETS_READY_ENABLED is unset/);
+    assert.match(agencyHtml, /data-cron="fixture"/);
+    assert.match(agencyHtml, /data-registered="false"/);
+    assert.match(agencyHtml, /Open ops secrets/);
     assert.match(agencyHtml, /Auth attach is fixture/);
     assert.match(agencyHtml, /OWNER_BOOTSTRAP_UI_ENABLED is unset/);
     assert.match(agencyHtml, /Open SQL editor/);

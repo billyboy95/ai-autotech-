@@ -55,6 +55,10 @@ test("ops readiness stays read-only and does not print secrets", () => {
   assert.match(text, /Step 34 is also unapplied/);
   assert.match(text, /MIGRATION_RUNNER_ENABLED stays unset/);
   assert.match(text, /OWNER_BOOTSTRAP_UI_ENABLED stays unset/);
+  assert.match(text, /Step 35 is also unapplied/);
+  assert.match(text, /OPS_SECRETS_READY_ENABLED stays unset/);
+  assert.equal(checks.find((check) => check.id === "ops-secrets")?.href, "/command-centre/ops-secrets");
+  assert.equal(checks.find((check) => check.id === "ops-secrets")?.hrefLabel, "Open ops secrets");
   assert.match(text, /does not create an Auth user/);
   assert.equal(checks.find((check) => check.id === "owner-bootstrap")?.href, "/command-centre/owner");
   assert.equal(checks.find((check) => check.id === "owner-bootstrap")?.hrefLabel, "Open owner bootstrap");

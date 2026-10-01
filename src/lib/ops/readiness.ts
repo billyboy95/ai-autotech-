@@ -69,7 +69,7 @@ export function buildOpsReadiness(input: OpsReadinessInput): OpsCheck[] {
       label: "Supabase migrations",
       status: "pending",
       detail:
-        "Steps 20 through 29 are still unapplied. Step 30 is also unapplied. Step 31 is also unapplied. Step 32 is also unapplied. Step 33 is also unapplied. Step 34 is also unapplied. Do not claim this SQL is applied. Paste each file from supabase/APPLY-ORDER.md after Billy re-authenticates Supabase. The migration runner lists steps 20 through 33 as pending until verified. MIGRATION_RUNNER_ENABLED stays unset. OWNER_BOOTSTRAP_UI_ENABLED stays unset. This checklist does not apply SQL and does not create an Auth user.",
+        "Steps 20 through 29 are still unapplied. Step 30 is also unapplied. Step 31 is also unapplied. Step 32 is also unapplied. Step 33 is also unapplied. Step 34 is also unapplied. Step 35 is also unapplied. Do not claim this SQL is applied. Paste each file from supabase/APPLY-ORDER.md after Billy re-authenticates Supabase. The migration runner lists steps 20 through 33 as pending until verified. MIGRATION_RUNNER_ENABLED stays unset. OWNER_BOOTSTRAP_UI_ENABLED stays unset. OPS_SECRETS_READY_ENABLED stays unset. This checklist does not apply SQL, does not create an Auth user, and does not register a cron.",
       href: "/command-centre/migrations",
       hrefLabel: "Open migration runner",
     },
@@ -101,6 +101,15 @@ export function buildOpsReadiness(input: OpsReadinessInput): OpsCheck[] {
       label: "Channel keys",
       status: "needs_billy",
       detail: "Meta, SMS, and email channel keys need Billy. No secret is read or shown on this checklist.",
+    },
+    {
+      id: "ops-secrets",
+      label: "Ops secrets",
+      status: "pending",
+      detail:
+        "The ops secrets panel shows CRON_SECRET, the email provider, WhatsApp / Meta, the SMS provider, and PayFast sandbox keys as configured, missing, or fixture. Values are not shown. OPS_SECRETS_READY_ENABLED stays unset. The panel does not register a cron. Step 35 is also unapplied.",
+      href: "/command-centre/ops-secrets",
+      hrefLabel: "Open ops secrets",
     },
     {
       id: "sending",

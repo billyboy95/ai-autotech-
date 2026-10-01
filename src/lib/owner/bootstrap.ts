@@ -151,7 +151,7 @@ export function buildOwnerBootstrap(input: {
   const lines = [
     `${emailsLine} The documented owner is ${DEFAULT_OWNER_EMAIL}. This page does not invent another address.`,
     attachDetail(authAttach),
-    "Steps 20 through 33 are not applied. Step 34 is also unapplied. Do not claim this SQL is already applied.",
+    "Steps 20 through 33 are not applied. Step 34 is also unapplied. Step 35 is also unapplied. Do not claim this SQL is already applied.",
     "Open the Supabase SQL editor and paste supabase/owner-bootstrap.sql only after the Auth user exists. This page does not run that file.",
     "sending_enabled stays false. Nothing is sent. Nothing is spent.",
     flag === "set"

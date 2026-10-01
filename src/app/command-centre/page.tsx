@@ -77,6 +77,14 @@ export default async function CommandCentrePage({
           </p>
         </Link>
 
+        <Link href="/command-centre/ops-secrets" data-testid="ops-secrets-card" className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm hover:border-[#2563EB]">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#2563EB]">Go-live</p>
+          <h2 className="font-display text-lg font-bold text-[#0B1F3A]">Ops secrets</h2>
+          <p className="mt-1 text-sm text-slate-700">
+            See whether CRON_SECRET and the outbound channel keys are present. Values are not shown. Nothing is sent.
+          </p>
+        </Link>
+
         <PendingSqlPanel tenantMode={tenant.mode} orgSlug={tenant.active.slug} />
 
         <OpsReadinessPanel checks={opsChecks} />

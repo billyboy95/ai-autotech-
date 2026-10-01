@@ -28,6 +28,7 @@ test("inbox, conversation AI, calendars, reviews, referrals, and public pages re
       PWA_INSTALL_SHELL_ENABLED: "",
       SETUP_WIZARD_ENABLED: "",
       MIGRATION_RUNNER_ENABLED: "",
+      OWNER_BOOTSTRAP_UI_ENABLED: "",
       SUPABASE_DB_URL: "",
       AUTOMATION_SEND_ENABLED: "",
       BILLING_SANDBOX: "",
@@ -156,6 +157,14 @@ test("inbox, conversation AI, calendars, reviews, referrals, and public pages re
     assert.match(setupHtml, /writes nothing/);
     assert.match(setupHtml, /MIGRATION_RUNNER_ENABLED/);
     assert.match(setupHtml, /Step 33 is also unapplied/);
+    assert.match(setupHtml, /Step 34 is also unapplied/);
+    assert.match(setupHtml, /OWNER_BOOTSTRAP_UI_ENABLED/);
+    assert.match(setupHtml, /Owner bootstrap/);
+    assert.match(setupHtml, /Auth attach is fixture/);
+    assert.match(setupHtml, /Open SQL editor/);
+    assert.match(setupHtml, /does not create an Auth user/);
+    assert.match(setupHtml, /data-auth-attach="fixture"/);
+    assert.match(setupHtml, /data-owner-emails="(configured|missing)"/);
 
     const migrations = await fetch(`http://127.0.0.1:${port}/command-centre/migrations`, { redirect: "manual" });
     assert.equal(migrations.status, 200);
@@ -171,6 +180,22 @@ test("inbox, conversation AI, calendars, reviews, referrals, and public pages re
     assert.match(migrationsHtml, /data-status="pending"/);
     assert.equal(migrationsHtml.includes('data-status="applied"'), false);
     assert.equal(migrationsHtml.includes("sbp_"), false);
+
+    const owner = await fetch(`http://127.0.0.1:${port}/command-centre/owner`, { redirect: "manual" });
+    assert.equal(owner.status, 200);
+    const ownerHtml = await owner.text();
+    assert.match(ownerHtml, /Owner bootstrap/);
+    assert.match(ownerHtml, /billyfaber06@gmail.com/);
+    assert.match(ownerHtml, /Auth attach is fixture/);
+    assert.match(ownerHtml, /OWNER_BOOTSTRAP_UI_ENABLED is unset/);
+    assert.match(ownerHtml, /Open SQL editor/);
+    assert.match(ownerHtml, /Steps 20 through 33 are not applied/);
+    assert.match(ownerHtml, /Step 34 is also unapplied/);
+    assert.match(ownerHtml, /write: false/);
+    assert.match(ownerHtml, /data-write="false"/);
+    assert.match(ownerHtml, /data-auth-attach="fixture"/);
+    assert.match(ownerHtml, /on conflict/);
+    assert.equal(ownerHtml.includes("sbp_"), false);
 
     const leadAgent = await fetch(`http://127.0.0.1:${port}/command-centre/lead-agent`, { redirect: "manual" });
     assert.equal(leadAgent.status, 200);
@@ -204,6 +229,8 @@ test("inbox, conversation AI, calendars, reviews, referrals, and public pages re
     assert.match(homeHtml, /Step 31 is also unapplied/);
     assert.match(homeHtml, /Step 32 is also unapplied/);
     assert.match(homeHtml, /Step 33 is also unapplied/);
+    assert.match(homeHtml, /Step 34 is also unapplied/);
+    assert.match(homeHtml, /Open owner bootstrap/);
     assert.match(homeHtml, /Open setup wizard/);
     assert.match(homeHtml, /Migration runner/);
     assert.match(homeHtml, /phase5l_migration_runner/);
@@ -466,6 +493,13 @@ test("inbox, conversation AI, calendars, reviews, referrals, and public pages re
     assert.match(agencyHtml, /\/command-centre\/setup/);
     assert.match(agencyHtml, /Step 32 is also unapplied/);
     assert.match(agencyHtml, /Step 33 is also unapplied/);
+    assert.match(agencyHtml, /Step 34 is also unapplied/);
+    assert.match(agencyHtml, /Owner bootstrap/);
+    assert.match(agencyHtml, /Auth attach is fixture/);
+    assert.match(agencyHtml, /OWNER_BOOTSTRAP_UI_ENABLED is unset/);
+    assert.match(agencyHtml, /Open SQL editor/);
+    assert.match(agencyHtml, /data-auth-attach="fixture"/);
+    assert.match(agencyHtml, /data-write="false"/);
     assert.match(agencyHtml, /phase5l_migration_runner/);
     assert.match(agencyHtml, /MIGRATION_RUNNER_ENABLED is unset/);
     assert.match(agencyHtml, /SQL is not applied/);

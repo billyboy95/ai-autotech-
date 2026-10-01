@@ -69,9 +69,18 @@ export function buildOpsReadiness(input: OpsReadinessInput): OpsCheck[] {
       label: "Supabase migrations",
       status: "pending",
       detail:
-        "Steps 20 through 29 are still unapplied. Step 30 is also unapplied. Step 31 is also unapplied. Step 32 is also unapplied. Step 33 is also unapplied. Do not claim this SQL is applied. Paste each file from supabase/APPLY-ORDER.md after Billy re-authenticates Supabase. The migration runner lists steps 20 through 33 as pending until verified. MIGRATION_RUNNER_ENABLED stays unset. This checklist does not apply SQL.",
+        "Steps 20 through 29 are still unapplied. Step 30 is also unapplied. Step 31 is also unapplied. Step 32 is also unapplied. Step 33 is also unapplied. Step 34 is also unapplied. Do not claim this SQL is applied. Paste each file from supabase/APPLY-ORDER.md after Billy re-authenticates Supabase. The migration runner lists steps 20 through 33 as pending until verified. MIGRATION_RUNNER_ENABLED stays unset. OWNER_BOOTSTRAP_UI_ENABLED stays unset. This checklist does not apply SQL and does not create an Auth user.",
       href: "/command-centre/migrations",
       hrefLabel: "Open migration runner",
+    },
+    {
+      id: "owner-bootstrap",
+      label: "Owner bootstrap",
+      status: "pending",
+      detail:
+        "The owner bootstrap panel shows OWNER_EMAILS as configured or missing and the Auth attach as configured, missing, or fixture. The address list is not shown. OWNER_BOOTSTRAP_UI_ENABLED stays unset. The panel does not create an Auth user and does not run owner-bootstrap.sql. Step 34 is also unapplied.",
+      href: "/command-centre/owner",
+      hrefLabel: "Open owner bootstrap",
     },
     {
       id: "agency-owner",

@@ -174,7 +174,7 @@ export function buildMigrationRunner(input: {
     verifiedSteps: input.verifiedSteps,
   });
   const lines = [
-    "Steps 20 through 33 are pending until verified. Do not claim applied. SQL is not applied.",
+    "Steps 20 through 33 are pending until verified. Do not claim applied. SQL is not applied. Step 34 is also unapplied and is not part of this dry-run.",
     "sending_enabled stays false. Nothing is sent. Nothing is spent.",
     dbUrl === "configured"
       ? "SUPABASE_DB_URL is configured. The value is not shown."

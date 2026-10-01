@@ -3,6 +3,7 @@ import { AgencyRollupTable } from "@/components/agency-rollup";
 import { ApplyEducationPackForm } from "@/components/apply-education-pack-form";
 import { ApplyZentrixPackForm } from "@/components/apply-zentrix-pack-form";
 import { PendingSqlPanel } from "@/components/migrations/pending-sql-panel";
+import { OwnerBootstrapPanel } from "@/components/owner/owner-bootstrap-panel";
 import { OpsReadinessPanel } from "@/components/ops/readiness-panel";
 import type { OpsCheck } from "@/lib/ops/readiness";
 import type { ZentrixPackMode } from "@/lib/zentrix/pack";
@@ -63,6 +64,9 @@ export function AgencyView({
             <Link href="/command-centre/migrations" className="h-10 rounded-md border border-slate-200 px-3 text-sm font-semibold leading-10 text-[#0B1F3A]">
               Migration runner
             </Link>
+            <Link href="/command-centre/owner" className="h-10 rounded-md border border-slate-200 px-3 text-sm font-semibold leading-10 text-[#0B1F3A]">
+              Owner bootstrap
+            </Link>
             <Link href="/command-centre/lead-agent" className="h-10 rounded-md border border-slate-200 px-3 text-sm font-semibold leading-10 text-[#0B1F3A]">
               Lead Agent
             </Link>
@@ -93,6 +97,7 @@ export function AgencyView({
         ) : null}
         {opsChecks.length ? <OpsReadinessPanel checks={opsChecks} /> : null}
         <PendingSqlPanel tenantMode={migrationTenantMode} orgSlug={migrationOrgSlug} />
+        <OwnerBootstrapPanel tenantMode={migrationTenantMode} orgSlug={migrationOrgSlug} />
         {showEducationPack ? <ApplyEducationPackForm /> : null}
         {showZentrixPack ? <ApplyZentrixPackForm mode={zentrixPackMode} /> : null}
         <AgencyRollupTable rows={rollup} sample={rollupSample} fromDay={fromDay} toDay={toDay} />

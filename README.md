@@ -189,7 +189,7 @@ npm test
 
 ### Privacy
 
-`/command-centre` and `/agency` require a Supabase Auth session when Supabase keys are set. A signed-in user only sees organisations they belong to. `OWNER_EMAILS` defaults to `billyfaber06@gmail.com` and attaches that owner on first login. Social sign-in buttons follow `NEXT_PUBLIC_AUTH_PROVIDERS` and stay hidden unless that Supabase provider is enabled. The email magic link remains available. Without Supabase keys the pages render fixture data for local review and CI. Public intake stays at `/api/public/*`.
+`/command-centre` and `/agency` require a Supabase Auth session when Supabase keys are set. A signed-in user only sees organisations they belong to. `OWNER_EMAILS` defaults to `billyfaber06@gmail.com` and attaches that owner on first login. `/command-centre/owner` shows that status and the `supabase/owner-bootstrap.sql` paste. `OWNER_BOOTSTRAP_UI_ENABLED` stays unset. Social sign-in buttons follow `NEXT_PUBLIC_AUTH_PROVIDERS` and stay hidden unless that Supabase provider is enabled. The email magic link remains available. Without Supabase keys the pages render fixture data for local review and CI. Public intake stays at `/api/public/*`.
 
 ## Next Build Steps
 

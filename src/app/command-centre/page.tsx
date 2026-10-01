@@ -5,6 +5,7 @@ import { runAutomationsNow } from "@/app/actions/automation";
 import { PeriodMetricsPanel } from "@/components/agency-rollup";
 import { AssistantPanel } from "@/components/bots/assistant-panel";
 import { HomeChatPanel } from "@/components/home-chat/panel";
+import { PendingSqlPanel } from "@/components/migrations/pending-sql-panel";
 import { OpsReadinessPanel } from "@/components/ops/readiness-panel";
 import { CommandShell } from "@/components/crm/command-shell";
 import { Advanced } from "@/components/ui/advanced";
@@ -75,6 +76,8 @@ export default async function CommandCentrePage({
             Open the checklist for SQL steps 20 through 31, owner attach, CRON_SECRET, channels, and PayFast. Nothing is sent.
           </p>
         </Link>
+
+        <PendingSqlPanel tenantMode={tenant.mode} orgSlug={tenant.active.slug} />
 
         <OpsReadinessPanel checks={opsChecks} />
 

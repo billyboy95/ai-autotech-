@@ -43,7 +43,7 @@ export function GoLiveWizard({ model, orgSlug }: { model: SetupWizardModel; orgS
         <h2 className="font-display text-lg font-bold text-[#0B1F3A]">Copy helper</h2>
         <p className="mt-2 text-sm text-slate-700">{model.paste}</p>
         <p className="mt-2 text-sm text-slate-700">
-          Step 32 is also unapplied. Set SETUP_WIZARD_ENABLED to the string true only after that file is applied. Do not turn on East Rand seed, the Zentrix pack, or the PWA write flag from this page.
+          Step 32 is also unapplied. Set SETUP_WIZARD_ENABLED to the string true only after that file is applied. Do not turn on East Rand seed, the Zentrix pack, or the PWA write flag from this page. Step 33 is also unapplied. Leave MIGRATION_RUNNER_ENABLED unset. The migration runner does not apply SQL.
         </p>
       </div>
 

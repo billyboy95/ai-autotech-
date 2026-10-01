@@ -8,6 +8,7 @@ export const AIOS_SECTIONS = [
       ["/command-centre/assistant", "Assistant"],
       ["/command-centre/lead-agent", "Lead Agent"],
       ["/command-centre/setup", "Setup"],
+      ["/command-centre/migrations", "Migrations"],
       ["/command-centre/install", "Install"],
       ["/command-centre/connect-accounts", "Connect accounts"],
       ["/command-centre/import-contacts", "Import contacts"],

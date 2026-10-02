@@ -160,7 +160,7 @@ When Billy says yes to the name `CRON_SECRET`:
 3. Add the name `CRON_SECRET`. Paste the generated value. Save it for Production. Mark it Sensitive so the phone does not keep the value on screen after save. Add Preview only when Billy says yes to Preview.
 4. Leave the value out of git, pull requests, issues, and docs.
 
-A saved variable is read on the next deployment. This checklist does not ask for a redeploy. It does not register a cron. The ops panel lists the job names `automation`, `workflow-engine`, `billing-cycle`, and `ai-reply-drafts` and does not register them. Leave `AI_REPLY_CRON_ENABLED` unset. Leave `OPS_SECRETS_READY_ENABLED` unset until step 35 is applied. Setting `CRON_SECRET` does not turn `sending_enabled` on. `sending_enabled` stays false until Billy says yes.
+A saved variable is read on the next deployment. This checklist does not ask for a redeploy. It does not register a cron. The ops panel lists the job names `automation`, `workflow-engine`, `billing-cycle`, and `ai-reply-drafts` and does not register them. Leave `AI_REPLY_CRON_ENABLED` unset. Leave `OPS_SECRETS_READY_ENABLED` unset until step 35 is applied. Setting `CRON_SECRET` does not turn `sending_enabled` on. `sending_enabled` stays false until Billy says yes. After `CRON_SECRET` is saved on Production, the redeploy and the Supabase schedule paste are [`docs/phone-pg-cron-schedules.md`](phone-pg-cron-schedules.md). This step does not run that paste.
 
 #### Outbound channel keys
 
@@ -510,4 +510,4 @@ Names only. The phone checklist for Vercel names is Phone-first unblock, step 3 
 
 ## 8. Sending stays off
 
-`sending_enabled` stays false on every workspace. Do not turn it on while applying this backlog. Do not register a cron that sends. Do not create a paid developer account and do not submit a store listing.
+`sending_enabled` stays false on every workspace. Do not turn it on while applying this backlog. Do not register a cron that sends. The phone paste that schedules the cron routes while sending stays off, after `CRON_SECRET` is saved, is [`docs/phone-pg-cron-schedules.md`](phone-pg-cron-schedules.md). Do not create a paid developer account and do not submit a store listing.

@@ -154,7 +154,7 @@ All three only add columns and tables. The first remaps existing `Talking` leads
 - Stage rules, booking webhook, won → handover checklist, draft quote
 - `GET /api/automation/summary` for a bot
 - `POST /api/automation/inbound` for `booking.created`, `reply.received`, `audit.completed`, `proposal.sent` (Calendly `invitee.created` is accepted)
-- Vercel Cron `0 4 * * *` (06:00 Africa/Johannesburg) hits `/api/cron/automation`
+- Vercel Cron `0 4 * * *` (06:00 Africa/Johannesburg) hits `/api/cron/automation`. After `CRON_SECRET` is saved, the phone steps for that daily job and the Supabase schedules are `docs/phone-pg-cron-schedules.md`.
 
 ### What needs configuration
 

@@ -344,7 +344,7 @@ NOTIFY pgrst, 'reload schema';
 
 Success is `Success. No rows returned`, or the editor’s equivalent success with no error. No result grid is required.
 
-That refreshes the PostgREST schema cache. It does not apply another migration, does not send, and does not change `sending_enabled`. If it errors, stop. Do not click a pack.
+That refreshes the PostgREST schema cache. It does not apply another migration, does not send, and does not change `sending_enabled`. If it errors, stop. Do not click a pack. After that Success, the phone checklist for Phase 5 flags on Vercel Production is [`docs/phone-phase5-flags-enable-order.md`](phone-phase5-flags-enable-order.md). This step does not set those flags.
 
 #### 3. Education pack for EASTC
 

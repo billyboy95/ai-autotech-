@@ -60,7 +60,7 @@ Lead Agent. `docs/lead-onboarding.md` names no enable flag for `/command-centre/
 - `sending_enabled` stays false on every workspace.
 - `AUTOMATION_SEND_ENABLED` stays unset, or stays the string `false`.
 - `AI_REPLY_CRON_ENABLED`, `E2B_API_KEY`, `BROWSERBASE_API_KEY`, and `COMPUTER_PROVIDER_ENABLED` stay unset.
-- `CRON_SECRET` and the outbound channel keys stay on runbook step 5. Leave them unset until Billy says yes. A flag on this page is not that yes.
+- `CRON_SECRET` and the outbound channel keys stay on runbook step 5. Leave them unset until Billy says yes. A flag on this page is not that yes. Once `CRON_SECRET` is saved, the schedule paste is [`docs/phone-pg-cron-schedules.md`](phone-pg-cron-schedules.md). This page does not run that paste.
 - PayFast names stay on runbook step 6. Live PayFast stays off.
 - There is no env flag that applies the Education pack.
 

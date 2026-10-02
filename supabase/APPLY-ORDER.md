@@ -21,7 +21,7 @@ After that token and apply section, the phone-first Vercel Environment Variables
 
 After that Vercel names checklist, the phone-first Owner Auth bootstrap verification is in `docs/GO-LIVE-RUNBOOK.md` (Phone-first unblock, step 4). On the phone, confirm the Auth user `billyfaber06@gmail.com` in Supabase Authentication → Users for project `fnysxlswzufdnlbhndxc`, or create that user only when Billy says yes. On the Vercel CRM project, confirm the name `OWNER_EMAILS` is present on Production as `billyfaber06@gmail.com`, or leave it unset or blank because that already defaults to the same address. Do not invent another email. Names only. `supabase/owner-bootstrap.sql` is not a migration. Do not paste it until steps 20 through 36 have succeeded and that Auth user exists (“Not part of this apply” below). Leave `OWNER_BOOTSTRAP_UI_ENABLED` unset until step 34 is applied. This checklist does not apply the Education pack or the Zentrix pack. No ad spend. `sending_enabled` stays false. The next phone checklists stay step 5 (`CRON_SECRET` and channel key names), step 6 (PayFast sandbox), step 7 (SQL editor for steps 20 through 36), and step 8 (pack click order after SQL Success). Do not claim steps 20 through 36 are applied. `aiautotech` pull requests #4 and #5 still need Billy’s explicit yes. Do not merge those pull requests from this agent. Do not paste a password, a token, a key, a passphrase, or a service-role value into this file.
 
-After that Owner Auth bootstrap, the next phone checklist is `docs/GO-LIVE-RUNBOOK.md` (Phone-first unblock, step 5): `CRON_SECRET` readiness and the outbound channel key names. Names only. Leave `CRON_SECRET` and every channel name unset until Billy says yes. `sending_enabled` stays false until he says yes. This checklist does not register a cron, does not send, and does not apply the Education pack or the Zentrix pack. No ad spend. Do not paste a secret value into this file.
+After that Owner Auth bootstrap, the next phone checklist is `docs/GO-LIVE-RUNBOOK.md` (Phone-first unblock, step 5): `CRON_SECRET` readiness and the outbound channel key names. Names only. Leave `CRON_SECRET` and every channel name unset until Billy says yes. `sending_enabled` stays false until he says yes. This checklist does not register a cron, does not send, and does not apply the Education pack or the Zentrix pack. No ad spend. Do not paste a secret value into this file. After `CRON_SECRET` is saved on Vercel Production, the phone schedule paste is `docs/phone-pg-cron-schedules.md`. That page does not turn sending on and does not claim steps 20 through 36 are applied.
 
 After that `CRON_SECRET` and channel-key checklist, the next phone checklist is `docs/GO-LIVE-RUNBOOK.md` (Phone-first unblock, step 6): PayFast sandbox and billing readiness, so `/command-centre/billing` can be exercised in sandbox later. Names only. Set `BILLING_SANDBOX` to the string `true`, `PAYFAST_MERCHANT_ID` to `10000100`, `PAYFAST_MERCHANT_KEY`, `PAYFAST_PASSPHRASE`, and `SUPABASE_SERVICE_ROLE_KEY` only when Billy says yes to sandbox billing. Copy the merchant key and the Salt Passphrase from https://sandbox.payfast.co.za , and the `service_role` secret from Supabase → Project Settings → API Keys. Leave live PayFast off until he says yes to live charges. Do not put a live merchant id in the environment. Leave `BILLING_ALLOW_MOCK_ITN` unset. This checklist does not charge, does not send, and does not apply SQL. Steps 20 through 36 stay unapplied. `SUPABASE_ACCESS_TOKEN` is still not an `sbp_` token. `OWNER_EMAILS` and the Owner Auth bootstrap stay on step 4. Channel keys stay unset until Billy says yes. `sending_enabled` stays false. `AUTOMATION_SEND_ENABLED` stays unset or the string `false`. `aiautotech` pull requests #4 and #5 stay open until Billy says yes to publish. Do not merge those pull requests from this agent. This checklist does not apply the Education pack or the Zentrix pack. No ad spend. Do not paste a merchant key, a passphrase, or a service-role value into this file.
 
@@ -158,7 +158,7 @@ Vercel Cron can use this schedule on a plan that allows minute jobs:
 { "path": "/api/cron/workflows", "schedule": "* * * * *" }
 ```
 
-That entry is not in `vercel.json`. A Hobby plan only accepts a daily cron, and adding a minute schedule would stop the deploy. Until the plan allows it, schedule the same route from Supabase. Do not run this until `SUPABASE_DB_URL` is available, and do not turn sending on.
+That entry is not in `vercel.json`. A Hobby plan only accepts a daily cron, and adding a minute schedule would stop the deploy. Until the plan allows it, schedule the same route from Supabase. The phone paste, after `CRON_SECRET` is saved, is `docs/phone-pg-cron-schedules.md`. That paste uses the SQL editor and does not need `SUPABASE_DB_URL`. A box shell still waits for `SUPABASE_DB_URL`. Do not turn sending on.
 
 ```sql
 create extension if not exists pg_cron;
@@ -179,7 +179,7 @@ select cron.schedule(
 
 ## Billing cycle
 
-`/api/cron/billing` runs dunning and writes the previous month's usage report. It does not call PayFast, Paystack, or Yoco, and it does not turn sending on. It is not in `vercel.json`, for the same Hobby-plan reason as the workflow route. Schedule it daily from Supabase after step 13 is applied. Do not run it until `SUPABASE_DB_URL` is available.
+`/api/cron/billing` runs dunning and writes the previous month's usage report. It does not call PayFast, Paystack, or Yoco, and it does not turn sending on. It is not in `vercel.json`, for the same Hobby-plan reason as the workflow route. Schedule it daily from Supabase after step 13 is applied. Step 13 is already live. The phone paste is `docs/phone-pg-cron-schedules.md`. That paste uses the SQL editor and does not need `SUPABASE_DB_URL`. A box shell still waits for `SUPABASE_DB_URL`.
 
 ```sql
 select cron.schedule(
@@ -201,7 +201,7 @@ A failed PayFast sandbox ITN sets `org_subscriptions.status` to `past_due`. Seve
 
 `/api/cron/ai-replies` queues pending drafts only when `AI_REPLY_CRON_ENABLED` is the string `true`. It is not in `vercel.json`. Leave the flag unset. When the flag is on, the route still does nothing unless the workspace has Conversation AI enabled, mode `queue_outbox`, `require_human_before_send` false, and `sending_enabled` true. Consent is checked again. A missing opt-in, STOP, or suppression is not queued. The route does not mark a draft sent and does not turn sending on.
 
-In production the route expects `Authorization: Bearer <CRON_SECRET>`, the same secret as the other cron routes. Do not invent a value. Do not schedule this until step 15 is applied and `SUPABASE_DB_URL` is available.
+In production the route expects `Authorization: Bearer <CRON_SECRET>`, the same secret as the other cron routes. Do not invent a value. Step 15 is already live. Leave `AI_REPLY_CRON_ENABLED` unset. The phone paste is `docs/phone-pg-cron-schedules.md`. That paste uses the SQL editor and does not need `SUPABASE_DB_URL`. A box shell still waits for `SUPABASE_DB_URL`.
 
 ```sql
 select cron.schedule(

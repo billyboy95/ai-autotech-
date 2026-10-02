@@ -28,7 +28,7 @@ The panel lists these names only:
 - `billing-cycle`
 - `ai-reply-drafts`
 
-These are the jobs that would be registered once `CRON_SECRET` exists. The page does not register them. `AI_REPLY_CRON_ENABLED` stays unset. `vercel.json` is not changed.
+These are the jobs that would be registered once `CRON_SECRET` exists. The page does not register them. `AI_REPLY_CRON_ENABLED` stays unset. `vercel.json` is not changed. After `CRON_SECRET` is saved, the phone paste is [`docs/phone-pg-cron-schedules.md`](phone-pg-cron-schedules.md). This panel still does not register them.
 
 ## Feature flag
 

@@ -2,7 +2,7 @@
 
 Run this on the phone after Supabase SQL steps 20 through 36 have shown Success and `NOTIFY pgrst, 'reload schema';` has shown Success. Run it before any Phase 5 flag is turned on and before Education or Zentrix pack clicks.
 
-Writing this page does not apply SQL, does not set a flag, does not click a pack, and does not load a campaign. Steps 20 through 36 stay unapplied until Billy has seen that Success himself. Do not claim the SQL is applied. Do not claim a flag, a pack, or a campaign is live. These checks are HTTP statuses only. They do not read the database.
+Writing this page does not apply SQL, does not set a flag, does not click a pack, and does not load a campaign. Steps 20 through 36 stay unapplied until Billy has seen that Success himself. Do not claim the SQL is applied. Do not claim a flag, a pack, or a campaign is live. These checks are HTTP statuses only. They do not read the database. Cron routes are a different checklist. After `CRON_SECRET` is saved, the phone paste is [`docs/phone-pg-cron-schedules.md`](phone-pg-cron-schedules.md). This smoke does not call `/api/cron/*`.
 
 ## Hard preconditions
 

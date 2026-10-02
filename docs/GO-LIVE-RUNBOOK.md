@@ -8,7 +8,7 @@ Steps 20 through 36 expect steps 1 through 19 to already be on the database. Ste
 
 ## Phone-first unblock
 
-Do these in order. Each step can be started from a phone. The apply command runs on the box, in this repo, after `SUPABASE_ACCESS_TOKEN` in that shell is a real `sbp_` token. Do not paste the token into git, a pull request, chat, or this file.
+Do these in order. Each step can be started from a phone. The apply command runs on the box, in this repo, after `SUPABASE_ACCESS_TOKEN` in that shell is a real `sbp_` token. While that value is still a chat note, Phone-first unblock step 7 is the SQL editor path. It does not need the token. Do not paste the token into git, a pull request, chat, or this file.
 
 ### 1. Replace `SUPABASE_ACCESS_TOKEN`
 
@@ -51,7 +51,7 @@ node scripts/apply-pending-migrations.mjs --apply --from N
 
 A finished run prints `Success. Steps 20–36 applied.`
 
-This script does not turn `sending_enabled` on, does not schedule a cron, and does not call Apply Education pack or the Zentrix pack. If the box is unreachable, use the SQL editor in section 1 and paste one file at a time, in the same order.
+This script does not turn `sending_enabled` on, does not schedule a cron, and does not call Apply Education pack or the Zentrix pack. While `SUPABASE_ACCESS_TOKEN` is still a chat note, use Phone-first unblock step 7 and paste one file at a time in the SQL editor, in the same order. If the box is unreachable after the token is a real `sbp_` token, use that same SQL editor path.
 
 ### 3. Phone-first: Vercel Environment Variables
 
@@ -229,9 +229,87 @@ These stay blocked. A yes for the sandbox billing names is not a yes for any of 
 - Live PayFast stays off until Billy says yes to live charges. Do not put a live merchant id, a live merchant key, or a live passphrase in the environment.
 - This checklist does not apply the Education pack and does not apply the Zentrix pack. No ad spend. Gated Phase 5 command-centre panels stay paused.
 
-### 7. After SQL Success
+The next phone checklist is step 7: paste steps 20 through 36 in the Supabase SQL editor. `scripts/apply-pending-migrations.mjs` still cannot run until `SUPABASE_ACCESS_TOKEN` is a real `sbp_` token. Step 7 does not claim those steps are already applied.
 
-Only after the apply prints `Success. Steps 20–36 applied.`, or after the SQL editor has run step 36 without error. The agency owner Auth user is step 4. `CRON_SECRET` and the outbound channel keys are step 5 and stay unset until Billy says yes. PayFast sandbox names are step 6 and stay unset until Billy says yes to sandbox billing. Live PayFast stays off until he says yes to live charges. `sending_enabled` stays false until he says yes. Schema reload is the next SQL-editor action after step 36. This agent does not click Apply Education pack and does not click the Zentrix pack. No ad spend.
+### 7. Phone-first: SQL editor for steps 20–36
+
+Do this on the phone after PayFast sandbox and billing readiness (step 6). The CLI in step 2 still cannot apply SQL. The secret named `SUPABASE_ACCESS_TOKEN` on the ops box is a chat note. A Personal Access Token starts with `sbp_`. Until Billy pastes a real `sbp_` token into that shell, `scripts/apply-pending-migrations.mjs` applies nothing. This checklist does not replace that token and does not print one. The SQL editor does not need it.
+
+This page does not claim steps 20 through 36 are applied. They stay unapplied until each file below has been run and the editor shows success. Steps 1 through 19 stay as they are. Paste steps 20 through 36 only, in this order. Stop on the first failure. Do not skip ahead. Do not sort the migrations folder by filename.
+
+1. On the phone, stay signed in to Supabase. Open a new query: https://supabase.com/dashboard/project/fnysxlswzufdnlbhndxc/sql/new . The project SQL Editor is the same place: https://supabase.com/dashboard/project/fnysxlswzufdnlbhndxc/sql . The project ref is `fnysxlswzufdnlbhndxc`.
+2. For one step at a time, paste the full SQL from the matching file under `supabase/migrations`. The same text also lives on the ops box as `/workspace/supabase-apply/NN-*.sql`, where `NN` is the step number from 20 through 36. Use either copy of that one step. Do not paste a file from steps 1 through 19.
+3. Run the query. Expect `Success. No rows returned`, or the editor’s equivalent success with no error. A result grid is not required. On an error, stop. Later steps were not applied. Fix the cause, then resume at the step that failed. Do not skip ahead.
+4. A phone SQL editor can cut a long paste short. Compare the pasted length with the file size below before Run. When the paste is shorter than the file, stop and paste the whole file from a desktop. Paste the file whole. Do not split it into pieces. A shorter paste is a different statement. Do not invent a shorter version.
+
+Files, in order. The ops-box name is the copy under `/workspace/supabase-apply/`:
+
+20. `supabase/migrations/20261026120000_phase4c_aios_pricing.sql` — `/workspace/supabase-apply/20-*.sql` — about 12 KB (12,497 bytes)
+21. `supabase/migrations/20261027120000_phase4d_eastc_education.sql` — `/workspace/supabase-apply/21-*.sql`
+22. `supabase/migrations/20261028120000_phase5a_agent_computers.sql` — `/workspace/supabase-apply/22-*.sql`
+23. `supabase/migrations/20261029120000_phase5b_lead_onboarding.sql` — `/workspace/supabase-apply/23-*.sql`
+24. `supabase/migrations/20261030120000_phase5c_connect_import.sql` — `/workspace/supabase-apply/24-*.sql`
+25. `supabase/migrations/20261031120000_phase5d_home_chat.sql` — `/workspace/supabase-apply/25-*.sql`
+26. `supabase/migrations/20261101120000_phase5e_campaign_dry_run.sql` — `/workspace/supabase-apply/26-*.sql` — about 14 KB (14,479 bytes)
+27. `supabase/migrations/20261102120000_phase5f_campaign_csv_channels.sql` — `/workspace/supabase-apply/27-*.sql` — about 20 KB (20,759 bytes). This is the campaign CSV file. It is the paste most likely to truncate on a phone.
+28. `supabase/migrations/20261103120000_phase5g_social_drafts.sql` — `/workspace/supabase-apply/28-*.sql` — about 12 KB (12,708 bytes)
+29. `supabase/migrations/20261104120000_phase5h_zentrix_workspace_pack.sql` — `/workspace/supabase-apply/29-*.sql` — about 15 KB (15,089 bytes)
+30. `supabase/migrations/20261105120000_phase5i_campaign_seed_ops.sql` — `/workspace/supabase-apply/30-*.sql`
+31. `supabase/migrations/20261106120000_phase5j_pwa_mobile_shell.sql` — `/workspace/supabase-apply/31-*.sql`
+32. `supabase/migrations/20261107120000_phase5k_setup_wizard.sql` — `/workspace/supabase-apply/32-*.sql`
+33. `supabase/migrations/20261108120000_phase5l_migration_runner.sql` — `/workspace/supabase-apply/33-*.sql`
+34. `supabase/migrations/20261109120000_phase5m_owner_bootstrap.sql` — `/workspace/supabase-apply/34-*.sql`
+35. `supabase/migrations/20261110120000_phase5n_ops_secrets_ready.sql` — `/workspace/supabase-apply/35-*.sql`
+36. `supabase/migrations/20261111120000_phase5o_golive_checklist.sql` — `/workspace/supabase-apply/36-*.sql`
+
+Watch the paste on a phone for step 20 (about 12 KB), step 26 (about 14 KB), step 27 (about 20 KB), step 28 (about 12 KB), and step 29 (about 15 KB). Prefer a desktop paste for those five when the phone editor truncates. Step 27 is the one to treat first. The same rule applies to any later file if the phone cuts it. Paste the file whole.
+
+After every step from 20 through 36 has shown success, and only then:
+
+1. In the same SQL editor, run this once:
+
+```sql
+NOTIFY pgrst, 'reload schema';
+```
+
+That refreshes the PostgREST schema cache. It does not apply another migration, does not send, and does not change `sending_enabled`.
+
+2. Apply Education pack to EASTC on `/agency` only after step 21 has succeeded, only when signed in as an agency owner, and only when Billy says yes. Step 21 adds `apply_education_pack_to_eastc()` and does not apply the pack by itself. There is no env flag that applies this pack. A `client_admin` cannot call it. This checklist does not click it. Contacts, messages, secrets, and outbox rows are not copied.
+
+3. Apply the Zentrix Online pack only after step 29 has succeeded, only after `ZENTRIX_WORKSPACE_PACK_ENABLED` is the string `true`, and only when Billy says yes. While that flag is unset, the button stays fixture-only and does not store stubs. This checklist leaves the flag unset. The pack does not call Shopify and does not turn sending on.
+
+Leave these flags unset. Unset, blank, or any value other than the string `true` keeps that page fixture-only. Setting a flag stores a sandbox note only. It does not apply SQL and it does not send. This checklist does not set them:
+
+- `HOME_CHAT_ENABLED` (step 25)
+- `CAMPAIGN_DRY_RUN_ENABLED` and `META_CONNECT_STUB_ENABLED` (step 26)
+- `CAMPAIGN_CSV_IMPORT_ENABLED` and `EMAIL_SMS_CONNECT_STUB_ENABLED` (step 27)
+- `SOCIAL_DRAFTS_ENABLED` and `TIKTOK_LINKEDIN_CONNECT_STUB_ENABLED` (step 28)
+- `ZENTRIX_WORKSPACE_PACK_ENABLED` (step 29)
+- `EAST_RAND_CAMPAIGN_SEED_ENABLED` (step 30)
+- `PWA_INSTALL_SHELL_ENABLED` (step 31)
+- `SETUP_WIZARD_ENABLED` (step 32)
+- `MIGRATION_RUNNER_ENABLED` (step 33)
+- `OWNER_BOOTSTRAP_UI_ENABLED` (step 34)
+- `OPS_SECRETS_READY_ENABLED` (step 35)
+- `GOLIVE_CHECKLIST_ENABLED` (step 36)
+- `AI_REPLY_CRON_ENABLED`, `E2B_API_KEY`, `BROWSERBASE_API_KEY`, and `COMPUTER_PROVIDER_ENABLED`
+
+#### Still separate
+
+Writing this page does not run SQL. Steps 20 through 36 stay unapplied until the editor has shown success for each file above. `sending_enabled` stays false on every workspace. `AUTOMATION_SEND_ENABLED` stays unset, or stays the string `false`. No ad spend. Gated Phase 5 command-centre panels stay paused. This checklist adds no page under `/command-centre` or `/agency`.
+
+These stay on their own steps. A success in the SQL editor is not a yes for any of them:
+
+- `OWNER_EMAILS` and the Owner Auth bootstrap stay on step 4. This checklist does not create the Auth user `billyfaber06@gmail.com` and does not paste `supabase/owner-bootstrap.sql`.
+- `CRON_SECRET` and the outbound channel keys stay on step 5. Leave them unset until Billy says yes.
+- PayFast sandbox names stay on step 6. Leave them unset until Billy says yes to sandbox billing. Live PayFast stays off until he says yes to live charges. Do not put a live merchant id in the environment.
+- `SUPABASE_ACCESS_TOKEN` on the ops box is still a chat note. This checklist does not paste a token.
+- Website pull requests [aiautotech#4](https://github.com/billyboy95/aiautotech/pull/4) and [aiautotech#5](https://github.com/billyboy95/aiautotech/pull/5) stay open until Billy says yes to publish. Do not merge them from this agent.
+- This checklist does not click Apply Education pack and does not click the Zentrix pack. Leave `ZENTRIX_WORKSPACE_PACK_ENABLED` unset. No secret value is in this file.
+
+### 8. After SQL Success
+
+Only after the apply prints `Success. Steps 20–36 applied.`, or after Phone-first unblock step 7 has run step 36 in the SQL editor without error. Step 7 is the phone paste. The agency owner Auth user is step 4. `CRON_SECRET` and the outbound channel keys are step 5 and stay unset until Billy says yes. PayFast sandbox names are step 6 and stay unset until Billy says yes to sandbox billing. Live PayFast stays off until he says yes to live charges. `sending_enabled` stays false until he says yes. Schema reload is the next SQL-editor action after step 36. Step 7 runs that reload only after every file from 20 through 36 has shown success. This agent does not click Apply Education pack and does not click the Zentrix pack. Leave `ZENTRIX_WORKSPACE_PACK_ENABLED` unset. No ad spend.
 
 1. Reload the API schema. In the SQL editor, run this once:
 
@@ -245,9 +323,9 @@ That refreshes the PostgREST schema cache. It does not apply another migration, 
 
 3. Leave the Zentrix Online pack unclicked until `ZENTRIX_WORKSPACE_PACK_ENABLED` is the string `true`, and only after step 29 is applied. While that flag is unset, the button stays fixture-only and does not store stubs. The pack does not call Shopify and does not turn sending on. This checklist does not set the flag.
 
-### 8. Wait for an explicit yes
+### 9. Wait for an explicit yes
 
-No ad spend, no purchases, no live charges, and no outbound sends unless Billy explicitly says yes. `sending_enabled` stays false on every workspace until he says yes. Do not register a cron that sends. Do not create a paid developer account and do not submit a store listing. The step 5 names, including `CRON_SECRET` and the outbound channel keys, stay unset until that yes. The step 6 names stay unset until Billy says yes to sandbox billing. Live PayFast stays off until he says yes to live charges. Website pull requests [aiautotech#4](https://github.com/billyboy95/aiautotech/pull/4) and [aiautotech#5](https://github.com/billyboy95/aiautotech/pull/5) stay open until Billy says yes to publish. Do not merge them from this agent. This runbook does not publish the site.
+No ad spend, no purchases, no live charges, and no outbound sends unless Billy explicitly says yes. `sending_enabled` stays false on every workspace until he says yes. Do not register a cron that sends. Do not create a paid developer account and do not submit a store listing. The step 5 names, including `CRON_SECRET` and the outbound channel keys, stay unset until that yes. The step 6 names stay unset until Billy says yes to sandbox billing. Live PayFast stays off until he says yes to live charges. The SQL editor paste in step 7 leaves `sending_enabled` false. Website pull requests [aiautotech#4](https://github.com/billyboy95/aiautotech/pull/4) and [aiautotech#5](https://github.com/billyboy95/aiautotech/pull/5) stay open until Billy says yes to publish. Do not merge them from this agent. This runbook does not publish the site.
 
 ## 1. Apply SQL steps 20 through 36
 
@@ -271,7 +349,7 @@ Run one file at a time, in this order:
 35. `supabase/migrations/20261110120000_phase5n_ops_secrets_ready.sql`
 36. `supabase/migrations/20261111120000_phase5o_golive_checklist.sql`
 
-SQL editor: sign in again, open the project SQL editor, and paste each file once. The project ref already used in `docs/agency-owner-setup.md` is `fnysxlswzufdnlbhndxc`.
+SQL editor: sign in again, open the project SQL editor, and paste each file once. The phone checklist is Phone-first unblock, step 7: https://supabase.com/dashboard/project/fnysxlswzufdnlbhndxc/sql/new . The project ref already used in `docs/agency-owner-setup.md` is `fnysxlswzufdnlbhndxc`.
 
 CLI: follow Phone-first unblock above. `scripts/apply-pending-migrations.mjs` reads `SUPABASE_ACCESS_TOKEN` from the box environment. That value is a Personal Access Token from the Supabase account page (Access Tokens). A real token starts with `sbp_`. The value currently stored on the box and in Vercel is a chat note. Replace it before the dry-run. Do not commit it, and do not invent one. If the token is not available, use the SQL editor instead.
 
@@ -279,7 +357,7 @@ Do not push the whole migrations folder. A database URL Billy provides can be us
 
 ### Phone or box
 
-The ordered phone steps are Phone-first unblock, above. `scripts/apply-pending-migrations.mjs` applies steps 20 through 36 from this repo. It does not add a page under `/command-centre` or `/agency`. Dry-run is the default and sends no SQL. The token is never printed.
+The ordered phone steps are Phone-first unblock, above. While the token is a chat note, step 7 is the SQL editor paste. `scripts/apply-pending-migrations.mjs` applies steps 20 through 36 from this repo. It does not add a page under `/command-centre` or `/agency`. Dry-run is the default and sends no SQL. The token is never printed.
 
 `--project-ref` overrides `SUPABASE_PROJECT_REF`. `SUPABASE_PROJECT_ID` is also accepted, as is `NEXT_PUBLIC_SUPABASE_URL` when it is exactly `https://<ref>.supabase.co`. With no token, the dry-run lists steps 20–36, prints that `--apply` needs a token starting with `sbp_`, and exits 0. Any other value, including the chat note, exits non-zero and applies nothing.
 
@@ -321,19 +399,19 @@ Also leave `AI_REPLY_CRON_ENABLED`, `E2B_API_KEY`, `BROWSERBASE_API_KEY`, and `C
 
 ## 4. Apply the Education pack
 
-After the SQL above is applied, sign in as an agency owner and use Apply Education pack to EASTC on `/agency`. That is step 7 of Phone-first unblock. The Auth user is step 4. `CRON_SECRET` and outbound channel keys are step 5 and stay unset until Billy says yes. PayFast sandbox names are step 6 and stay unset until Billy says yes to sandbox billing. Live PayFast stays off until he says yes to live charges. `sending_enabled` stays false until he says yes. This agent does not click that pack. Step 21 adds the function and does not apply the pack by itself. A `client_admin` cannot call it. Contacts, messages, secrets, and outbox rows are not copied.
+After the SQL above is applied, sign in as an agency owner and use Apply Education pack to EASTC on `/agency`. The phone SQL editor paste is step 7. Apply Education pack is step 8 of Phone-first unblock. Step 7 names the same button only after every file from 20 through 36 has shown success. There is no env flag that applies this pack. The Auth user is step 4. `CRON_SECRET` and outbound channel keys are step 5 and stay unset until Billy says yes. PayFast sandbox names are step 6 and stay unset until Billy says yes to sandbox billing. Live PayFast stays off until he says yes to live charges. `sending_enabled` stays false until he says yes. This agent does not click that pack. Step 21 adds the function and does not apply the pack by itself. A `client_admin` cannot call it. Contacts, messages, secrets, and outbox rows are not copied.
 
 ## 5. Zentrix pack
 
-Apply the Zentrix Online pack only after `ZENTRIX_WORKSPACE_PACK_ENABLED=true`, and only after step 29 is applied. That is step 7 of Phone-first unblock. This agent does not click that pack. While that flag is unset, the button stays fixture-only and does not store stubs. The pack does not call Shopify and does not turn sending on. This runbook does not set the flag. `sending_enabled` stays false.
+Apply the Zentrix Online pack only after `ZENTRIX_WORKSPACE_PACK_ENABLED=true`, and only after step 29 is applied. That is step 8 of Phone-first unblock. Step 7 names the same pack and leaves `ZENTRIX_WORKSPACE_PACK_ENABLED` unset. This agent does not click that pack. While that flag is unset, the button stays fixture-only and does not store stubs. The pack does not call Shopify and does not turn sending on. This runbook does not set the flag. `sending_enabled` stays false.
 
 ## 6. Owner Auth user, then owner SQL
 
-The phone steps are Phone-first unblock, step 4, after the `sbp_` token, the apply of steps 20–36, and the Vercel names checklist. Create or confirm the Auth user for `billyfaber06@gmail.com` first. That is the `OWNER_EMAILS` value Billy typed on 27 Sep 2026. Paste `supabase/owner-bootstrap.sql` only when `supabase/APPLY-ORDER.md` (Not part of this apply) says it is safe: after the numbered files, and only after that Auth user exists. That file is not a migration. The panel at `/command-centre/owner` does not create the Auth user and does not run that SQL. `OWNER_BOOTSTRAP_UI_ENABLED` stays unset until step 34 is applied. See `docs/phase-5m-owner-bootstrap.md` and `docs/agency-owner-setup.md`. The next phone checklist is step 5: `CRON_SECRET` and the outbound channel key names. Leave those names unset until Billy says yes. After step 5, PayFast sandbox billing readiness is step 6. Leave those names unset until Billy says yes to sandbox billing. Live PayFast stays off until he says yes to live charges. `sending_enabled` stays false until he says yes. This agent does not apply the Education pack or the Zentrix pack.
+The phone steps are Phone-first unblock, step 4, after the `sbp_` token, the apply of steps 20–36, and the Vercel names checklist. Create or confirm the Auth user for `billyfaber06@gmail.com` first. That is the `OWNER_EMAILS` value Billy typed on 27 Sep 2026. Paste `supabase/owner-bootstrap.sql` only when `supabase/APPLY-ORDER.md` (Not part of this apply) says it is safe: after the numbered files, and only after that Auth user exists. That file is not a migration. The panel at `/command-centre/owner` does not create the Auth user and does not run that SQL. `OWNER_BOOTSTRAP_UI_ENABLED` stays unset until step 34 is applied. See `docs/phase-5m-owner-bootstrap.md` and `docs/agency-owner-setup.md`. The next phone checklist is step 5: `CRON_SECRET` and the outbound channel key names. Leave those names unset until Billy says yes. After step 5, PayFast sandbox billing readiness is step 6. Leave those names unset until Billy says yes to sandbox billing. Live PayFast stays off until he says yes to live charges. After step 6, the phone SQL editor paste of steps 20 through 36 is step 7. That checklist does not claim the SQL is already applied. `sending_enabled` stays false until he says yes. This agent does not apply the Education pack or the Zentrix pack.
 
 ## 7. Blockers Billy decides
 
-Names only. The phone checklist for Vercel names is Phone-first unblock, step 3 (Vercel → the CRM project → Settings → Environment Variables). The Owner Auth user is step 4. `CRON_SECRET` generation and the outbound channel key names are step 5. PayFast sandbox and billing readiness is step 6. Creating the Auth user does not set the names below. Each name needs Billy’s yes before live use. This runbook does not supply secret values. `sending_enabled` stays false until he says yes. Live PayFast stays off until he says yes to live charges.
+Names only. The phone checklist for Vercel names is Phone-first unblock, step 3 (Vercel → the CRM project → Settings → Environment Variables). The Owner Auth user is step 4. `CRON_SECRET` generation and the outbound channel key names are step 5. PayFast sandbox and billing readiness is step 6. The phone SQL editor paste of steps 20 through 36 is step 7. It does not set the names below, does not claim the SQL is applied, and does not open gated Phase 5 panels. Creating the Auth user does not set the names below. Each name needs Billy’s yes before live use. This runbook does not supply secret values. `sending_enabled` stays false until he says yes. Live PayFast stays off until he says yes to live charges.
 
 - `OWNER_EMAILS` = `billyfaber06@gmail.com` (owner auto-attach, PR #17)
 - `CRON_SECRET` (step 5; generate it in a password manager and set the name on Vercel only after Billy says yes; leave it unset until then)

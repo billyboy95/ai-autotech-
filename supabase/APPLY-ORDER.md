@@ -6,7 +6,7 @@ Step 1 (`crm_automation`) creates `public.crm_lead_activity`. That step is alrea
 Paste each unapplied file (steps 20 through 36) into the Supabase SQL editor and run it once, in this order only.
 Do not sort the folder by filename. Two timestamps are shared, and filename order applies `phase2a_access` before `send_compliance` and `agency_tenancy` before `crm_automation`.
 
-These files are additive. They do not delete existing leads. Do not turn sending on while applying them. The operator sequence for steps 20 through 36 is the phone-first unblock in `docs/GO-LIVE-RUNBOOK.md`.
+These files are additive. They do not delete existing leads. Do not turn sending on while applying them. The operator sequence for steps 20 through 36 is the phone-first unblock in `docs/GO-LIVE-RUNBOOK.md`. After that Success and `NOTIFY pgrst, 'reload schema';`, tracker item 8 is `docs/phone-campaign-csv-load.md`. Do not invent live campaign rows. No real sends.
 
 The secret named `SUPABASE_ACCESS_TOKEN` on the box and in Vercel is still a chat note. Replace it with a Personal Access Token from Account → Access Tokens. A real token starts with `sbp_`. Do not paste the token into git, a pull request, or this file. Then, from the repo root, dry-run and apply with `SUPABASE_PROJECT_REF=fnysxlswzufdnlbhndxc`:
 

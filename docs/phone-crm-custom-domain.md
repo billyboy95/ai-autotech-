@@ -16,7 +16,7 @@ What the repo already names, and what this page leaves alone:
 | --- | --- |
 | `ai-autotech-crm.vercel.app` | Live app hostname. Logged-out smoke stays here until the SSL check below passes. See [`docs/phone-post-sql-smoke-verify.md`](phone-post-sql-smoke-verify.md). Cron job URLs stay on this host. See [`docs/phone-pg-cron-schedules.md`](phone-pg-cron-schedules.md). |
 | `aiautotech.co.za` and `www.aiautotech.co.za` | Public website zone. `src/lib/brand/host.ts` treats both as platform hosts. DNS for this checklist is a `crm` record in that zone. Do not add the apex or `www` to the CRM project. |
-| `NEXT_PUBLIC_SITE_URL=https://ai-autotech.co.za` | Public-link example in `.env.example` (hyphen in `ai-autotech`). It is not the CRM login host. Do not change that variable on this visit. |
+| `NEXT_PUBLIC_SITE_URL=https://aiautotech.co.za` | Public website origin (no hyphen). It is not the CRM login host and it is not `crm.aiautotech.co.za`. Do not change that variable on this visit. The phone check is [`docs/phone-site-url-verify.md`](phone-site-url-verify.md). |
 
 Add only `crm.aiautotech.co.za`. Production only.
 
@@ -118,7 +118,7 @@ These are not required for the 200 and 307 checks. Do them only after SSL is rea
 - `sending_enabled` stays false on every workspace.
 - [aiautotech#4](https://github.com/billyboy95/aiautotech/pull/4) and [aiautotech#5](https://github.com/billyboy95/aiautotech/pull/5) stay open until Billy says yes to publish. Do not merge them. See [`docs/website-publish-decision.md`](website-publish-decision.md).
 - Do not set a Phase 5 flag, `CRON_SECRET`, a channel key, PayFast, or `OWNER_EMAILS` on this visit. Those checklists stay in [`docs/GO-LIVE-RUNBOOK.md`](GO-LIVE-RUNBOOK.md) (Phone-first unblock).
-- Do not change `NEXT_PUBLIC_SITE_URL`.
+- Do not change `NEXT_PUBLIC_SITE_URL` on this visit. The public website check is [`docs/phone-site-url-verify.md`](phone-site-url-verify.md).
 - No new command-centre panel.
 
 ## Pass means

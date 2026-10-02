@@ -12,6 +12,8 @@ Do these in order. Each step can be started from a phone. The apply command runs
 
 Attaching `crm.aiautotech.co.za` does not wait on that SQL. The phone checklist is [`docs/phone-crm-custom-domain.md`](phone-crm-custom-domain.md) (step 10 below). This page does not edit DNS.
 
+Confirming the public website value of `NEXT_PUBLIC_SITE_URL` does not wait on that SQL. The phone checklist is [`docs/phone-site-url-verify.md`](phone-site-url-verify.md) (step 11 below). Production should be `https://aiautotech.co.za` (no hyphen). This page does not set that variable.
+
 ### 1. Replace `SUPABASE_ACCESS_TOKEN`
 
 1. On the phone, open Supabase → Account → Access Tokens: https://supabase.com/dashboard/account/tokens
@@ -423,6 +425,14 @@ This step does not wait on steps 20 through 36. The app already answers on `http
 Billy adds `crm.aiautotech.co.za` on Vercel → the CRM project `ai-autotech-crm` → Settings → Domains, Production only. He then copies the DNS card into GoDaddy for the zone `aiautotech.co.za`. The record type and value come from that card. This page does not edit DNS, does not buy a domain, and does not spend.
 
 `sending_enabled` stays false. Steps 1 through 19 stay Already live. Steps 20 through 36 stay unapplied. Website pull requests [aiautotech#4](https://github.com/billyboy95/aiautotech/pull/4) and [aiautotech#5](https://github.com/billyboy95/aiautotech/pull/5) stay open until Billy says yes to publish. Do not merge them from this agent. Cron URLs stay on `https://ai-autotech-crm.vercel.app` ([`docs/phone-pg-cron-schedules.md`](phone-pg-cron-schedules.md)).
+
+### 11. Phone-first: public website `NEXT_PUBLIC_SITE_URL`
+
+This step does not wait on steps 20 through 36. It does not attach DNS and it does not replace the CRM hostname.
+
+The phone checklist is [`docs/phone-site-url-verify.md`](phone-site-url-verify.md). On Vercel → the CRM project `ai-autotech-crm` → Settings → Environment Variables, the Production value of `NEXT_PUBLIC_SITE_URL` should be `https://aiautotech.co.za` (no hyphen). If that value still uses `ai-autotech.co.za`, change only that host. Do not store `https://ai-autotech-crm.vercel.app` or `https://crm.aiautotech.co.za` in this variable.
+
+`sending_enabled` stays false. Steps 1 through 19 stay Already live. Steps 20 through 36 stay unapplied. This page does not set the variable, does not redeploy, and does not spend.
 
 ## 1. Apply SQL steps 20 through 36
 

@@ -30,8 +30,8 @@ With the flag unset, the panel uses the fixture and does not write. With the fla
 - Meta, SMS, and email keys say needs Billy. The checklist does not read those values.
 - `sending_enabled` must stay false.
 - `BILLING_SANDBOX` and the PayFast sandbox merchant. A non-sandbox merchant id is refused and is not shown.
-- Apply Education pack to EASTC links to the existing button.
-- Apply Zentrix pack links to the existing button and names `ZENTRIX_WORKSPACE_PACK_ENABLED`.
+- Apply Education pack to EASTC links to the existing button. The phone click order is `docs/GO-LIVE-RUNBOOK.md` (Phone-first unblock, step 8). This page does not click it. The pack is not applied.
+- Apply Zentrix pack links to the existing button and names `ZENTRIX_WORKSPACE_PACK_ENABLED`. The same step 8 is the click path. Leave the flag unset. The pack is not applied.
 
 The checklist does not write, does not call Vercel, and does not send.
 

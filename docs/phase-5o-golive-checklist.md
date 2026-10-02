@@ -21,8 +21,8 @@ Status words on the page are `configured`, `missing`, `pending`, `fixture`, or `
 - Setup wizard. Link to `/command-centre/setup`. `SETUP_WIZARD_ENABLED` stays unset.
 - Owner bootstrap. Link to `/command-centre/owner`. The address list is not shown. This page does not create an Auth user and does not run `owner-bootstrap.sql`.
 - Ops secrets. Link to `/command-centre/ops-secrets`. CRON_SECRET, email, WhatsApp / Meta, SMS, and PayFast sandbox are presence only.
-- Education pack (EASTC). Applied or pending. This page does not click Apply.
-- Zentrix pack. Applied or pending. Leave `ZENTRIX_WORKSPACE_PACK_ENABLED` unset. This page does not click Apply.
+- Education pack (EASTC). Applied or pending. This page does not click Apply. The phone click order, after steps 20 through 36 succeed, is `docs/GO-LIVE-RUNBOOK.md` (Phone-first unblock, step 8). There is no env flag that applies this pack. The pack is not applied.
+- Zentrix pack. Applied or pending. Leave `ZENTRIX_WORKSPACE_PACK_ENABLED` unset. This page does not click Apply. The same step 8 is the click path on `/agency` or `/agency/zentrix/settings`, and only once that flag is the string `true` and Billy says yes. The pack is not applied.
 - PWA install shell. Flag status only. Optional. Not a go-live blocker.
 - `sending_enabled`. OFF / blocked until Billy explicitly enables it later. This page does not turn it on.
 
@@ -54,7 +54,7 @@ This is step 36 in `supabase/APPLY-ORDER.md`, after step 35:
 
 `supabase/migrations/20261111120000_phase5o_golive_checklist.sql`
 
-Steps 20 through 35 are still unapplied. Step 36 is also unapplied. After Billy re-authenticates Supabase, run steps 20 through 35, then step 36. Do not claim this SQL is already applied. The operator sequence (SQL editor or CLI, schema reload, flags, packs, owner SQL, and the decisions Billy still has to make) is `docs/GO-LIVE-RUNBOOK.md`. This page does not apply that sequence.
+Steps 20 through 35 are still unapplied. Step 36 is also unapplied. After Billy re-authenticates Supabase, run steps 20 through 35, then step 36. Do not claim this SQL is already applied. The operator sequence (SQL editor or CLI, schema reload, flags, packs, owner SQL, and the decisions Billy still has to make) is `docs/GO-LIVE-RUNBOOK.md`. Pack clicks are Phone-first unblock, step 8, after SQL Success. This page does not apply that sequence and does not click either pack.
 
 Apply it after step 35. Do not run it until `SUPABASE_DB_URL` is available. It does not turn sending on. It does not register a cron.
 

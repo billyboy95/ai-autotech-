@@ -13,7 +13,7 @@ The checklist, in order:
 3. `CRON_SECRET` is `configured` or `missing`. The value is not shown. `AI_REPLY_CRON_ENABLED` stays unset. No cron is scheduled.
 4. Email, WhatsApp (Meta), and SMS. Each links into the existing connect-accounts stub. Connected versus not comes from the sandbox tables when those tables are loaded. Otherwise the row is a fixture and shows not connected. No secret is read.
 5. PayFast and `BILLING_SANDBOX` are presence only: configured or missing. A merchant id is not shown. No charge is sent.
-6. Phase 5 flags that must stay unset until their SQL is applied. The page lists them and does not set them. That includes `EAST_RAND_CAMPAIGN_SEED_ENABLED`, `ZENTRIX_WORKSPACE_PACK_ENABLED`, and `PWA_INSTALL_SHELL_ENABLED`.
+6. Phase 5 flags that must stay unset until their SQL is applied. The page lists them and does not set them. That includes `EAST_RAND_CAMPAIGN_SEED_ENABLED`, `ZENTRIX_WORKSPACE_PACK_ENABLED`, and `PWA_INSTALL_SHELL_ENABLED`. The Education pack and the Zentrix pack are not applied from this page. The phone click order after SQL Success is `docs/GO-LIVE-RUNBOOK.md` (Phone-first unblock, step 8). Leave `ZENTRIX_WORKSPACE_PACK_ENABLED` unset until Billy says yes.
 
 The copy helper tells Billy to re-authenticate the Supabase SQL editor and paste steps 20 through 31 from `supabase/APPLY-ORDER.md` in that order. There is no auto-apply and this step does not ask for a database URL.
 

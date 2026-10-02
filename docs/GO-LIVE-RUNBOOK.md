@@ -408,6 +408,8 @@ The store list on the page is the same before and after the click. The green lin
 - No ad spend.
 - Steps 20 through 36 stay unapplied until Billy re-authenticates the SQL editor or provides an `sbp_` token and the apply prints Success. Writing this page does not apply them. Neither pack is applied.
 
+Tracker item 8 (prospect list and the first campaign) is a sandbox dry-load only. After SQL steps 20 through 36 show Success and `NOTIFY pgrst, 'reload schema';` has succeeded, the phone checklist is [`docs/phone-campaign-csv-load.md`](phone-campaign-csv-load.md). Do not invent campaign rows in production until that page’s SQL and flag checks are true. No real sends.
+
 ### 9. Wait for an explicit yes
 
 No ad spend, no purchases, no live charges, and no outbound sends unless Billy explicitly says yes. `sending_enabled` stays false on every workspace until he says yes. Do not register a cron that sends. Do not create a paid developer account and do not submit a store listing. The step 5 names, including `CRON_SECRET` and the outbound channel keys, stay unset until that yes. The step 6 names stay unset until Billy says yes to sandbox billing. Live PayFast stays off until he says yes to live charges. The SQL editor paste in step 7 leaves `sending_enabled` false. Education pack and Zentrix pack stay unclicked until step 8 and until Billy says yes to that pack. Leave `ZENTRIX_WORKSPACE_PACK_ENABLED` unset until he says yes. Website pull requests [aiautotech#4](https://github.com/billyboy95/aiautotech/pull/4) and [aiautotech#5](https://github.com/billyboy95/aiautotech/pull/5) stay open until Billy says yes to publish. Do not merge them from this agent. This runbook does not publish the site.

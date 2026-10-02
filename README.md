@@ -115,6 +115,8 @@ Forms use Server Actions and write to Supabase when the environment variables an
 
 Deploy to Vercel as a Next.js project. Add the same environment variables from `.env.example` in the Vercel project settings before production deploy.
 
+The live CRM app hostname is `https://ai-autotech-crm.vercel.app`. The phone checklist to attach `crm.aiautotech.co.za` on that project's Production environment, and to confirm the GoDaddy record for `aiautotech.co.za`, is `docs/phone-crm-custom-domain.md`. That page does not edit DNS. The other phone checklists start at `docs/GO-LIVE-RUNBOOK.md` (Phone-first unblock).
+
 Analytics placeholders are enabled only when these variables are present:
 
 - `NEXT_PUBLIC_GA_MEASUREMENT_ID`

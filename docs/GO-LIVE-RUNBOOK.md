@@ -71,7 +71,7 @@ Cron routes (`/api/cron/automation`, `/api/cron/workflows`, `/api/cron/billing`,
 
 - `CRON_SECRET`
 
-Sandbox billing only. Leave these unset until Billy says yes to sandbox billing. Checkout stays closed unless `BILLING_SANDBOX` is the string `true`. The only merchant id the app accepts is PayFast’s published sandbox merchant `10000100`. Any other id is refused. Do not put a live merchant id in the environment. Do not invent a merchant key, a passphrase, or a service-role key. No charge is sent from this checklist:
+Sandbox billing only. Leave these unset until Billy says yes to sandbox billing. Checkout stays closed unless `BILLING_SANDBOX` is the string `true`. The only merchant id the app accepts is PayFast’s published sandbox merchant `10000100`. Any other id is refused. Leave live PayFast off until Billy says yes to live charges. Do not put a live merchant id in the environment. Do not invent a merchant key, a passphrase, or a service-role key. How he copies them on the phone and sets the names on Vercel is Phone-first unblock, step 6. No charge is sent from this checklist:
 
 - `BILLING_SANDBOX`
 - `PAYFAST_MERCHANT_ID` = `10000100`
@@ -120,7 +120,7 @@ These still need Billy’s explicit yes before live use. A yes for the Auth user
 
 - `CRON_SECRET` (readiness is step 5; leave it unset until Billy says yes)
 - Outbound channel keys (email, WhatsApp, SMS, and social), named in step 5. `sending_enabled` stays false until he says yes
-- `BILLING_SANDBOX` and the PayFast sandbox names in step 3. Do not put a live merchant id in the environment.
+- `BILLING_SANDBOX` and the PayFast sandbox names (readiness is step 6; leave them unset until Billy says yes to sandbox billing). Leave live PayFast off until he says yes to live charges. Do not put a live merchant id in the environment.
 - Publishing [aiautotech#4](https://github.com/billyboy95/aiautotech/pull/4) and [aiautotech#5](https://github.com/billyboy95/aiautotech/pull/5)
 
 ### 5. Phone-first: `CRON_SECRET` and outbound channel keys
@@ -176,11 +176,62 @@ Vault, from `store_channel_secret` in `supabase/migrations/20261015140000_phase2
 
 Set a Vercel name the same way as step 3: one name at a time, Production, Sensitive, and only after Billy says yes to that name. A saved key leaves `sending_enabled` false.
 
-This checklist does not apply the Education pack and does not apply the Zentrix pack. No ad spend. Website pull requests [aiautotech#4](https://github.com/billyboy95/aiautotech/pull/4) and [aiautotech#5](https://github.com/billyboy95/aiautotech/pull/5) stay open. Do not merge them from this agent.
+This checklist does not apply the Education pack and does not apply the Zentrix pack. No ad spend. Website pull requests [aiautotech#4](https://github.com/billyboy95/aiautotech/pull/4) and [aiautotech#5](https://github.com/billyboy95/aiautotech/pull/5) stay open. Do not merge them from this agent. The next phone checklist is step 6: PayFast sandbox and billing readiness. Leave those names unset until Billy says yes to sandbox billing. Live PayFast stays off until he says yes to live charges.
 
-### 6. After SQL Success
+### 6. Phone-first: PayFast sandbox and billing readiness
 
-Only after the apply prints `Success. Steps 20–36 applied.`, or after the SQL editor has run step 36 without error. The agency owner Auth user is step 4. `CRON_SECRET` and the outbound channel keys are step 5 and stay unset until Billy says yes. `sending_enabled` stays false until he says yes. Schema reload is the next SQL-editor action after step 36. This agent does not click Apply Education pack and does not click the Zentrix pack. No ad spend.
+Do this on the phone after `CRON_SECRET` and the outbound channel keys (step 5). It is a names checklist so `/command-centre/billing` can prepare a PayFast sandbox checkout later. Leave every name unset until Billy says yes to sandbox billing. A yes for `CRON_SECRET` or a channel key is not a yes for sandbox billing. A yes for sandbox billing is not a yes for live charges. Steps 20 through 36 are still unapplied. The secret named `SUPABASE_ACCESS_TOKEN` is still not an `sbp_` token. This checklist does not apply SQL and does not claim that apply is done. Gated Phase 5 command-centre panels stay paused. Saving a name does not send, does not spend, does not charge a card, and does not submit the PayFast form. `sending_enabled` stays false on every workspace until Billy says yes. `AUTOMATION_SEND_ENABLED` stays unset, or stays the string `false`. This page lists names only. Do not paste a merchant key, a passphrase, or a service-role value into git, a pull request, chat, or this file.
+
+The billing page and `/api/webhooks/payfast` already read these names. Checkout stays closed unless `BILLING_SANDBOX` is the string `true`. The only merchant id the app accepts is PayFast’s published sandbox merchant `10000100` (`PAYFAST_SANDBOX_MERCHANT_ID` in `src/lib/billing/flag.ts`). Any other id is refused. The checkout form posts only to `https://sandbox.payfast.co.za/eng/process`. A live PayFast host is refused. No charge is sent from this checklist.
+
+#### Where the values come from
+
+`BILLING_SANDBOX` is a switch. When Billy says yes to sandbox billing, the value is the string `true`. It is not a key.
+
+PayFast sandbox merchant id, key, and passphrase. On the phone, open the PayFast sandbox only: https://sandbox.payfast.co.za . Leave the live PayFast site closed. Leave live PayFast off until Billy says yes to live charges.
+
+1. Sign in to the sandbox account.
+2. Merchant id and merchant key are on the sandbox dashboard: Account → Personal Information, or Settings → Integrations → Merchant Identifiers. The app accepts merchant id `10000100` only. If the signed-in sandbox account shows a different id, leave that id out of Vercel. Copy the merchant key that belongs to sandbox merchant `10000100` into a password manager. This page does not contain that key.
+3. The passphrase is the sandbox Salt Passphrase. On the sandbox site, open Settings and edit Salt Passphrase. Subscription checkout signs with `PAYFAST_PASSPHRASE`, so the salt on the sandbox account and the env value have to be the same. Copy the salt into the password manager. If the salt is empty, set one on the sandbox account and keep that same value for the env name. Do not invent a second passphrase. Do not use a live PayFast passphrase.
+
+`SUPABASE_SERVICE_ROLE_KEY` is the server key the PayFast ITN webhook uses. `/api/webhooks/payfast` calls `apply_billing_event` with the service role. Without this name, the ITN is not stored. Owner auto-attach also reads this name. This checklist does not create the Auth user and does not run `supabase/owner-bootstrap.sql`.
+
+1. On the phone, open Supabase → the project → Project Settings → API Keys: https://supabase.com/dashboard/project/fnysxlswzufdnlbhndxc/settings/api-keys
+2. Reveal the legacy `service_role` secret. Copy it once into a password manager. Do not copy the `anon` key. Do not copy a publishable key. This page does not contain the value.
+3. The env name on Vercel is `SUPABASE_SERVICE_ROLE_KEY`. Leave it out of git, pull requests, issues, and docs.
+
+#### Set the names on Vercel
+
+When Billy says yes to sandbox billing:
+
+1. Stay on the Vercel session from step 3. Open Vercel → the CRM project → Settings → Environment Variables.
+2. Add one name at a time. Save it for Production. Add Preview only when Billy says yes to Preview. Mark `PAYFAST_MERCHANT_KEY`, `PAYFAST_PASSPHRASE`, and `SUPABASE_SERVICE_ROLE_KEY` Sensitive so the phone does not keep the value on screen after save.
+3. Set these names:
+   - `BILLING_SANDBOX` = `true`
+   - `PAYFAST_MERCHANT_ID` = `10000100`
+   - `PAYFAST_MERCHANT_KEY` (the sandbox merchant key from the password manager)
+   - `PAYFAST_PASSPHRASE` (the sandbox Salt Passphrase from the password manager)
+   - `SUPABASE_SERVICE_ROLE_KEY` (the `service_role` secret from Project Settings → API Keys)
+4. Leave `BILLING_ALLOW_MOCK_ITN` unset. On a production deploy the mock ITN control stays off unless that name is the string `true`. This checklist does not set it.
+5. Leave the values out of git, pull requests, issues, and docs.
+
+A saved variable is read on the next deployment. This checklist does not ask for a redeploy. It does not open `/command-centre/billing` and it does not press Prepare PayFast sandbox checkout. It does not register the billing cron. It does not call PayFast, Paystack, or Yoco. There is no Paystack env name and no Yoco env name on this checklist. The Yoco control on that page saves a sandbox draft and does not call Yoco. That draft still needs the billing SQL, which is still unapplied.
+
+#### Still blocked
+
+These stay blocked. A yes for the sandbox billing names is not a yes for any of them:
+
+- SQL steps 20 through 36 are still unapplied. Do not claim this SQL is already applied.
+- `SUPABASE_ACCESS_TOKEN` on the box and in Vercel is still not an `sbp_` token.
+- `OWNER_EMAILS` and the Owner Auth bootstrap stay on step 4. This checklist does not create the Auth user `billyfaber06@gmail.com` and does not paste `supabase/owner-bootstrap.sql`.
+- `CRON_SECRET` and the outbound channel keys (step 5) stay unset until Billy says yes. `sending_enabled` stays false. `AUTOMATION_SEND_ENABLED` stays unset, or stays the string `false`.
+- Website pull requests [aiautotech#4](https://github.com/billyboy95/aiautotech/pull/4) and [aiautotech#5](https://github.com/billyboy95/aiautotech/pull/5) stay open until Billy says yes to publish. Do not merge them from this agent.
+- Live PayFast stays off until Billy says yes to live charges. Do not put a live merchant id, a live merchant key, or a live passphrase in the environment.
+- This checklist does not apply the Education pack and does not apply the Zentrix pack. No ad spend. Gated Phase 5 command-centre panels stay paused.
+
+### 7. After SQL Success
+
+Only after the apply prints `Success. Steps 20–36 applied.`, or after the SQL editor has run step 36 without error. The agency owner Auth user is step 4. `CRON_SECRET` and the outbound channel keys are step 5 and stay unset until Billy says yes. PayFast sandbox names are step 6 and stay unset until Billy says yes to sandbox billing. Live PayFast stays off until he says yes to live charges. `sending_enabled` stays false until he says yes. Schema reload is the next SQL-editor action after step 36. This agent does not click Apply Education pack and does not click the Zentrix pack. No ad spend.
 
 1. Reload the API schema. In the SQL editor, run this once:
 
@@ -194,9 +245,9 @@ That refreshes the PostgREST schema cache. It does not apply another migration, 
 
 3. Leave the Zentrix Online pack unclicked until `ZENTRIX_WORKSPACE_PACK_ENABLED` is the string `true`, and only after step 29 is applied. While that flag is unset, the button stays fixture-only and does not store stubs. The pack does not call Shopify and does not turn sending on. This checklist does not set the flag.
 
-### 7. Wait for an explicit yes
+### 8. Wait for an explicit yes
 
-No ad spend, no purchases, and no outbound sends unless Billy explicitly says yes. `sending_enabled` stays false on every workspace until he says yes. Do not register a cron that sends. Do not create a paid developer account and do not submit a store listing. The step 5 names, including `CRON_SECRET` and the outbound channel keys, stay unset until that yes. Website pull requests [aiautotech#4](https://github.com/billyboy95/aiautotech/pull/4) and [aiautotech#5](https://github.com/billyboy95/aiautotech/pull/5) stay open until Billy says yes to publish. Do not merge them from this agent. This runbook does not publish the site.
+No ad spend, no purchases, no live charges, and no outbound sends unless Billy explicitly says yes. `sending_enabled` stays false on every workspace until he says yes. Do not register a cron that sends. Do not create a paid developer account and do not submit a store listing. The step 5 names, including `CRON_SECRET` and the outbound channel keys, stay unset until that yes. The step 6 names stay unset until Billy says yes to sandbox billing. Live PayFast stays off until he says yes to live charges. Website pull requests [aiautotech#4](https://github.com/billyboy95/aiautotech/pull/4) and [aiautotech#5](https://github.com/billyboy95/aiautotech/pull/5) stay open until Billy says yes to publish. Do not merge them from this agent. This runbook does not publish the site.
 
 ## 1. Apply SQL steps 20 through 36
 
@@ -270,23 +321,23 @@ Also leave `AI_REPLY_CRON_ENABLED`, `E2B_API_KEY`, `BROWSERBASE_API_KEY`, and `C
 
 ## 4. Apply the Education pack
 
-After the SQL above is applied, sign in as an agency owner and use Apply Education pack to EASTC on `/agency`. That is step 6 of Phone-first unblock. The Auth user is step 4. `CRON_SECRET` and outbound channel keys are step 5 and stay unset until Billy says yes. `sending_enabled` stays false until he says yes. This agent does not click that pack. Step 21 adds the function and does not apply the pack by itself. A `client_admin` cannot call it. Contacts, messages, secrets, and outbox rows are not copied.
+After the SQL above is applied, sign in as an agency owner and use Apply Education pack to EASTC on `/agency`. That is step 7 of Phone-first unblock. The Auth user is step 4. `CRON_SECRET` and outbound channel keys are step 5 and stay unset until Billy says yes. PayFast sandbox names are step 6 and stay unset until Billy says yes to sandbox billing. Live PayFast stays off until he says yes to live charges. `sending_enabled` stays false until he says yes. This agent does not click that pack. Step 21 adds the function and does not apply the pack by itself. A `client_admin` cannot call it. Contacts, messages, secrets, and outbox rows are not copied.
 
 ## 5. Zentrix pack
 
-Apply the Zentrix Online pack only after `ZENTRIX_WORKSPACE_PACK_ENABLED=true`, and only after step 29 is applied. That is step 6 of Phone-first unblock. This agent does not click that pack. While that flag is unset, the button stays fixture-only and does not store stubs. The pack does not call Shopify and does not turn sending on. This runbook does not set the flag. `sending_enabled` stays false.
+Apply the Zentrix Online pack only after `ZENTRIX_WORKSPACE_PACK_ENABLED=true`, and only after step 29 is applied. That is step 7 of Phone-first unblock. This agent does not click that pack. While that flag is unset, the button stays fixture-only and does not store stubs. The pack does not call Shopify and does not turn sending on. This runbook does not set the flag. `sending_enabled` stays false.
 
 ## 6. Owner Auth user, then owner SQL
 
-The phone steps are Phone-first unblock, step 4, after the `sbp_` token, the apply of steps 20–36, and the Vercel names checklist. Create or confirm the Auth user for `billyfaber06@gmail.com` first. That is the `OWNER_EMAILS` value Billy typed on 27 Sep 2026. Paste `supabase/owner-bootstrap.sql` only when `supabase/APPLY-ORDER.md` (Not part of this apply) says it is safe: after the numbered files, and only after that Auth user exists. That file is not a migration. The panel at `/command-centre/owner` does not create the Auth user and does not run that SQL. `OWNER_BOOTSTRAP_UI_ENABLED` stays unset until step 34 is applied. See `docs/phase-5m-owner-bootstrap.md` and `docs/agency-owner-setup.md`. The next phone checklist is step 5: `CRON_SECRET` and the outbound channel key names. Leave those names unset until Billy says yes. `sending_enabled` stays false until he says yes. This agent does not apply the Education pack or the Zentrix pack.
+The phone steps are Phone-first unblock, step 4, after the `sbp_` token, the apply of steps 20–36, and the Vercel names checklist. Create or confirm the Auth user for `billyfaber06@gmail.com` first. That is the `OWNER_EMAILS` value Billy typed on 27 Sep 2026. Paste `supabase/owner-bootstrap.sql` only when `supabase/APPLY-ORDER.md` (Not part of this apply) says it is safe: after the numbered files, and only after that Auth user exists. That file is not a migration. The panel at `/command-centre/owner` does not create the Auth user and does not run that SQL. `OWNER_BOOTSTRAP_UI_ENABLED` stays unset until step 34 is applied. See `docs/phase-5m-owner-bootstrap.md` and `docs/agency-owner-setup.md`. The next phone checklist is step 5: `CRON_SECRET` and the outbound channel key names. Leave those names unset until Billy says yes. After step 5, PayFast sandbox billing readiness is step 6. Leave those names unset until Billy says yes to sandbox billing. Live PayFast stays off until he says yes to live charges. `sending_enabled` stays false until he says yes. This agent does not apply the Education pack or the Zentrix pack.
 
 ## 7. Blockers Billy decides
 
-Names only. The phone checklist for Vercel names is Phone-first unblock, step 3 (Vercel → the CRM project → Settings → Environment Variables). The Owner Auth user is step 4. `CRON_SECRET` generation and the outbound channel key names are step 5. Creating the Auth user does not set the names below. Each name needs Billy’s yes before live use. This runbook does not supply secret values. `sending_enabled` stays false until he says yes.
+Names only. The phone checklist for Vercel names is Phone-first unblock, step 3 (Vercel → the CRM project → Settings → Environment Variables). The Owner Auth user is step 4. `CRON_SECRET` generation and the outbound channel key names are step 5. PayFast sandbox and billing readiness is step 6. Creating the Auth user does not set the names below. Each name needs Billy’s yes before live use. This runbook does not supply secret values. `sending_enabled` stays false until he says yes. Live PayFast stays off until he says yes to live charges.
 
 - `OWNER_EMAILS` = `billyfaber06@gmail.com` (owner auto-attach, PR #17)
 - `CRON_SECRET` (step 5; generate it in a password manager and set the name on Vercel only after Billy says yes; leave it unset until then)
-- Sandbox billing only: `BILLING_SANDBOX`, `PAYFAST_MERCHANT_ID` = `10000100` (PayFast’s published sandbox merchant), `PAYFAST_MERCHANT_KEY`, `PAYFAST_PASSPHRASE`, and `SUPABASE_SERVICE_ROLE_KEY`. Do not invent the key, the passphrase, or the service-role key. Do not put a live merchant id in the environment.
+- Sandbox billing only (step 6): `BILLING_SANDBOX` = `true`, `PAYFAST_MERCHANT_ID` = `10000100` (PayFast’s published sandbox merchant), `PAYFAST_MERCHANT_KEY`, `PAYFAST_PASSPHRASE`, and `SUPABASE_SERVICE_ROLE_KEY`. Leave them unset until Billy says yes to sandbox billing. Do not invent the key, the passphrase, or the service-role key. Do not put a live merchant id in the environment. Leave `BILLING_ALLOW_MOCK_ITN` unset. Leave live PayFast off until he says yes to live charges.
 - Outbound channel keys (step 5) are required before a real send. `sending_enabled` stays false until Billy says yes.
 - Gated Phase 5 flags stay unset until their SQL is applied (section 3, Leave flags unset until their SQL is applied). Command-centre panels stay paused until then.
 - Website publish: [aiautotech#4](https://github.com/billyboy95/aiautotech/pull/4) and [aiautotech#5](https://github.com/billyboy95/aiautotech/pull/5) wait for Billy’s explicit yes. Do not merge them from this agent. This runbook does not publish the site.

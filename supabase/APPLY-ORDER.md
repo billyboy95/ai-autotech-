@@ -16,6 +16,8 @@ node scripts/apply-pending-migrations.mjs --apply
 
 The script stops on the first failure. The Management API path does not need `SUPABASE_DB_URL` or a database password. Steps 20 through 36 stay unapplied until that apply prints Success. After Success, run `NOTIFY pgrst, 'reload schema';`, then Apply Education pack as an agency owner. Apply the Zentrix pack only once `ZENTRIX_WORKSPACE_PACK_ENABLED` is the string `true`.
 
+After that token and apply section, the phone-first Vercel Environment Variables checklist is in `docs/GO-LIVE-RUNBOOK.md` (Phone-first unblock, step 3). Names only. Each name needs Billy’s yes before live use. Leave `CRON_SECRET` and the Phase 5 flags unset until then. `sending_enabled` stays false. `aiautotech` pull requests #4 and #5 stay open until Billy says yes to publish. Do not paste a secret value into this file.
+
 ## Already live
 
 The public audit intake still writes to these. They are done.

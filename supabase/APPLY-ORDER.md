@@ -1,8 +1,9 @@
 # Migration apply order
 
-Nothing below the “Already live” list has been run on the production database.
-The command centre still reports that `public.crm_lead_activity` is missing.
-Paste each file into the Supabase SQL editor and run it once, in this order only.
+Steps 1 through 19 were applied on the production database on 27 Sep 2026. They are listed under Already live. Do not paste them again.
+Steps 20 through 36 are still unapplied. Do not claim this SQL is already applied.
+Step 1 (`crm_automation`) creates `public.crm_lead_activity`. That step is already live. This page does not treat that table as missing.
+Paste each unapplied file (steps 20 through 36) into the Supabase SQL editor and run it once, in this order only.
 Do not sort the folder by filename. Two timestamps are shared, and filename order applies `phase2a_access` before `send_compliance` and `agency_tenancy` before `crm_automation`.
 
 These files are additive. They do not delete existing leads. Do not turn sending on while applying them. The operator sequence for steps 20 through 36 is the phone-first unblock in `docs/GO-LIVE-RUNBOOK.md`.
@@ -18,7 +19,7 @@ The script stops on the first failure. The Management API path does not need `SU
 
 After that token and apply section, the phone-first Vercel Environment Variables checklist is in `docs/GO-LIVE-RUNBOOK.md` (Phone-first unblock, step 3). Names only. Each name needs Billy’s yes before live use. Leave `CRON_SECRET` and the Phase 5 flags unset until then. `sending_enabled` stays false. `aiautotech` pull requests #4 and #5 stay open until Billy says yes to publish. Do not paste a secret value into this file.
 
-After that Vercel names checklist, the phone-first Owner Auth bootstrap is in `docs/GO-LIVE-RUNBOOK.md` (Phone-first unblock, step 4). Create or confirm the Auth user `billyfaber06@gmail.com` first (`OWNER_EMAILS`, the address Billy typed 27 Sep 2026). `supabase/owner-bootstrap.sql` is not a migration. Run it only after that user exists and only when “Not part of this apply” below says it is safe. This checklist does not apply the Education pack or the Zentrix pack. No ad spend. `sending_enabled` stays false. `CRON_SECRET`, outbound channel keys, `BILLING_SANDBOX`, and `aiautotech` pull requests #4 and #5 still need Billy’s explicit yes. Do not merge those pull requests from this agent. Do not paste a password, a token, a key, a passphrase, or a service-role value into this file.
+After that Vercel names checklist, the phone-first Owner Auth bootstrap verification is in `docs/GO-LIVE-RUNBOOK.md` (Phone-first unblock, step 4). On the phone, confirm the Auth user `billyfaber06@gmail.com` in Supabase Authentication → Users for project `fnysxlswzufdnlbhndxc`, or create that user only when Billy says yes. On the Vercel CRM project, confirm the name `OWNER_EMAILS` is present on Production as `billyfaber06@gmail.com`, or leave it unset or blank because that already defaults to the same address. Do not invent another email. Names only. `supabase/owner-bootstrap.sql` is not a migration. Do not paste it until steps 20 through 36 have succeeded and that Auth user exists (“Not part of this apply” below). Leave `OWNER_BOOTSTRAP_UI_ENABLED` unset until step 34 is applied. This checklist does not apply the Education pack or the Zentrix pack. No ad spend. `sending_enabled` stays false. The next phone checklists stay step 5 (`CRON_SECRET` and channel key names), step 6 (PayFast sandbox), and step 7 (SQL editor for steps 20 through 36). Do not claim steps 20 through 36 are applied. `aiautotech` pull requests #4 and #5 still need Billy’s explicit yes. Do not merge those pull requests from this agent. Do not paste a password, a token, a key, a passphrase, or a service-role value into this file.
 
 After that Owner Auth bootstrap, the next phone checklist is `docs/GO-LIVE-RUNBOOK.md` (Phone-first unblock, step 5): `CRON_SECRET` readiness and the outbound channel key names. Names only. Leave `CRON_SECRET` and every channel name unset until Billy says yes. `sending_enabled` stays false until he says yes. This checklist does not register a cron, does not send, and does not apply the Education pack or the Zentrix pack. No ad spend. Do not paste a secret value into this file.
 
@@ -28,15 +29,15 @@ After that PayFast sandbox checklist, the next phone checklist is `docs/GO-LIVE-
 
 ## Already live
 
-The public audit intake still writes to these. They are done.
+Steps 1 through 19 were applied in production on 27 Sep 2026. Do not paste them again. Do not mark steps 20 through 36 applied.
 
-1. `supabase/migrations/20260903000000_company_crm.sql`
-2. `supabase/migrations/20260925000000_audit_leads.sql`
-3. `supabase/migrations/20260925120000_contact_leads.sql`
+The public audit intake still writes to these earlier files. They sit before step 1. They are done.
 
-## Unapplied, in the only safe order
+- `supabase/migrations/20260903000000_company_crm.sql`
+- `supabase/migrations/20260925000000_audit_leads.sql`
+- `supabase/migrations/20260925120000_contact_leads.sql`
 
-PR #3 is merged. Its files are on `main` and are still unapplied. Run them after the automation and compliance files.
+Steps 1 through 19, already on the production database:
 
 1. `supabase/migrations/20260926160000_crm_automation.sql`
 2. `supabase/migrations/20260926183000_outbound_channels.sql`
@@ -57,6 +58,11 @@ PR #3 is merged. Its files are on `main` and are still unapplied. Run them after
 17. `supabase/migrations/20261023120000_phase3c_reviews.sql`
 18. `supabase/migrations/20261024120000_phase4a_bots.sql`
 19. `supabase/migrations/20261025120000_phase4b_referrals.sql`
+
+## Unapplied, in the only safe order
+
+Steps 20 through 36 are still unapplied. The safe order is unchanged. Do not reorder these files. Do not paste steps 1 through 19 again. Do not claim this SQL is already applied.
+
 20. `supabase/migrations/20261026120000_phase4c_aios_pricing.sql`
 21. `supabase/migrations/20261027120000_phase4d_eastc_education.sql`
 22. `supabase/migrations/20261028120000_phase5a_agent_computers.sql`
@@ -102,6 +108,8 @@ Each row copies the leave-unset comment at the top of that migration. Unset, bla
 | 36 | `phase5o_golive_checklist` | `GOLIVE_CHECKLIST_ENABLED` until this file is applied. `MIGRATION_RUNNER_ENABLED`, `SETUP_WIZARD_ENABLED`, `OWNER_BOOTSTRAP_UI_ENABLED`, `OPS_SECRETS_READY_ENABLED`, and the earlier phase 5 flags. `AI_REPLY_CRON_ENABLED`, `ZENTRIX_WORKSPACE_PACK_ENABLED`, `EAST_RAND_CAMPAIGN_SEED_ENABLED`, and `PWA_INSTALL_SHELL_ENABLED` |
 
 Why this order:
+
+Steps 1 through 19 are already live. The notes below record why that order was safe. They are not a second apply. Steps 20 through 36 stay unapplied, in the order listed above. Do not reorder them.
 
 - `outbound_channels` alters `crm_outbox` and creates `crm_prospects`. Those come from `crm_automation`.
 - `send_compliance` adds consent and cost columns on `crm_leads`, `crm_prospects`, and `crm_outbox`, and replaces the outbox status check so `blocked` is allowed. It has to follow `outbound_channels`.
@@ -230,7 +238,7 @@ Filename sort also places `20260926180000_zentrix_shopify.sql` before `outbound_
 
 ## Not part of this apply
 
-`supabase/owner-bootstrap.sql` is not a migration. Run it only after these files, and only after the agency owner exists in Supabase Auth. The phone steps are `docs/GO-LIVE-RUNBOOK.md`, Phone-first unblock, step 4. `supabase/schema.sql` is the classic Command Centre baseline, not one of these pending files. Do not apply this list until `SUPABASE_DB_URL` is available, and do not turn sending on while applying it.
+`supabase/owner-bootstrap.sql` is not a migration. Run it only after steps 20 through 36 have succeeded, and only after the agency owner exists in Supabase Auth. Steps 1 through 19 are already live and are not a reason to paste this file. The phone verification is `docs/GO-LIVE-RUNBOOK.md`, Phone-first unblock, step 4. Do not paste `supabase/owner-bootstrap.sql` until both of those gates are true. `supabase/schema.sql` is the classic Command Centre baseline, not one of the unapplied files. Do not turn sending on while applying steps 20 through 36.
 
 ## Owner login without a manual membership insert
 

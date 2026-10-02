@@ -14,9 +14,11 @@ node scripts/apply-pending-migrations.mjs
 node scripts/apply-pending-migrations.mjs --apply
 ```
 
-The script stops on the first failure. The Management API path does not need `SUPABASE_DB_URL` or a database password. Steps 20 through 36 stay unapplied until that apply prints Success. After Success, run `NOTIFY pgrst, 'reload schema';`, then Apply Education pack as an agency owner. Apply the Zentrix pack only once `ZENTRIX_WORKSPACE_PACK_ENABLED` is the string `true`.
+The script stops on the first failure. The Management API path does not need `SUPABASE_DB_URL` or a database password. Steps 20 through 36 stay unapplied until that apply prints Success. After Success, run `NOTIFY pgrst, 'reload schema';`. Apply Education pack to EASTC only when Billy says yes, as an agency owner. Apply the Zentrix pack only once `ZENTRIX_WORKSPACE_PACK_ENABLED` is the string `true` and Billy says yes. This agent does not click either pack.
 
 After that token and apply section, the phone-first Vercel Environment Variables checklist is in `docs/GO-LIVE-RUNBOOK.md` (Phone-first unblock, step 3). Names only. Each name needs Billy’s yes before live use. Leave `CRON_SECRET` and the Phase 5 flags unset until then. `sending_enabled` stays false. `aiautotech` pull requests #4 and #5 stay open until Billy says yes to publish. Do not paste a secret value into this file.
+
+After that Vercel names checklist, the phone-first Owner Auth bootstrap is in `docs/GO-LIVE-RUNBOOK.md` (Phone-first unblock, step 4). Create or confirm the Auth user `billyfaber06@gmail.com` first (`OWNER_EMAILS`, the address Billy typed 27 Sep 2026). `supabase/owner-bootstrap.sql` is not a migration. Run it only after that user exists and only when “Not part of this apply” below says it is safe. This checklist does not apply the Education pack or the Zentrix pack. No ad spend. `sending_enabled` stays false. `CRON_SECRET`, outbound channel keys, `BILLING_SANDBOX`, and `aiautotech` pull requests #4 and #5 still need Billy’s explicit yes. Do not merge those pull requests from this agent. Do not paste a password, a token, a key, a passphrase, or a service-role value into this file.
 
 ## Already live
 
@@ -222,7 +224,7 @@ Filename sort also places `20260926180000_zentrix_shopify.sql` before `outbound_
 
 ## Not part of this apply
 
-`supabase/owner-bootstrap.sql` is not a migration. Run it only after these files, and only after the agency owner exists in Supabase Auth. `supabase/schema.sql` is the classic Command Centre baseline, not one of these pending files. Do not apply this list until `SUPABASE_DB_URL` is available, and do not turn sending on while applying it.
+`supabase/owner-bootstrap.sql` is not a migration. Run it only after these files, and only after the agency owner exists in Supabase Auth. The phone steps are `docs/GO-LIVE-RUNBOOK.md`, Phone-first unblock, step 4. `supabase/schema.sql` is the classic Command Centre baseline, not one of these pending files. Do not apply this list until `SUPABASE_DB_URL` is available, and do not turn sending on while applying it.
 
 ## Owner login without a manual membership insert
 

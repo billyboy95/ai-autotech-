@@ -93,9 +93,39 @@ Website pull requests on `billyboy95/aiautotech` stay open until Billy says yes 
 - [aiautotech#4](https://github.com/billyboy95/aiautotech/pull/4) — Publish week-1 guide topics as on-site resource articles
 - [aiautotech#5](https://github.com/billyboy95/aiautotech/pull/5) — Align public prices with the 27 Sep 2026 AIOS sheet
 
-### 4. After SQL Success
+### 4. Phone-first: Owner Auth bootstrap
 
-Only after the apply prints `Success. Steps 20–36 applied.`, or after the SQL editor has run step 36 without error:
+Do this on the phone after the three steps above: a real `sbp_` token, the apply of steps 20–36, and the Vercel Environment Variables names checklist (PR #39). Creating the Auth user does not apply SQL, does not unpause gated Phase 5 command-centre panels, does not send, and does not spend. This page names the address only. Do not paste a password, a token, a key, a passphrase, or a service-role value into git, a pull request, chat, or this file.
+
+The agency owner address is `billyfaber06@gmail.com`. That is the `OWNER_EMAILS` value Billy typed on 27 Sep 2026, and the default in `.env.example`. When `OWNER_EMAILS` is unset or blank, the app already uses this address. See `docs/agency-owner-setup.md` and `docs/phase-5m-owner-bootstrap.md`.
+
+1. On the phone, open Supabase → the project → Authentication → Users: https://supabase.com/dashboard/project/fnysxlswzufdnlbhndxc/auth/users
+2. Confirm `billyfaber06@gmail.com` is already in the list. If it is, leave that user as it is. Do not add a second user for the same address.
+3. If it is missing, choose Add user. Use that email. Set the password in the dashboard and keep it in a password manager. Turn on Auto Confirm so sign-in does not wait on a mailbox. This page does not contain a password.
+4. The Auth user has to exist before any owner SQL. A row in Authentication → Users is not a membership by itself.
+
+`supabase/owner-bootstrap.sql` is the existing manual membership file. It is not a migration. Do not invent another SQL filename. `supabase/APPLY-ORDER.md` (Not part of this apply) says to run it only after the numbered files in that list, and only after the agency owner exists in Supabase Auth. While steps 20 through 36 are still unapplied, do not paste it. Return to step 2 of this unblock.
+
+When that apply has printed `Success. Steps 20–36 applied.` (or the SQL editor has run step 36 without error) and the Auth user is in the list:
+
+1. Open the project SQL editor, the same editor as section 1.
+2. Paste `supabase/owner-bootstrap.sql` once. It attaches `billyfaber06@gmail.com` as `agency_owner` of the organisation with slug `ai-autotech`. It does not delete anything.
+3. If the service role key is missing, first-login auto-attach is skipped and this same file remains the manual path (`supabase/APPLY-ORDER.md`, Owner login without a manual membership insert). This checklist does not set `SUPABASE_SERVICE_ROLE_KEY`.
+
+The panel at `/command-centre/owner` shows that file and does not create the Auth user and does not run that SQL. Leave `OWNER_BOOTSTRAP_UI_ENABLED` unset until step 34 is applied. Step 34 is the existing file `supabase/migrations/20261109120000_phase5m_owner_bootstrap.sql`. It stores a sandbox note. It does not insert into `auth.users` and it does not execute `supabase/owner-bootstrap.sql`. Gated Phase 5 panels stay paused until steps 20 through 36 are applied. Setting a flag does not apply SQL.
+
+This checklist does not apply the Education pack and does not apply the Zentrix pack. No ad spend. `sending_enabled` stays false on every workspace.
+
+These still need Billy’s explicit yes before live use. A yes for the Auth user is not a yes for any of them. Do not merge the website pull requests from this agent:
+
+- `CRON_SECRET`
+- Outbound channel keys (email, WhatsApp / Meta, and SMS), named in step 3
+- `BILLING_SANDBOX` and the PayFast sandbox names in step 3. Do not put a live merchant id in the environment.
+- Publishing [aiautotech#4](https://github.com/billyboy95/aiautotech/pull/4) and [aiautotech#5](https://github.com/billyboy95/aiautotech/pull/5)
+
+### 5. After SQL Success
+
+Only after the apply prints `Success. Steps 20–36 applied.`, or after the SQL editor has run step 36 without error. The agency owner Auth user is step 4. Schema reload is the next SQL-editor action after step 36. This agent does not click Apply Education pack and does not click the Zentrix pack. No ad spend.
 
 1. Reload the API schema. In the SQL editor, run this once:
 
@@ -109,7 +139,7 @@ That refreshes the PostgREST schema cache. It does not apply another migration, 
 
 3. Leave the Zentrix Online pack unclicked until `ZENTRIX_WORKSPACE_PACK_ENABLED` is the string `true`, and only after step 29 is applied. While that flag is unset, the button stays fixture-only and does not store stubs. The pack does not call Shopify and does not turn sending on. This checklist does not set the flag.
 
-### 5. Wait for an explicit yes
+### 6. Wait for an explicit yes
 
 No ad spend, no purchases, and no outbound sends unless Billy explicitly says yes. `sending_enabled` stays false on every workspace. Do not register a cron that sends. Do not create a paid developer account and do not submit a store listing. The Vercel names, including `CRON_SECRET`, stay unset until that yes. Website pull requests [aiautotech#4](https://github.com/billyboy95/aiautotech/pull/4) and [aiautotech#5](https://github.com/billyboy95/aiautotech/pull/5) stay open until Billy says yes to publish. Do not merge them from this agent. This runbook does not publish the site.
 
@@ -185,19 +215,19 @@ Also leave `AI_REPLY_CRON_ENABLED`, `E2B_API_KEY`, `BROWSERBASE_API_KEY`, and `C
 
 ## 4. Apply the Education pack
 
-After the SQL above is applied, sign in as an agency owner and use Apply Education pack to EASTC on `/agency`. That is step 4 of Phone-first unblock. Step 21 adds the function and does not apply the pack by itself. A `client_admin` cannot call it. Contacts, messages, secrets, and outbox rows are not copied.
+After the SQL above is applied, sign in as an agency owner and use Apply Education pack to EASTC on `/agency`. That is step 5 of Phone-first unblock. The Auth user is step 4. This agent does not click that pack. Step 21 adds the function and does not apply the pack by itself. A `client_admin` cannot call it. Contacts, messages, secrets, and outbox rows are not copied.
 
 ## 5. Zentrix pack
 
-Apply the Zentrix Online pack only after `ZENTRIX_WORKSPACE_PACK_ENABLED=true`, and only after step 29 is applied. That is step 4 of Phone-first unblock. While that flag is unset, the button stays fixture-only and does not store stubs. The pack does not call Shopify and does not turn sending on. This runbook does not set the flag.
+Apply the Zentrix Online pack only after `ZENTRIX_WORKSPACE_PACK_ENABLED=true`, and only after step 29 is applied. That is step 5 of Phone-first unblock. This agent does not click that pack. While that flag is unset, the button stays fixture-only and does not store stubs. The pack does not call Shopify and does not turn sending on. This runbook does not set the flag.
 
 ## 6. Owner Auth user, then owner SQL
 
-Create the Auth user in the Supabase dashboard first (Authentication → Users). The documented address is `billyfaber06@gmail.com`, the `OWNER_EMAILS` default in `.env.example`. Then paste `supabase/owner-bootstrap.sql`. That file is not a migration. The panel at `/command-centre/owner` does not create the Auth user and does not run that SQL. `OWNER_BOOTSTRAP_UI_ENABLED` stays unset until step 34 is applied.
+The phone steps are Phone-first unblock, step 4, after the `sbp_` token, the apply of steps 20–36, and the Vercel names checklist. Create or confirm the Auth user for `billyfaber06@gmail.com` first. That is the `OWNER_EMAILS` value Billy typed on 27 Sep 2026. Paste `supabase/owner-bootstrap.sql` only when `supabase/APPLY-ORDER.md` (Not part of this apply) says it is safe: after the numbered files, and only after that Auth user exists. That file is not a migration. The panel at `/command-centre/owner` does not create the Auth user and does not run that SQL. `OWNER_BOOTSTRAP_UI_ENABLED` stays unset until step 34 is applied. See `docs/phase-5m-owner-bootstrap.md` and `docs/agency-owner-setup.md`. This agent does not apply the Education pack or the Zentrix pack.
 
 ## 7. Blockers Billy decides
 
-Names only. The phone checklist is Phone-first unblock, step 3 (Vercel → the CRM project → Settings → Environment Variables). Each name needs Billy’s yes before live use. This runbook does not supply secret values.
+Names only. The phone checklist is Phone-first unblock, step 3 (Vercel → the CRM project → Settings → Environment Variables). The Owner Auth user is step 4. Creating that user does not set the names below. Each name needs Billy’s yes before live use. This runbook does not supply secret values.
 
 - `OWNER_EMAILS` = `billyfaber06@gmail.com` (owner auto-attach, PR #17)
 - `CRON_SECRET` (cron routes; leave unset until Billy says yes)

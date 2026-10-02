@@ -10,6 +10,8 @@ Steps 20 through 36 expect steps 1 through 19 to already be on the database. Tho
 
 Do these in order. Each step can be started from a phone. The apply command runs on the box, in this repo, after `SUPABASE_ACCESS_TOKEN` in that shell is a real `sbp_` token. While that value is still a chat note, Phone-first unblock step 7 is the SQL editor path. It does not need the token. After step 7 (or the CLI in step 2) has shown success for every file from 20 through 36, step 8 is the pack click order: schema reload, then the Education pack, then the Zentrix pack. This page does not click either pack. Packs are not applied. Do not paste the token into git, a pull request, chat, or this file.
 
+Attaching `crm.aiautotech.co.za` does not wait on that SQL. The phone checklist is [`docs/phone-crm-custom-domain.md`](phone-crm-custom-domain.md) (step 10 below). This page does not edit DNS.
+
 ### 1. Replace `SUPABASE_ACCESS_TOKEN`
 
 1. On the phone, open Supabase → Account → Access Tokens: https://supabase.com/dashboard/account/tokens
@@ -413,6 +415,14 @@ Tracker item 8 (prospect list and the first campaign) is a sandbox dry-load only
 ### 9. Wait for an explicit yes
 
 No ad spend, no purchases, no live charges, and no outbound sends unless Billy explicitly says yes. `sending_enabled` stays false on every workspace until he says yes. Do not register a cron that sends. Do not create a paid developer account and do not submit a store listing. The step 5 names, including `CRON_SECRET` and the outbound channel keys, stay unset until that yes. The step 6 names stay unset until Billy says yes to sandbox billing. Live PayFast stays off until he says yes to live charges. The SQL editor paste in step 7 leaves `sending_enabled` false. Education pack and Zentrix pack stay unclicked until step 8 and until Billy says yes to that pack. Leave `ZENTRIX_WORKSPACE_PACK_ENABLED` unset until he says yes. Website pull requests [aiautotech#4](https://github.com/billyboy95/aiautotech/pull/4) and [aiautotech#5](https://github.com/billyboy95/aiautotech/pull/5) stay open until Billy says yes to publish. Do not merge them from this agent. This runbook does not publish the site.
+
+### 10. Phone-first: CRM hostname `crm.aiautotech.co.za`
+
+This step does not wait on steps 20 through 36. The app already answers on `https://ai-autotech-crm.vercel.app`. Overnight checks sometimes find `crm.aiautotech.co.za` unreachable while that Vercel hostname still loads. The phone checklist is [`docs/phone-crm-custom-domain.md`](phone-crm-custom-domain.md).
+
+Billy adds `crm.aiautotech.co.za` on Vercel → the CRM project `ai-autotech-crm` → Settings → Domains, Production only. He then copies the DNS card into GoDaddy for the zone `aiautotech.co.za`. The record type and value come from that card. This page does not edit DNS, does not buy a domain, and does not spend.
+
+`sending_enabled` stays false. Steps 1 through 19 stay Already live. Steps 20 through 36 stay unapplied. Website pull requests [aiautotech#4](https://github.com/billyboy95/aiautotech/pull/4) and [aiautotech#5](https://github.com/billyboy95/aiautotech/pull/5) stay open until Billy says yes to publish. Do not merge them from this agent. Cron URLs stay on `https://ai-autotech-crm.vercel.app` ([`docs/phone-pg-cron-schedules.md`](phone-pg-cron-schedules.md)).
 
 ## 1. Apply SQL steps 20 through 36
 

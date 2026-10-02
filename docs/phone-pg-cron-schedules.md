@@ -61,7 +61,7 @@ https://supabase.com/dashboard/project/fnysxlswzufdnlbhndxc/sql/new
 
 Run one block at a time. Stop on the first error. Do not skip ahead.
 
-In each schedule block, replace `REPLACE_WITH_CRON_SECRET` with the password-manager value of `CRON_SECRET`. The host is already `ai-autotech-crm.vercel.app`. Confirm that host is the Production domain under Vercel → the CRM project → Settings → Domains. Do not use a Preview URL. This repo does not use `crm.aiautotech.co.za` for these jobs.
+In each schedule block, replace `REPLACE_WITH_CRON_SECRET` with the password-manager value of `CRON_SECRET`. The host is already `ai-autotech-crm.vercel.app`. Confirm that host is a Production domain under Vercel → the CRM project → Settings → Domains. Do not use a Preview URL. Cron URLs stay on `ai-autotech-crm.vercel.app`. Attaching `crm.aiautotech.co.za` is [`docs/phone-crm-custom-domain.md`](phone-crm-custom-domain.md). Do not rewrite these job URLs to that host.
 
 Do not save the query as a snippet. After Run, close that editor tab. The job stores the bearer token in the database. Later reads on this page do not select the command text. Do not screenshot the editor while the secret is on screen.
 

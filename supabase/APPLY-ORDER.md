@@ -225,6 +225,8 @@ Until the domain is added on Vercel, open the stub path `/d/<hostname>/login`. T
 
 When you attach a real hostname, add it on the Vercel project and set `organizations.custom_domain` to that host (no port). The app reads `Host` and `x-forwarded-host`. A client login hides the words “AI AutoTech” unless that workspace’s branding has `showPlatformName` set. Email From uses the workspace sender name on the same rule.
 
+The phone checklist for the production CRM host `crm.aiautotech.co.za` is `docs/phone-crm-custom-domain.md`. Billy adds that hostname on Vercel Production and copies the DNS card into GoDaddy for `aiautotech.co.za`. That page does not edit DNS, does not buy a domain, and does not set `organizations.custom_domain`. Steps 1 through 19 stay Already live. Steps 20 through 36 stay unapplied.
+
 ## Shared timestamps
 
 Do not apply by filename sort.

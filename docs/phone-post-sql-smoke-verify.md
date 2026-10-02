@@ -28,7 +28,7 @@ It refreshes the PostgREST schema cache. It does not apply another migration and
 
 Every URL below is on `https://ai-autotech-crm.vercel.app`.
 
-This repo does not mention `crm.aiautotech.co.za`. Do not move this smoke to that host from this page.
+`crm.aiautotech.co.za` is the custom host in [`docs/phone-crm-custom-domain.md`](phone-crm-custom-domain.md). Do not move this smoke to that host until that page’s SSL Ready check has passed. If the custom host does not load, this Vercel hostname stays the smoke target.
 
 Stay logged out. Use a private tab so an old session cookie is not treated as signed in. Do not sign in. Do not tap **Apply Education pack to EASTC**, **Apply Zentrix pack to Zentrix Online**, **Send now**, **Go live**, **Publish**, or **Post now**.
 

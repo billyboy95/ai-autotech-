@@ -8,7 +8,7 @@ Steps 20 through 36 expect steps 1 through 19 to already be on the database. Tho
 
 ## Phone-first unblock
 
-Do these in order. Each step can be started from a phone. The apply command runs on the box, in this repo, after `SUPABASE_ACCESS_TOKEN` in that shell is a real `sbp_` token. While that value is still a chat note, Phone-first unblock step 7 is the SQL editor path. It does not need the token. Do not paste the token into git, a pull request, chat, or this file.
+Do these in order. Each step can be started from a phone. The apply command runs on the box, in this repo, after `SUPABASE_ACCESS_TOKEN` in that shell is a real `sbp_` token. While that value is still a chat note, Phone-first unblock step 7 is the SQL editor path. It does not need the token. After step 7 (or the CLI in step 2) has shown success for every file from 20 through 36, step 8 is the pack click order: schema reload, then the Education pack, then the Zentrix pack. This page does not click either pack. Packs are not applied. Do not paste the token into git, a pull request, chat, or this file.
 
 ### 1. Replace `SUPABASE_ACCESS_TOKEN`
 
@@ -284,19 +284,7 @@ Files, in order. The ops-box name is the copy under `/workspace/supabase-apply/`
 
 Watch the paste on a phone for step 20 (about 12 KB), step 26 (about 14 KB), step 27 (about 20 KB), step 28 (about 12 KB), and step 29 (about 15 KB). Prefer a desktop paste for those five when the phone editor truncates. Step 27 is the one to treat first. The same rule applies to any later file if the phone cuts it. Paste the file whole.
 
-After every step from 20 through 36 has shown success, and only then:
-
-1. In the same SQL editor, run this once:
-
-```sql
-NOTIFY pgrst, 'reload schema';
-```
-
-That refreshes the PostgREST schema cache. It does not apply another migration, does not send, and does not change `sending_enabled`.
-
-2. Apply Education pack to EASTC on `/agency` only after step 21 has succeeded, only when signed in as an agency owner, and only when Billy says yes. Step 21 adds `apply_education_pack_to_eastc()` and does not apply the pack by itself. There is no env flag that applies this pack. A `client_admin` cannot call it. This checklist does not click it. Contacts, messages, secrets, and outbox rows are not copied.
-
-3. Apply the Zentrix Online pack only after step 29 has succeeded, only after `ZENTRIX_WORKSPACE_PACK_ENABLED` is the string `true`, and only when Billy says yes. While that flag is unset, the button stays fixture-only and does not store stubs. This checklist leaves the flag unset. The pack does not call Shopify and does not turn sending on.
+After step 36 shows success, stop on this step. Do not click a pack here. The next phone checklist is step 8. That is the click order: schema reload, then the Education pack, then the Zentrix pack. This checklist does not click either pack. Leave `ZENTRIX_WORKSPACE_PACK_ENABLED` unset.
 
 Leave these flags unset. Unset, blank, or any value other than the string `true` keeps that page fixture-only. Setting a flag stores a sandbox note only. It does not apply SQL and it does not send. This checklist does not set them:
 
@@ -325,27 +313,102 @@ These stay on their own steps. A success in the SQL editor is not a yes for any 
 - PayFast sandbox names stay on step 6. Leave them unset until Billy says yes to sandbox billing. Live PayFast stays off until he says yes to live charges. Do not put a live merchant id in the environment.
 - `SUPABASE_ACCESS_TOKEN` on the ops box is still a chat note. This checklist does not paste a token.
 - Website pull requests [aiautotech#4](https://github.com/billyboy95/aiautotech/pull/4) and [aiautotech#5](https://github.com/billyboy95/aiautotech/pull/5) stay open until Billy says yes to publish. Do not merge them from this agent.
-- This checklist does not click Apply Education pack and does not click the Zentrix pack. Leave `ZENTRIX_WORKSPACE_PACK_ENABLED` unset. No secret value is in this file.
+- This checklist does not click Apply Education pack and does not click the Zentrix pack. The click order is step 8, and only after this step has shown success. Leave `ZENTRIX_WORKSPACE_PACK_ENABLED` unset. No secret value is in this file.
 
-### 8. After SQL Success
+The next phone checklist is step 8.
 
-Only after the apply prints `Success. Steps 20–36 applied.`, or after Phone-first unblock step 7 has run step 36 in the SQL editor without error. Step 7 is the phone paste. The agency owner Auth user is step 4. `CRON_SECRET` and the outbound channel keys are step 5 and stay unset until Billy says yes. PayFast sandbox names are step 6 and stay unset until Billy says yes to sandbox billing. Live PayFast stays off until he says yes to live charges. `sending_enabled` stays false until he says yes. Schema reload is the next SQL-editor action after step 36. Step 7 runs that reload only after every file from 20 through 36 has shown success. This agent does not click Apply Education pack and does not click the Zentrix pack. Leave `ZENTRIX_WORKSPACE_PACK_ENABLED` unset. No ad spend.
+### 8. Phone-first: Education pack, then Zentrix pack
 
-1. Reload the API schema. In the SQL editor, run this once:
+Do this on the phone or on a desktop only after SQL Success. Step 7 is the SQL editor paste. The CLI in step 2 is the other path, and only once `SUPABASE_ACCESS_TOKEN` is a real `sbp_` token. Packs are not applied. This checklist does not click either button. It does not set a flag. It does not add a page under `/command-centre` or `/agency`.
+
+Stop if an earlier item on this list is not done. Do not skip ahead.
+
+#### 1. SQL Success first
+
+One of these is true before anything else on this step:
+
+- SQL editor: every file from step 20 through step 36 has shown `Success. No rows returned`, or the editor’s equivalent success with no error. A result grid is not required.
+- CLI, once the token starts with `sbp_`: the apply prints `Success. Steps 20–36 applied.`
+
+Until one of those is true, steps 20 through 36 stay unapplied. Do not open a pack button. Do not claim the SQL is applied. `SUPABASE_ACCESS_TOKEN` on the ops box is still a chat note until Billy replaces it.
+
+#### 2. Schema reload
+
+In the same SQL editor, after step 36, run this once:
 
 ```sql
 NOTIFY pgrst, 'reload schema';
 ```
 
-That refreshes the PostgREST schema cache. It does not apply another migration, does not send, and does not change `sending_enabled`.
+Success is `Success. No rows returned`, or the editor’s equivalent success with no error. No result grid is required.
 
-2. Sign in as an agency owner and use Apply Education pack to EASTC on `/agency`. Step 21 adds the function and does not apply the pack by itself. A `client_admin` cannot call it. Contacts, messages, secrets, and outbox rows are not copied.
+That refreshes the PostgREST schema cache. It does not apply another migration, does not send, and does not change `sending_enabled`. If it errors, stop. Do not click a pack.
 
-3. Leave the Zentrix Online pack unclicked until `ZENTRIX_WORKSPACE_PACK_ENABLED` is the string `true`, and only after step 29 is applied. While that flag is unset, the button stays fixture-only and does not store stubs. The pack does not call Shopify and does not turn sending on. This checklist does not set the flag.
+#### 3. Education pack for EASTC
+
+Only when Billy says yes. Only after step 21 has succeeded and the schema reload above has succeeded. Sign in as an agency owner. Agency staff can use the same button. A `client_admin` cannot. There is no env flag that applies this pack. Step 21 adds `apply_education_pack_to_eastc()` and does not apply the pack by itself. If Billy has not said yes, leave this button unclicked and leave the Zentrix button unclicked.
+
+On the phone or a desktop:
+
+1. Open `/login` and sign in as the agency owner. The documented address is `billyfaber06@gmail.com` when that Auth user exists (step 4). You should land on `/agency`.
+2. Stay on `/agency` and scroll to the heading **Education pack**. Or open `/agency/eastc/settings` and scroll to the same heading. Both pages show **Apply Education pack to EASTC**. `/agency/zentrix/settings` does not show this pack.
+3. Tap **Apply Education pack to EASTC**.
+4. Read the confirm line: “Confirm this applies the Education pack to EASTC only. Nothing is sent and sending stays off.”
+5. Tap **Confirm apply to EASTC**. While it runs, the label is **Applying…**.
+
+Success is a green line under the button. There is no separate toast. The line reads: `Education pack applied to EASTC. N new, M unchanged. Nothing was sent, and sending stays off.` `N` and `M` are counts. A later click can show `0 new` and the rest unchanged. That is the same pack on the same EASTC workspace, not a second organisation.
+
+Rose text is a failure. Stop. Do not tap again until Billy reads the line. A missing step 21, a signed-out session, or a `client_admin` session stops here.
+
+What you should see on EASTC after the green line:
+
+- The same workspace, slug `eastc`. No second organisation.
+- Admissions (`pipeline:admissions`) is the only default pipeline. Stages: Enquiry, Application Started, Docs Submitted, Accepted, Registered, Lost.
+- The existing Enrolment pipeline stays.
+- Templates, sequences, custom fields, and the inactive admissions workflow are updated by asset key. Contacts, messages, secrets, and outbox rows are not copied.
+- `sending_enabled` stays false. Do not tick Sending enabled.
+
+Optional phone check: open the EASTC CRM and see Admissions as the default pipeline. The green line is the success signal. This checklist does not click the button.
+
+#### 4. Zentrix pack
+
+This is the next click after the Education green line. Only after step 29 has succeeded, only once `ZENTRIX_WORKSPACE_PACK_ENABLED` is the string `true`, and only when Billy says yes. Leave that flag unset until he says yes. Unset, blank, or any other value keeps the button fixture-only. This checklist does not set the flag.
+
+On the phone or a desktop, when he says yes:
+
+1. On Vercel, open the CRM project → Settings → Environment Variables. Set the name `ZENTRIX_WORKSPACE_PACK_ENABLED` to the string `true`. A saved variable is read on the next deployment. Do not paste the value into git, a pull request, or this file.
+2. Open `/agency` and scroll to the heading **Zentrix workspace pack**, or open `/agency/zentrix/settings`. Same form on both. `/agency/eastc/settings` does not show this pack.
+3. If the amber line is still there — “Fixture only. These stubs are not stored until ZENTRIX_WORKSPACE_PACK_ENABLED is true and step 29 is applied. Nothing is sent.” — stop. The click does not store rows. Wait until that line is gone.
+4. When the page says “Sandbox pack. Applying stores the three stubs. Nothing is sent.”, the list shows Pets (priority, `w1y2f0-rk`), Kitchens (priority, `desj1r-ic`), and Auto (QA / reference, `80ce1e-p8`).
+5. Tap **Apply Zentrix pack to Zentrix Online**.
+6. Read the confirm line: “Confirm this applies the Zentrix pack to Zentrix Online only. Nothing is sent and sending stays off.”
+7. Tap **Confirm apply to Zentrix Online**. While it runs, the label is **Applying…**.
+
+Success is a green line under the button. There is no separate toast. The line reads: `Zentrix pack applied to Zentrix Online. Pets and Kitchens are priority. Auto is QA / reference. Nothing was sent, nothing was charged, and sending stays off.`
+
+Rose text is a failure. Stop. Nothing was stored.
+
+What you should see after the green line:
+
+- The same Zentrix workspace, slug `zentrix`. No second organisation.
+- Three stub rows: Pets (`w1y2f0-rk`, priority), Kitchens (`desj1r-ic`, priority), and Auto (`80ce1e-p8`, QA / reference, not an ad target). A later click updates those three rows. It does not add a fourth.
+- The older Shopify catalogue row count stays the same. No Shopify call runs. No Admin API token is stored.
+- `sending_enabled` stays false. Do not tap **Publish**, **Send**, or **Go live**. Those stay refused.
+
+The store list on the page is the same before and after the click. The green line is the success signal. This checklist does not click the button. The pack does not turn sending on.
+
+#### Still blocked
+
+- No secret value is in this file. Do not paste a token, a key, a passphrase, or a service-role value.
+- `sending_enabled` stays false on every workspace.
+- No new `/command-centre` or `/agency` page. Gated Phase 5 panels stay paused. This checklist does not open them to apply a pack.
+- Website pull requests [aiautotech#4](https://github.com/billyboy95/aiautotech/pull/4) and [aiautotech#5](https://github.com/billyboy95/aiautotech/pull/5) stay open. Do not merge them from this agent.
+- No ad spend.
+- Steps 20 through 36 stay unapplied until Billy re-authenticates the SQL editor or provides an `sbp_` token and the apply prints Success. Writing this page does not apply them. Neither pack is applied.
 
 ### 9. Wait for an explicit yes
 
-No ad spend, no purchases, no live charges, and no outbound sends unless Billy explicitly says yes. `sending_enabled` stays false on every workspace until he says yes. Do not register a cron that sends. Do not create a paid developer account and do not submit a store listing. The step 5 names, including `CRON_SECRET` and the outbound channel keys, stay unset until that yes. The step 6 names stay unset until Billy says yes to sandbox billing. Live PayFast stays off until he says yes to live charges. The SQL editor paste in step 7 leaves `sending_enabled` false. Website pull requests [aiautotech#4](https://github.com/billyboy95/aiautotech/pull/4) and [aiautotech#5](https://github.com/billyboy95/aiautotech/pull/5) stay open until Billy says yes to publish. Do not merge them from this agent. This runbook does not publish the site.
+No ad spend, no purchases, no live charges, and no outbound sends unless Billy explicitly says yes. `sending_enabled` stays false on every workspace until he says yes. Do not register a cron that sends. Do not create a paid developer account and do not submit a store listing. The step 5 names, including `CRON_SECRET` and the outbound channel keys, stay unset until that yes. The step 6 names stay unset until Billy says yes to sandbox billing. Live PayFast stays off until he says yes to live charges. The SQL editor paste in step 7 leaves `sending_enabled` false. Education pack and Zentrix pack stay unclicked until step 8 and until Billy says yes to that pack. Leave `ZENTRIX_WORKSPACE_PACK_ENABLED` unset until he says yes. Website pull requests [aiautotech#4](https://github.com/billyboy95/aiautotech/pull/4) and [aiautotech#5](https://github.com/billyboy95/aiautotech/pull/5) stay open until Billy says yes to publish. Do not merge them from this agent. This runbook does not publish the site.
 
 ## 1. Apply SQL steps 20 through 36
 
@@ -393,7 +456,7 @@ After step 36 succeeds, run this once in the SQL editor:
 NOTIFY pgrst, 'reload schema';
 ```
 
-That refreshes the PostgREST schema cache so the new tables and functions are visible to the API. It does not apply another migration, does not send, and does not change `sending_enabled`.
+That refreshes the PostgREST schema cache so the new tables and functions are visible to the API. It does not apply another migration, does not send, and does not change `sending_enabled`. The phone click order that includes this reload is Phone-first unblock, step 8. Run it only after every file from 20 through 36 has shown success.
 
 ## 3. Leave flags unset until their SQL is applied
 
@@ -419,25 +482,26 @@ Also leave `AI_REPLY_CRON_ENABLED`, `E2B_API_KEY`, `BROWSERBASE_API_KEY`, and `C
 
 ## 4. Apply the Education pack
 
-After the SQL above is applied, sign in as an agency owner and use Apply Education pack to EASTC on `/agency`. The phone SQL editor paste is step 7. Apply Education pack is step 8 of Phone-first unblock. Step 7 names the same button only after every file from 20 through 36 has shown success. There is no env flag that applies this pack. The Auth user is step 4. `CRON_SECRET` and outbound channel keys are step 5 and stay unset until Billy says yes. PayFast sandbox names are step 6 and stay unset until Billy says yes to sandbox billing. Live PayFast stays off until he says yes to live charges. `sending_enabled` stays false until he says yes. This agent does not click that pack. Step 21 adds the function and does not apply the pack by itself. A `client_admin` cannot call it. Contacts, messages, secrets, and outbox rows are not copied.
+After the SQL above is applied, the phone click order is Phone-first unblock, step 8. Sign in as an agency owner and use **Apply Education pack to EASTC**, then **Confirm apply to EASTC**, on `/agency` or `/agency/eastc/settings`. Success is the green line `Education pack applied to EASTC. N new, M unchanged. Nothing was sent, and sending stays off.` There is no env flag that applies this pack. The SQL editor paste is step 7. The Auth user is step 4. `CRON_SECRET` and outbound channel keys are step 5 and stay unset until Billy says yes. PayFast sandbox names are step 6 and stay unset until Billy says yes to sandbox billing. Live PayFast stays off until he says yes to live charges. `sending_enabled` stays false until he says yes. This agent does not click that pack. The pack is not applied. Step 21 adds the function and does not apply the pack by itself. A `client_admin` cannot call it. Contacts, messages, secrets, and outbox rows are not copied.
 
 ## 5. Zentrix pack
 
-Apply the Zentrix Online pack only after `ZENTRIX_WORKSPACE_PACK_ENABLED=true`, and only after step 29 is applied. That is step 8 of Phone-first unblock. Step 7 names the same pack and leaves `ZENTRIX_WORKSPACE_PACK_ENABLED` unset. This agent does not click that pack. While that flag is unset, the button stays fixture-only and does not store stubs. The pack does not call Shopify and does not turn sending on. This runbook does not set the flag. `sending_enabled` stays false.
+Apply the Zentrix Online pack only after the Education green line in Phone-first unblock, step 8, only after `ZENTRIX_WORKSPACE_PACK_ENABLED` is the string `true`, and only after step 29 is applied. The button is **Apply Zentrix pack to Zentrix Online**, then **Confirm apply to Zentrix Online**, on `/agency` or `/agency/zentrix/settings`. Success is the green line `Zentrix pack applied to Zentrix Online. Pets and Kitchens are priority. Auto is QA / reference. Nothing was sent, nothing was charged, and sending stays off.` Step 7 leaves the flag unset. This agent does not click that pack. The pack is not applied. While that flag is unset, the amber fixture line stays and the button does not store stubs. The pack does not call Shopify and does not turn sending on. This runbook does not set the flag. `sending_enabled` stays false.
 
 ## 6. Owner Auth user, then owner SQL
 
-The phone verification is Phone-first unblock, step 4. Confirm the Auth user `billyfaber06@gmail.com` for project `fnysxlswzufdnlbhndxc`, or create that user only when Billy says yes. Confirm the Vercel Production name `OWNER_EMAILS` is that same address, or leave it unset or blank because that already defaults to it. That is the address Billy typed on 27 Sep 2026. Paste `supabase/owner-bootstrap.sql` only when `supabase/APPLY-ORDER.md` (Not part of this apply) says it is safe: after steps 20 through 36 have succeeded, and only after that Auth user exists. That file is not a migration. The panel at `/command-centre/owner` does not create the Auth user and does not run that SQL. `OWNER_BOOTSTRAP_UI_ENABLED` stays unset until step 34 is applied. See `docs/phase-5m-owner-bootstrap.md` and `docs/agency-owner-setup.md`. The next phone checklist is step 5: `CRON_SECRET` and the outbound channel key names. Leave those names unset until Billy says yes. After step 5, PayFast sandbox billing readiness is step 6. Leave those names unset until Billy says yes to sandbox billing. Live PayFast stays off until he says yes to live charges. After step 6, the phone SQL editor paste of steps 20 through 36 is step 7. That checklist does not claim the SQL is already applied. `sending_enabled` stays false until he says yes. This agent does not apply the Education pack or the Zentrix pack.
+The phone verification is Phone-first unblock, step 4. Confirm the Auth user `billyfaber06@gmail.com` for project `fnysxlswzufdnlbhndxc`, or create that user only when Billy says yes. Confirm the Vercel Production name `OWNER_EMAILS` is that same address, or leave it unset or blank because that already defaults to it. That is the address Billy typed on 27 Sep 2026. Paste `supabase/owner-bootstrap.sql` only when `supabase/APPLY-ORDER.md` (Not part of this apply) says it is safe: after steps 20 through 36 have succeeded, and only after that Auth user exists. That file is not a migration. The panel at `/command-centre/owner` does not create the Auth user and does not run that SQL. `OWNER_BOOTSTRAP_UI_ENABLED` stays unset until step 34 is applied. See `docs/phase-5m-owner-bootstrap.md` and `docs/agency-owner-setup.md`. The next phone checklist is step 5: `CRON_SECRET` and the outbound channel key names. Leave those names unset until Billy says yes. After step 5, PayFast sandbox billing readiness is step 6. Leave those names unset until Billy says yes to sandbox billing. Live PayFast stays off until he says yes to live charges. After step 6, the phone SQL editor paste of steps 20 through 36 is step 7. That checklist does not claim the SQL is already applied. After SQL Success, the pack click order is step 8. `sending_enabled` stays false until he says yes. This agent does not apply the Education pack or the Zentrix pack. Neither pack is applied.
 
 ## 7. Blockers Billy decides
 
-Names only. The phone checklist for Vercel names is Phone-first unblock, step 3 (Vercel → the CRM project → Settings → Environment Variables). The Owner Auth user is step 4. `CRON_SECRET` generation and the outbound channel key names are step 5. PayFast sandbox and billing readiness is step 6. The phone SQL editor paste of steps 20 through 36 is step 7. It does not set the names below, does not claim the SQL is applied, and does not open gated Phase 5 panels. Creating the Auth user does not set the names below. Each name needs Billy’s yes before live use. This runbook does not supply secret values. `sending_enabled` stays false until he says yes. Live PayFast stays off until he says yes to live charges.
+Names only. The phone checklist for Vercel names is Phone-first unblock, step 3 (Vercel → the CRM project → Settings → Environment Variables). The Owner Auth user is step 4. `CRON_SECRET` generation and the outbound channel key names are step 5. PayFast sandbox and billing readiness is step 6. The phone SQL editor paste of steps 20 through 36 is step 7. It does not set the names below, does not claim the SQL is applied, and does not open gated Phase 5 panels. The pack click order after SQL Success is step 8. Neither pack is applied. Creating the Auth user does not set the names below. Each name needs Billy’s yes before live use. This runbook does not supply secret values. `sending_enabled` stays false until he says yes. Live PayFast stays off until he says yes to live charges.
 
 - `OWNER_EMAILS` = `billyfaber06@gmail.com` (owner auto-attach, PR #17)
 - `CRON_SECRET` (step 5; generate it in a password manager and set the name on Vercel only after Billy says yes; leave it unset until then)
 - Sandbox billing only (step 6): `BILLING_SANDBOX` = `true`, `PAYFAST_MERCHANT_ID` = `10000100` (PayFast’s published sandbox merchant), `PAYFAST_MERCHANT_KEY`, `PAYFAST_PASSPHRASE`, and `SUPABASE_SERVICE_ROLE_KEY`. Leave them unset until Billy says yes to sandbox billing. Do not invent the key, the passphrase, or the service-role key. Do not put a live merchant id in the environment. Leave `BILLING_ALLOW_MOCK_ITN` unset. Leave live PayFast off until he says yes to live charges.
 - Outbound channel keys (step 5) are required before a real send. `sending_enabled` stays false until Billy says yes.
-- Gated Phase 5 flags stay unset until their SQL is applied (section 3, Leave flags unset until their SQL is applied). Command-centre panels stay paused until then.
+- Gated Phase 5 flags stay unset until their SQL is applied (section 3, Leave flags unset until their SQL is applied). Command-centre panels stay paused until then. `ZENTRIX_WORKSPACE_PACK_ENABLED` stays unset until Billy says yes on step 8.
+- Education pack and Zentrix pack stay unclicked until step 8. There is no env flag that applies the Education pack. No ad spend.
 - Website publish: [aiautotech#4](https://github.com/billyboy95/aiautotech/pull/4) and [aiautotech#5](https://github.com/billyboy95/aiautotech/pull/5) wait for Billy’s explicit yes. Do not merge them from this agent. This runbook does not publish the site.
 
 ## 8. Sending stays off

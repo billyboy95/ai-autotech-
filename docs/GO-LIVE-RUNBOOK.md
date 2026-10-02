@@ -4,7 +4,7 @@ Phase 5 gated command-centre panels stay paused until production SQL steps 20 th
 
 The only safe file order is the numbered list in `supabase/APPLY-ORDER.md`. Steps 20 through 36 are still unapplied. Do not claim this SQL is already applied. Do not sort the migrations folder by filename.
 
-Steps 20 through 36 expect steps 1 through 19 to already be on the database. Step 36 raises if phase 2a access is missing. If a file errors because an earlier function or table is missing, stop, apply that earlier file from the unapplied list, then resume at the file that failed.
+Steps 20 through 36 expect steps 1 through 19 to already be on the database. Those earlier files were applied in production on 27 Sep 2026. They are under Already live in `supabase/APPLY-ORDER.md`. Do not treat steps 1 through 19 as unapplied. Step 36 raises if phase 2a access is missing. If a file in steps 20 through 36 errors because a step 1 through 19 function or table is missing, stop. Do not skip ahead. Resume at the file that failed after that earlier object is present.
 
 ## Phone-first unblock
 
@@ -95,26 +95,46 @@ Website pull requests on `billyboy95/aiautotech` stay open until Billy says yes 
 
 ### 4. Phone-first: Owner Auth bootstrap
 
-Do this on the phone after the three steps above: a real `sbp_` token, the apply of steps 20–36, and the Vercel Environment Variables names checklist (PR #39). Creating the Auth user does not apply SQL, does not unpause gated Phase 5 command-centre panels, does not send, and does not spend. This page names the address only. Do not paste a password, a token, a key, a passphrase, or a service-role value into git, a pull request, chat, or this file.
+This is a phone verification for `OWNER_EMAILS` and the agency owner Auth user. Do it on the phone now. It does not wait on a real `sbp_` token and it does not wait on steps 20 through 36. Confirming the user and the env name does not apply SQL, does not unpause gated Phase 5 command-centre panels, does not send, and does not spend. This page names the address only. Do not paste a password, a token, a key, a passphrase, or a service-role value into git, a pull request, chat, or this file.
 
-The agency owner address is `billyfaber06@gmail.com`. That is the `OWNER_EMAILS` value Billy typed on 27 Sep 2026, and the default in `.env.example`. When `OWNER_EMAILS` is unset or blank, the app already uses this address. See `docs/agency-owner-setup.md` and `docs/phase-5m-owner-bootstrap.md`.
+The agency owner address is `billyfaber06@gmail.com`. That is the `OWNER_EMAILS` value Billy typed on 27 Sep 2026, and the default in `.env.example`. When `OWNER_EMAILS` is unset or blank, the app already uses this address. Do not invent another email. See `docs/agency-owner-setup.md` and `docs/phase-5m-owner-bootstrap.md`.
+
+#### Auth user
 
 1. On the phone, open Supabase → the project → Authentication → Users: https://supabase.com/dashboard/project/fnysxlswzufdnlbhndxc/auth/users
+   The project ref is `fnysxlswzufdnlbhndxc`.
 2. Confirm `billyfaber06@gmail.com` is already in the list. If it is, leave that user as it is. Do not add a second user for the same address.
-3. If it is missing, choose Add user. Use that email. Set the password in the dashboard and keep it in a password manager. Turn on Auto Confirm so sign-in does not wait on a mailbox. This page does not contain a password.
-4. The Auth user has to exist before any owner SQL. A row in Authentication → Users is not a membership by itself.
+3. If it is missing, stop. Create the user only when Billy says yes. When he says yes, choose Add user. Use that email. Set the password in the dashboard and keep it in a password manager. Turn on Auto Confirm so sign-in does not wait on a mailbox. This page does not contain a password.
+4. A row in Authentication → Users is not a membership by itself. The Auth user has to exist before any owner SQL.
 
-`supabase/owner-bootstrap.sql` is the existing manual membership file. It is not a migration. Do not invent another SQL filename. `supabase/APPLY-ORDER.md` (Not part of this apply) says to run it only after the numbered files in that list, and only after the agency owner exists in Supabase Auth. While steps 20 through 36 are still unapplied, do not paste it. Return to step 2 of this unblock.
+#### `OWNER_EMAILS` on Vercel
 
-When that apply has printed `Success. Steps 20–36 applied.` (or the SQL editor has run step 36 without error) and the Auth user is in the list:
+Stay on the Vercel session from step 3. Open Vercel → the CRM project → Settings → Environment Variables. Confirm the name only. Do not paste a secret value into git, a pull request, chat, or this file.
 
-1. Open the project SQL editor, the same editor as section 1.
+1. Look for the name `OWNER_EMAILS` on Production.
+2. If the name is present, confirm the Production value is `billyfaber06@gmail.com`. That is the only address this checklist names.
+3. If the name is unset or blank, leave it unset. The app already defaults to `billyfaber06@gmail.com`. Record that default in this verification. Do not add a second address.
+4. Saving the name, or leaving it unset, does not apply SQL, does not create the Auth user, and does not send.
+
+#### Do not paste owner SQL yet
+
+`supabase/owner-bootstrap.sql` is the existing manual membership file. It is not a migration. Do not invent another SQL filename. `supabase/APPLY-ORDER.md` (Not part of this apply) says to run it only after steps 20 through 36 have succeeded, and only after the agency owner exists in Supabase Auth. Do not paste `supabase/owner-bootstrap.sql` until both are true. Steps 20 through 36 are still unapplied. Do not claim that SQL is already applied.
+
+When step 2 has printed `Success. Steps 20–36 applied.`, or Phone-first unblock step 7 has run step 36 in the SQL editor without error, and the Auth user `billyfaber06@gmail.com` is in the list:
+
+1. Open the project SQL editor, the same editor as step 7: https://supabase.com/dashboard/project/fnysxlswzufdnlbhndxc/sql/new
 2. Paste `supabase/owner-bootstrap.sql` once. It attaches `billyfaber06@gmail.com` as `agency_owner` of the organisation with slug `ai-autotech`. It does not delete anything.
 3. If the service role key is missing, first-login auto-attach is skipped and this same file remains the manual path (`supabase/APPLY-ORDER.md`, Owner login without a manual membership insert). This checklist does not set `SUPABASE_SERVICE_ROLE_KEY`.
 
 The panel at `/command-centre/owner` shows that file and does not create the Auth user and does not run that SQL. Leave `OWNER_BOOTSTRAP_UI_ENABLED` unset until step 34 is applied. Step 34 is the existing file `supabase/migrations/20261109120000_phase5m_owner_bootstrap.sql`. It stores a sandbox note. It does not insert into `auth.users` and it does not execute `supabase/owner-bootstrap.sql`. Gated Phase 5 panels stay paused until steps 20 through 36 are applied. Setting a flag does not apply SQL.
 
 This checklist does not apply the Education pack and does not apply the Zentrix pack. No ad spend. `sending_enabled` stays false on every workspace.
+
+After this verification, the next phone checklists stay in this order. This verification does not claim steps 20 through 36 are applied:
+
+- Step 5: `CRON_SECRET` and the outbound channel key names. Leave every name unset until Billy says yes.
+- Step 6: PayFast sandbox and billing readiness. Leave those names unset until Billy says yes to sandbox billing. Live PayFast stays off until he says yes to live charges.
+- Step 7: the SQL editor paste of steps 20 through 36. Those files are still unapplied.
 
 These still need Billy’s explicit yes before live use. A yes for the Auth user is not a yes for any of them. Do not merge the website pull requests from this agent:
 
@@ -407,7 +427,7 @@ Apply the Zentrix Online pack only after `ZENTRIX_WORKSPACE_PACK_ENABLED=true`, 
 
 ## 6. Owner Auth user, then owner SQL
 
-The phone steps are Phone-first unblock, step 4, after the `sbp_` token, the apply of steps 20–36, and the Vercel names checklist. Create or confirm the Auth user for `billyfaber06@gmail.com` first. That is the `OWNER_EMAILS` value Billy typed on 27 Sep 2026. Paste `supabase/owner-bootstrap.sql` only when `supabase/APPLY-ORDER.md` (Not part of this apply) says it is safe: after the numbered files, and only after that Auth user exists. That file is not a migration. The panel at `/command-centre/owner` does not create the Auth user and does not run that SQL. `OWNER_BOOTSTRAP_UI_ENABLED` stays unset until step 34 is applied. See `docs/phase-5m-owner-bootstrap.md` and `docs/agency-owner-setup.md`. The next phone checklist is step 5: `CRON_SECRET` and the outbound channel key names. Leave those names unset until Billy says yes. After step 5, PayFast sandbox billing readiness is step 6. Leave those names unset until Billy says yes to sandbox billing. Live PayFast stays off until he says yes to live charges. After step 6, the phone SQL editor paste of steps 20 through 36 is step 7. That checklist does not claim the SQL is already applied. `sending_enabled` stays false until he says yes. This agent does not apply the Education pack or the Zentrix pack.
+The phone verification is Phone-first unblock, step 4. Confirm the Auth user `billyfaber06@gmail.com` for project `fnysxlswzufdnlbhndxc`, or create that user only when Billy says yes. Confirm the Vercel Production name `OWNER_EMAILS` is that same address, or leave it unset or blank because that already defaults to it. That is the address Billy typed on 27 Sep 2026. Paste `supabase/owner-bootstrap.sql` only when `supabase/APPLY-ORDER.md` (Not part of this apply) says it is safe: after steps 20 through 36 have succeeded, and only after that Auth user exists. That file is not a migration. The panel at `/command-centre/owner` does not create the Auth user and does not run that SQL. `OWNER_BOOTSTRAP_UI_ENABLED` stays unset until step 34 is applied. See `docs/phase-5m-owner-bootstrap.md` and `docs/agency-owner-setup.md`. The next phone checklist is step 5: `CRON_SECRET` and the outbound channel key names. Leave those names unset until Billy says yes. After step 5, PayFast sandbox billing readiness is step 6. Leave those names unset until Billy says yes to sandbox billing. Live PayFast stays off until he says yes to live charges. After step 6, the phone SQL editor paste of steps 20 through 36 is step 7. That checklist does not claim the SQL is already applied. `sending_enabled` stays false until he says yes. This agent does not apply the Education pack or the Zentrix pack.
 
 ## 7. Blockers Billy decides
 

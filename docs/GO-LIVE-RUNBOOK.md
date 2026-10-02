@@ -93,6 +93,8 @@ Website pull requests on `billyboy95/aiautotech` stay open until Billy says yes 
 - [aiautotech#4](https://github.com/billyboy95/aiautotech/pull/4) — Publish week-1 guide topics as on-site resource articles
 - [aiautotech#5](https://github.com/billyboy95/aiautotech/pull/5) — Align public prices with the 27 Sep 2026 AIOS sheet
 
+The phone decision card is [`docs/website-publish-decision.md`](website-publish-decision.md).
+
 ### 4. Phone-first: Owner Auth bootstrap
 
 This is a phone verification for `OWNER_EMAILS` and the agency owner Auth user. Do it on the phone now. It does not wait on a real `sbp_` token and it does not wait on steps 20 through 36. Confirming the user and the env name does not apply SQL, does not unpause gated Phase 5 command-centre panels, does not send, and does not spend. This page names the address only. Do not paste a password, a token, a key, a passphrase, or a service-role value into git, a pull request, chat, or this file.

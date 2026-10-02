@@ -67,7 +67,7 @@ Owner auto-attach (PR #17). When `OWNER_EMAILS` is unset or blank, the app alrea
 
 - `OWNER_EMAILS` = `billyfaber06@gmail.com`
 
-Cron routes (`/api/cron/automation`, `/api/cron/workflows`, `/api/cron/billing`, `/api/cron/ai-replies`) read `CRON_SECRET`. Leave it unset until Billy says yes. This checklist does not register a cron:
+Cron routes (`/api/cron/automation`, `/api/cron/workflows`, `/api/cron/billing`, `/api/cron/ai-replies`) read `CRON_SECRET`. Leave it unset until Billy says yes. How he generates and sets it on the phone is Phone-first unblock, step 5. This checklist does not register a cron:
 
 - `CRON_SECRET`
 
@@ -79,7 +79,7 @@ Sandbox billing only. Leave these unset until Billy says yes to sandbox billing.
 - `PAYFAST_PASSPHRASE`
 - `SUPABASE_SERVICE_ROLE_KEY` (server only; owner auto-attach also uses it)
 
-Outbound channel keys are required before a real send. Saving a key leaves `sending_enabled` false. `sending_enabled` stays false on every workspace until Billy says yes:
+Outbound channel keys are required before a real send. Saving a key leaves `sending_enabled` false. `sending_enabled` stays false on every workspace until Billy says yes. The full name list, including Vault connection names, is Phone-first unblock, step 5:
 
 - Email: `RESEND_API_KEY`, or `SMTP_HOST` with `SMTP_USER` and `SMTP_PASS`
 - WhatsApp: `WHATSAPP_TOKEN` and `WHATSAPP_PHONE_NUMBER_ID`
@@ -118,14 +118,69 @@ This checklist does not apply the Education pack and does not apply the Zentrix 
 
 These still need Billy’s explicit yes before live use. A yes for the Auth user is not a yes for any of them. Do not merge the website pull requests from this agent:
 
-- `CRON_SECRET`
-- Outbound channel keys (email, WhatsApp / Meta, and SMS), named in step 3
+- `CRON_SECRET` (readiness is step 5; leave it unset until Billy says yes)
+- Outbound channel keys (email, WhatsApp, SMS, and social), named in step 5. `sending_enabled` stays false until he says yes
 - `BILLING_SANDBOX` and the PayFast sandbox names in step 3. Do not put a live merchant id in the environment.
 - Publishing [aiautotech#4](https://github.com/billyboy95/aiautotech/pull/4) and [aiautotech#5](https://github.com/billyboy95/aiautotech/pull/5)
 
-### 5. After SQL Success
+### 5. Phone-first: `CRON_SECRET` and outbound channel keys
 
-Only after the apply prints `Success. Steps 20–36 applied.`, or after the SQL editor has run step 36 without error. The agency owner Auth user is step 4. Schema reload is the next SQL-editor action after step 36. This agent does not click Apply Education pack and does not click the Zentrix pack. No ad spend.
+Do this on the phone after Owner Auth bootstrap (step 4). It is a names checklist. Leave every name unset until Billy says yes to that name. A yes for the Auth user is not a yes for `CRON_SECRET` or for any channel key. A yes for one name is not a yes for the others. Steps 20 through 36 are still unapplied. The secret named `SUPABASE_ACCESS_TOKEN` is still not an `sbp_` token. This checklist does not apply SQL and does not claim that apply is done. Gated Phase 5 command-centre panels stay paused. Saving a name does not send, does not spend, and does not register a cron. `sending_enabled` stays false on every workspace until Billy says yes. `AUTOMATION_SEND_ENABLED` stays unset, or stays the string `false`. This page lists names only. Do not paste a secret value into git, a pull request, chat, or this file.
+
+#### `CRON_SECRET`
+
+The cron routes `/api/cron/automation`, `/api/cron/workflows`, `/api/cron/billing`, and `/api/cron/ai-replies` read the name `CRON_SECRET`. The inbound route `/api/automation/inbound` reads `AUTOMATION_WEBHOOK_SECRET` and, when that name is unset, the same `CRON_SECRET`. This checklist does not set `AUTOMATION_WEBHOOK_SECRET`.
+
+When Billy says yes to the name `CRON_SECRET`:
+
+1. On the phone, generate a new long random password in the password manager. Keep it there. This page does not contain a value. The text `generate-a-long-random-string` in `.env.example` is a placeholder. Do not save that placeholder as the secret.
+2. Stay on the Vercel session from step 3. Open Vercel → the CRM project → Settings → Environment Variables.
+3. Add the name `CRON_SECRET`. Paste the generated value. Save it for Production. Mark it Sensitive so the phone does not keep the value on screen after save. Add Preview only when Billy says yes to Preview.
+4. Leave the value out of git, pull requests, issues, and docs.
+
+A saved variable is read on the next deployment. This checklist does not ask for a redeploy. It does not register a cron. The ops panel lists the job names `automation`, `workflow-engine`, `billing-cycle`, and `ai-reply-drafts` and does not register them. Leave `AI_REPLY_CRON_ENABLED` unset. Leave `OPS_SECRETS_READY_ENABLED` unset until step 35 is applied. Setting `CRON_SECRET` does not turn `sending_enabled` on. `sending_enabled` stays false until Billy says yes.
+
+#### Outbound channel keys
+
+These are the env names the send path and `scripts/migrate-channel-credentials.mjs` already read, plus the Vault connection names `store_channel_secret` already writes. A real send stays blocked while `sending_enabled` is false, and while `AUTOMATION_SEND_ENABLED` is unset or any value other than the string `true`. This checklist leaves both as they are. `sending_enabled` stays false until Billy says yes. This checklist does not run `scripts/migrate-channel-credentials.mjs` and does not call `store_channel_secret`.
+
+Email:
+
+- `RESEND_API_KEY` and `RESEND_FROM`
+- or `SMTP_HOST`, `SMTP_USER`, `SMTP_PASS`, and `SMTP_FROM` (`SMTP_PORT` is the port name that path reads)
+
+WhatsApp:
+
+- `WHATSAPP_TOKEN` and `WHATSAPP_PHONE_NUMBER_ID`
+- `WHATSAPP_APP_SECRET` and `WHATSAPP_VERIFY_TOKEN` are copied into the connection secret only when they are already set
+
+SMS, one provider:
+
+- `SMSPORTAL_CLIENT_ID` and `SMSPORTAL_API_SECRET` (`SMSPORTAL_SENDER_ID` and `SMSPORTAL_WEBHOOK_SECRET` when they are set)
+- or `BULKSMS_TOKEN_ID` and `BULKSMS_TOKEN_SECRET`, or `BULKSMS_USERNAME` and `BULKSMS_PASSWORD` (`BULKSMS_SENDER_ID` when it is set)
+- or `CLICKATELL_API_KEY` (`CLICKATELL_FROM` when it is set)
+- or `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, and `TWILIO_FROM_NUMBER`
+
+Social:
+
+- Facebook and Instagram: `META_PAGE_ACCESS_TOKEN` with `META_PAGE_ID` or `META_IG_USER_ID` (`META_APP_SECRET` when it is set)
+- LinkedIn: `LINKEDIN_ACCESS_TOKEN` and `LINKEDIN_AUTHOR_URN`
+- TikTok has no provider env name in this repo. Leave `TIKTOK_LINKEDIN_CONNECT_STUB_ENABLED` unset until step 28 is applied. That flag is not a send key.
+
+Vault, from `store_channel_secret` in `supabase/migrations/20261015140000_phase2b_channels_popia.sql` and the providers in `src/app/actions/channels.ts`:
+
+- The Vault secret name is `channel:` plus the connection id. `vault.create_secret` stores it with the description `channel connection`. When Vault is absent, `private.channel_secrets.name` uses that same name.
+- Providers already in the app: `resend`, `smtp`, `meta_cloud`, `smsportal`, `bulksms`, `clickatell`, `meta`.
+- Channels those providers use: `email`, `whatsapp`, `sms`, `facebook`, `instagram`.
+- LinkedIn stays on the env names above. TikTok is not a Vault provider in this repo.
+
+Set a Vercel name the same way as step 3: one name at a time, Production, Sensitive, and only after Billy says yes to that name. A saved key leaves `sending_enabled` false.
+
+This checklist does not apply the Education pack and does not apply the Zentrix pack. No ad spend. Website pull requests [aiautotech#4](https://github.com/billyboy95/aiautotech/pull/4) and [aiautotech#5](https://github.com/billyboy95/aiautotech/pull/5) stay open. Do not merge them from this agent.
+
+### 6. After SQL Success
+
+Only after the apply prints `Success. Steps 20–36 applied.`, or after the SQL editor has run step 36 without error. The agency owner Auth user is step 4. `CRON_SECRET` and the outbound channel keys are step 5 and stay unset until Billy says yes. `sending_enabled` stays false until he says yes. Schema reload is the next SQL-editor action after step 36. This agent does not click Apply Education pack and does not click the Zentrix pack. No ad spend.
 
 1. Reload the API schema. In the SQL editor, run this once:
 
@@ -139,9 +194,9 @@ That refreshes the PostgREST schema cache. It does not apply another migration, 
 
 3. Leave the Zentrix Online pack unclicked until `ZENTRIX_WORKSPACE_PACK_ENABLED` is the string `true`, and only after step 29 is applied. While that flag is unset, the button stays fixture-only and does not store stubs. The pack does not call Shopify and does not turn sending on. This checklist does not set the flag.
 
-### 6. Wait for an explicit yes
+### 7. Wait for an explicit yes
 
-No ad spend, no purchases, and no outbound sends unless Billy explicitly says yes. `sending_enabled` stays false on every workspace. Do not register a cron that sends. Do not create a paid developer account and do not submit a store listing. The Vercel names, including `CRON_SECRET`, stay unset until that yes. Website pull requests [aiautotech#4](https://github.com/billyboy95/aiautotech/pull/4) and [aiautotech#5](https://github.com/billyboy95/aiautotech/pull/5) stay open until Billy says yes to publish. Do not merge them from this agent. This runbook does not publish the site.
+No ad spend, no purchases, and no outbound sends unless Billy explicitly says yes. `sending_enabled` stays false on every workspace until he says yes. Do not register a cron that sends. Do not create a paid developer account and do not submit a store listing. The step 5 names, including `CRON_SECRET` and the outbound channel keys, stay unset until that yes. Website pull requests [aiautotech#4](https://github.com/billyboy95/aiautotech/pull/4) and [aiautotech#5](https://github.com/billyboy95/aiautotech/pull/5) stay open until Billy says yes to publish. Do not merge them from this agent. This runbook does not publish the site.
 
 ## 1. Apply SQL steps 20 through 36
 
@@ -215,24 +270,24 @@ Also leave `AI_REPLY_CRON_ENABLED`, `E2B_API_KEY`, `BROWSERBASE_API_KEY`, and `C
 
 ## 4. Apply the Education pack
 
-After the SQL above is applied, sign in as an agency owner and use Apply Education pack to EASTC on `/agency`. That is step 5 of Phone-first unblock. The Auth user is step 4. This agent does not click that pack. Step 21 adds the function and does not apply the pack by itself. A `client_admin` cannot call it. Contacts, messages, secrets, and outbox rows are not copied.
+After the SQL above is applied, sign in as an agency owner and use Apply Education pack to EASTC on `/agency`. That is step 6 of Phone-first unblock. The Auth user is step 4. `CRON_SECRET` and outbound channel keys are step 5 and stay unset until Billy says yes. `sending_enabled` stays false until he says yes. This agent does not click that pack. Step 21 adds the function and does not apply the pack by itself. A `client_admin` cannot call it. Contacts, messages, secrets, and outbox rows are not copied.
 
 ## 5. Zentrix pack
 
-Apply the Zentrix Online pack only after `ZENTRIX_WORKSPACE_PACK_ENABLED=true`, and only after step 29 is applied. That is step 5 of Phone-first unblock. This agent does not click that pack. While that flag is unset, the button stays fixture-only and does not store stubs. The pack does not call Shopify and does not turn sending on. This runbook does not set the flag.
+Apply the Zentrix Online pack only after `ZENTRIX_WORKSPACE_PACK_ENABLED=true`, and only after step 29 is applied. That is step 6 of Phone-first unblock. This agent does not click that pack. While that flag is unset, the button stays fixture-only and does not store stubs. The pack does not call Shopify and does not turn sending on. This runbook does not set the flag. `sending_enabled` stays false.
 
 ## 6. Owner Auth user, then owner SQL
 
-The phone steps are Phone-first unblock, step 4, after the `sbp_` token, the apply of steps 20–36, and the Vercel names checklist. Create or confirm the Auth user for `billyfaber06@gmail.com` first. That is the `OWNER_EMAILS` value Billy typed on 27 Sep 2026. Paste `supabase/owner-bootstrap.sql` only when `supabase/APPLY-ORDER.md` (Not part of this apply) says it is safe: after the numbered files, and only after that Auth user exists. That file is not a migration. The panel at `/command-centre/owner` does not create the Auth user and does not run that SQL. `OWNER_BOOTSTRAP_UI_ENABLED` stays unset until step 34 is applied. See `docs/phase-5m-owner-bootstrap.md` and `docs/agency-owner-setup.md`. This agent does not apply the Education pack or the Zentrix pack.
+The phone steps are Phone-first unblock, step 4, after the `sbp_` token, the apply of steps 20–36, and the Vercel names checklist. Create or confirm the Auth user for `billyfaber06@gmail.com` first. That is the `OWNER_EMAILS` value Billy typed on 27 Sep 2026. Paste `supabase/owner-bootstrap.sql` only when `supabase/APPLY-ORDER.md` (Not part of this apply) says it is safe: after the numbered files, and only after that Auth user exists. That file is not a migration. The panel at `/command-centre/owner` does not create the Auth user and does not run that SQL. `OWNER_BOOTSTRAP_UI_ENABLED` stays unset until step 34 is applied. See `docs/phase-5m-owner-bootstrap.md` and `docs/agency-owner-setup.md`. The next phone checklist is step 5: `CRON_SECRET` and the outbound channel key names. Leave those names unset until Billy says yes. `sending_enabled` stays false until he says yes. This agent does not apply the Education pack or the Zentrix pack.
 
 ## 7. Blockers Billy decides
 
-Names only. The phone checklist is Phone-first unblock, step 3 (Vercel → the CRM project → Settings → Environment Variables). The Owner Auth user is step 4. Creating that user does not set the names below. Each name needs Billy’s yes before live use. This runbook does not supply secret values.
+Names only. The phone checklist for Vercel names is Phone-first unblock, step 3 (Vercel → the CRM project → Settings → Environment Variables). The Owner Auth user is step 4. `CRON_SECRET` generation and the outbound channel key names are step 5. Creating the Auth user does not set the names below. Each name needs Billy’s yes before live use. This runbook does not supply secret values. `sending_enabled` stays false until he says yes.
 
 - `OWNER_EMAILS` = `billyfaber06@gmail.com` (owner auto-attach, PR #17)
-- `CRON_SECRET` (cron routes; leave unset until Billy says yes)
+- `CRON_SECRET` (step 5; generate it in a password manager and set the name on Vercel only after Billy says yes; leave it unset until then)
 - Sandbox billing only: `BILLING_SANDBOX`, `PAYFAST_MERCHANT_ID` = `10000100` (PayFast’s published sandbox merchant), `PAYFAST_MERCHANT_KEY`, `PAYFAST_PASSPHRASE`, and `SUPABASE_SERVICE_ROLE_KEY`. Do not invent the key, the passphrase, or the service-role key. Do not put a live merchant id in the environment.
-- Outbound channel keys are required before a real send. `sending_enabled` stays false until Billy says yes.
+- Outbound channel keys (step 5) are required before a real send. `sending_enabled` stays false until Billy says yes.
 - Gated Phase 5 flags stay unset until their SQL is applied (section 3, Leave flags unset until their SQL is applied). Command-centre panels stay paused until then.
 - Website publish: [aiautotech#4](https://github.com/billyboy95/aiautotech/pull/4) and [aiautotech#5](https://github.com/billyboy95/aiautotech/pull/5) wait for Billy’s explicit yes. Do not merge them from this agent. This runbook does not publish the site.
 

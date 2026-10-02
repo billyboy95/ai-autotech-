@@ -20,6 +20,8 @@ After that token and apply section, the phone-first Vercel Environment Variables
 
 After that Vercel names checklist, the phone-first Owner Auth bootstrap is in `docs/GO-LIVE-RUNBOOK.md` (Phone-first unblock, step 4). Create or confirm the Auth user `billyfaber06@gmail.com` first (`OWNER_EMAILS`, the address Billy typed 27 Sep 2026). `supabase/owner-bootstrap.sql` is not a migration. Run it only after that user exists and only when “Not part of this apply” below says it is safe. This checklist does not apply the Education pack or the Zentrix pack. No ad spend. `sending_enabled` stays false. `CRON_SECRET`, outbound channel keys, `BILLING_SANDBOX`, and `aiautotech` pull requests #4 and #5 still need Billy’s explicit yes. Do not merge those pull requests from this agent. Do not paste a password, a token, a key, a passphrase, or a service-role value into this file.
 
+After that Owner Auth bootstrap, the next phone checklist is `docs/GO-LIVE-RUNBOOK.md` (Phone-first unblock, step 5): `CRON_SECRET` readiness and the outbound channel key names. Names only. Leave `CRON_SECRET` and every channel name unset until Billy says yes. `sending_enabled` stays false until he says yes. This checklist does not register a cron, does not send, and does not apply the Education pack or the Zentrix pack. No ad spend. Do not paste a secret value into this file.
+
 ## Already live
 
 The public audit intake still writes to these. They are done.

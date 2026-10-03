@@ -10,6 +10,8 @@ Steps 20 through 36 expect steps 1 through 19 to already be on the database. Tho
 
 Do these in order. Each step can be started from a phone. The apply command runs on the box, in this repo, after `SUPABASE_ACCESS_TOKEN` in that shell is a real `sbp_` token. While that value is still a chat note, Phone-first unblock step 7 is the SQL editor path. It does not need the token. After step 7 (or the CLI in step 2) has shown success for every file from 20 through 36, step 8 is the pack click order: schema reload, then the Education pack, then the Zentrix pack. This page does not click either pack. Packs are not applied. Do not paste the token into git, a pull request, chat, or this file.
 
+Owner Auth bootstrap does not wait on that SQL and does not wait on a real `sbp_` token. The phone checklist is [`docs/phone-owner-auth-bootstrap.md`](phone-owner-auth-bootstrap.md) (step 4 below). The only `OWNER_EMAILS` address is `billyfaber06@gmail.com`. When that name is unset or blank, the app already uses it. Confirming the Auth user, or saving that name after Billy says yes, does not apply SQL, does not unpause gated Phase 5 command-centre panels, does not send, and does not spend. Do not paste `supabase/owner-bootstrap.sql` on that visit. Steps 20 through 36 stay unapplied.
+
 Attaching `crm.aiautotech.co.za` does not wait on that SQL. The phone checklist is [`docs/phone-crm-custom-domain.md`](phone-crm-custom-domain.md) (step 10 below). This page does not edit DNS.
 
 Confirming the public website value of `NEXT_PUBLIC_SITE_URL` does not wait on that SQL. The phone checklist is [`docs/phone-site-url-verify.md`](phone-site-url-verify.md) (step 11 below). Production should be `https://aiautotech.co.za` (no hyphen). This page does not set that variable.
@@ -113,7 +115,7 @@ The phone decision card is [`docs/website-publish-decision.md`](website-publish-
 
 ### 4. Phone-first: Owner Auth bootstrap
 
-This is a phone verification for `OWNER_EMAILS` and the agency owner Auth user. Do it on the phone now. It does not wait on a real `sbp_` token and it does not wait on steps 20 through 36. Confirming the user and the env name does not apply SQL, does not unpause gated Phase 5 command-centre panels, does not send, and does not spend. This page names the address only. Do not paste a password, a token, a key, a passphrase, or a service-role value into git, a pull request, chat, or this file.
+The phone checklist is [`docs/phone-owner-auth-bootstrap.md`](phone-owner-auth-bootstrap.md). This is a phone verification for `OWNER_EMAILS` and the agency owner Auth user. Do it on the phone now. It does not wait on a real `sbp_` token and it does not wait on steps 20 through 36. Confirming the user and the env name does not apply SQL, does not unpause gated Phase 5 command-centre panels, does not send, and does not spend. This page names the address only. Do not paste a password, a token, a key, a passphrase, or a service-role value into git, a pull request, chat, or this file.
 
 The agency owner address is `billyfaber06@gmail.com`. That is the `OWNER_EMAILS` value Billy typed on 27 Sep 2026, and the default in `.env.example`. When `OWNER_EMAILS` is unset or blank, the app already uses this address. Do not invent another email. See `docs/agency-owner-setup.md` and `docs/phase-5m-owner-bootstrap.md`.
 
@@ -131,7 +133,7 @@ Stay on the Vercel session from step 3. Open Vercel → the CRM project → Sett
 
 1. Look for the name `OWNER_EMAILS` on Production.
 2. If the name is present, confirm the Production value is `billyfaber06@gmail.com`. That is the only address this checklist names.
-3. If the name is unset or blank, leave it unset. The app already defaults to `billyfaber06@gmail.com`. Record that default in this verification. Do not add a second address.
+3. If the name is unset or blank, the app already defaults to `billyfaber06@gmail.com`. Leave it unset until Billy says yes. When he says yes, add that one address on Production. Mark it Sensitive if the UI allows. Add Preview only when he says yes to Preview. Do not add a second address. The phone steps are [`docs/phone-owner-auth-bootstrap.md`](phone-owner-auth-bootstrap.md).
 4. Saving the name, or leaving it unset, does not apply SQL, does not create the Auth user, and does not send.
 
 #### Do not paste owner SQL yet

@@ -74,7 +74,7 @@ In Supabase Authentication → URL configuration, allow `https://<your-host>/aut
 
 ## 3. Create the agency owner login
 
-Phone verification for this login is `docs/GO-LIVE-RUNBOOK.md`, Phone-first unblock, step 4. Confirm `billyfaber06@gmail.com` in Supabase Auth for project `fnysxlswzufdnlbhndxc`, or create that user only when Billy says yes. On Vercel Production, confirm the name `OWNER_EMAILS` is that address, or leave it unset or blank because that already defaults to the same address. Do not paste `supabase/owner-bootstrap.sql` until steps 20 through 36 have succeeded and that Auth user exists. Leave `OWNER_BOOTSTRAP_UI_ENABLED` unset until step 34 is applied.
+Phone verification for this login is `docs/phone-owner-auth-bootstrap.md` (`docs/GO-LIVE-RUNBOOK.md`, Phone-first unblock, step 4). Confirm `billyfaber06@gmail.com` in Supabase Auth for project `fnysxlswzufdnlbhndxc`, or create that user only when Billy says yes. On Vercel Production, confirm the name `OWNER_EMAILS` is that address, or leave it unset or blank because that already defaults to the same address. Do not paste `supabase/owner-bootstrap.sql` until steps 20 through 36 have succeeded and that Auth user exists. Leave `OWNER_BOOTSTRAP_UI_ENABLED` unset until step 34 is applied.
 
 1. Supabase Dashboard → Authentication → Users → Add user.
 2. Use the email and password you want for yourself. Turn on "Auto Confirm" so you can sign in immediately.

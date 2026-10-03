@@ -1,6 +1,6 @@
 # Phone checklist: send from `Willem@aiautotech.co.za`
 
-Billy confirms the Google Workspace login for `Willem@aiautotech.co.za` (spelling W-i-l-l-e-m), notes which CRM email names exist, and notes where `aiautotech.co.za` mail exchange (MX) points. This page does not send, does not set a key, and does not change DNS.
+Billy confirms the Google Workspace login for `Willem@aiautotech.co.za` (spelling W-i-l-l-e-m), notes which CRM email names exist, and notes where `aiautotech.co.za` mail exchange (MX) points. This page does not send, does not set a key, and does not change DNS. The verify path for that MX, and the fallback if a new lookup shows Amazon SES, is [`docs/phone-mx-dns-decision.md`](phone-mx-dns-decision.md) (Phone-first unblock, step 13).
 
 Writing this page does not apply SQL, does not redeploy, and does not spend. Steps 1 through 19 are already live. Steps 20 through 36 stay unapplied. `SUPABASE_ACCESS_TOKEN` on the ops box is still a chat note. A Personal Access Token starts with `sbp_`. This checklist does not need that token. `sending_enabled` stays false. Email is not live. Tracker item 6 (outbound channels) stays partial (4/8) until the channel keys exist and a send path has been verified. Do not merge [aiautotech#4](https://github.com/billyboy95/aiautotech/pull/4) or [aiautotech#5](https://github.com/billyboy95/aiautotech/pull/5).
 
@@ -53,19 +53,19 @@ The From value, when Billy later says yes to the name, is `Willem@aiautotech.co.
 
 ## 3. MX check (read only)
 
-Domain MX has historically pointed at Amazon SES in `eu-west-1`. While it does, the Workspace inbox may not receive mail. Billy has approved switching MX back to Google at GoDaddy only while he is watching, and only after this CRM check. This page is the check.
+On 3 Oct 2026 a read-only DNS-over-HTTPS lookup for `aiautotech.co.za` returned MX `1 smtp.google.com.` and apex SPF `v=spf1 include:_spf.google.com ~all`. That is Google Workspace. An older note that MX pointed at Amazon SES in `eu-west-1` is outdated unless a new lookup shows SES again.
 
 On the phone, open https://www.whatsmydns.net/#MX/aiautotech.co.za and read the mail host. To confirm in the registrar, open GoDaddy → My Products → Domains → `aiautotech.co.za` (no hyphen) → DNS, and read the MX rows. If the only domain in the account is the hyphenated `ai-autotech.co.za`, stop. That is the wrong zone.
 
 Write down one line:
 
-- Google, when the host contains `google.com` or `googlemail.com`. Common hosts are `smtp.google.com` and `aspmx.l.google.com`.
-- Amazon SES, when the host contains `amazonaws.com`. The historical host is `inbound-smtp.eu-west-1.amazonaws.com`.
+- Google, when the host contains `google.com` or `googlemail.com`. The host already seen is `smtp.google.com`.
+- Amazon SES, when the host contains `amazonaws.com`. The old host was `inbound-smtp.eu-west-1.amazonaws.com`.
 - Other. Copy the host exactly.
 
 If the public lookup and GoDaddy disagree, write both hosts and stop.
 
-Stop on this screen. Do not tap Add, Edit, or Delete. Do not change nameservers. A note that MX is still Amazon SES is not a yes to switch it tonight.
+Stop on this screen. Do not tap Add, Edit, or Delete. Do not change nameservers. This page does not switch MX. When the line is Google, the next page verifies SPF and the Willem inbox and skips the SES fallback. When the line is Amazon SES, that same page is the decision card, and the switch waits for Billy’s explicit yes on that call. The page is [`docs/phone-mx-dns-decision.md`](phone-mx-dns-decision.md) (Phone-first unblock, step 13).
 
 ## 4. Never send from personal Gmail
 
@@ -106,7 +106,7 @@ A yes for one line is not a yes for the others.
 - Save the email channel names (`RESEND_API_KEY` and `RESEND_FROM`, or the SMTP names). The From is `Willem@aiautotech.co.za`.
 - A draft or outbox test, with `sending_enabled` still false.
 - Turn `sending_enabled` on. That yes is separate, and it is not this page.
-- Switch MX to Google at GoDaddy, and only while he is watching.
+- Switch MX to Google at GoDaddy, only when a phone lookup shows Amazon SES again, and only after an explicit yes on [`docs/phone-mx-dns-decision.md`](phone-mx-dns-decision.md) (step 13). The 3 Oct 2026 lookup was already Google. Skip the switch when the phone lookup is Google.
 - Apply SQL steps 20 through 36.
 - Merge the website pull requests, spend, or post.
 

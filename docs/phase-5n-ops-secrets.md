@@ -11,6 +11,8 @@ A checklist Billy can open next to the setup wizard. It shows whether `CRON_SECR
 
 `CRON_SECRET`, the email provider (Resend or SMTP), WhatsApp / Meta, the SMS provider, and PayFast sandbox keys are each `configured`, `missing`, or `fixture`.
 
+Whether `Willem@aiautotech.co.za` can receive is [`docs/phone-mx-dns-decision.md`](phone-mx-dns-decision.md) (Phone-first unblock, step 13). That page verifies Google MX and SPF. It does not set a key and it does not send. The From checklist is [`docs/phone-willem-send-from.md`](phone-willem-send-from.md) (step 12).
+
 - `configured` means the signed-in deployment has the provider keys set. The value is not shown.
 - `missing` means the signed-in deployment does not have that provider set. A PayFast merchant id that is not the sandbox merchant stays missing. The id is not shown.
 - `fixture` means this render is not a signed-in deployment read. Preview and empty Supabase keys stay fixture.

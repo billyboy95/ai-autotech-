@@ -211,7 +211,7 @@ Stop:
 
 - `sending_enabled` stays false. `AUTOMATION_SEND_ENABLED` stays unset, or stays the string `false`.
 - `AI_REPLY_CRON_ENABLED` and `WORKFLOW_ENGINE_ENABLED` stay unset.
-- Channel keys stay on Phone-first unblock, step 5. A fired cron is not a yes to send. See that step for the names. This page does not set them.
+- Channel keys stay on Phone-first unblock, step 5. WhatsApp and Meta collection is [`docs/phone-whatsapp-meta-keys.md`](phone-whatsapp-meta-keys.md). A fired cron is not a yes to send. See that step for the names. This page does not set them.
 - PayFast names stay on Phone-first unblock, step 6. Live PayFast stays off.
 - Steps 20 through 36 stay unapplied until Phone-first unblock, step 7 shows Success. This page does not paste those files.
 - `SUPABASE_ACCESS_TOKEN` stays a chat note until Billy replaces it with an `sbp_` token. This page does not paste a token.
@@ -224,7 +224,7 @@ Stop:
 
 This page does not replace them.
 
-1. `CRON_SECRET` and the outbound channel key names: [`docs/GO-LIVE-RUNBOOK.md`](GO-LIVE-RUNBOOK.md) (Phone-first unblock, step 5).
+1. `CRON_SECRET` and the outbound channel key names: [`docs/GO-LIVE-RUNBOOK.md`](GO-LIVE-RUNBOOK.md) (Phone-first unblock, step 5). WhatsApp Cloud API and Meta Page / Instagram keys are [`docs/phone-whatsapp-meta-keys.md`](phone-whatsapp-meta-keys.md). That page does not send, does not turn `sending_enabled` on, and does not register a webhook unless Billy says yes on that call.
 2. After SQL steps 20 through 36 and `NOTIFY pgrst, 'reload schema';` have shown Success, the logged-out production smoke is [`docs/phone-post-sql-smoke-verify.md`](phone-post-sql-smoke-verify.md). Run that before any Phase 5 flag. This schedule page does not call those public URLs and does not claim that smoke has passed.
 3. Phase 5 flags, only the names Billy says yes to, after that smoke: [`docs/phone-phase5-flags-enable-order.md`](phone-phase5-flags-enable-order.md). That page leaves `AI_REPLY_CRON_ENABLED` unset. This page does not set a flag.
 

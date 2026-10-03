@@ -14,6 +14,8 @@ Attaching `crm.aiautotech.co.za` does not wait on that SQL. The phone checklist 
 
 Confirming the public website value of `NEXT_PUBLIC_SITE_URL` does not wait on that SQL. The phone checklist is [`docs/phone-site-url-verify.md`](phone-site-url-verify.md) (step 11 below). Production should be `https://aiautotech.co.za` (no hyphen). This page does not set that variable.
 
+Confirming business email send-from does not wait on that SQL. The phone checklist is [`docs/phone-willem-send-from.md`](phone-willem-send-from.md) (step 12 below). The From address is `Willem@aiautotech.co.za`. This page does not send and does not change DNS.
+
 ### 1. Replace `SUPABASE_ACCESS_TOKEN`
 
 1. On the phone, open Supabase → Account → Access Tokens: https://supabase.com/dashboard/account/tokens
@@ -174,6 +176,8 @@ Email:
 
 - `RESEND_API_KEY` and `RESEND_FROM`
 - or `SMTP_HOST`, `SMTP_USER`, `SMTP_PASS`, and `SMTP_FROM` (`SMTP_PORT` is the port name that path reads)
+
+The business From checklist is [`docs/phone-willem-send-from.md`](phone-willem-send-from.md) (step 12). The example address is `Willem@aiautotech.co.za`. This step does not set that name and does not send.
 
 WhatsApp:
 
@@ -433,6 +437,14 @@ This step does not wait on steps 20 through 36. It does not attach DNS and it do
 The phone checklist is [`docs/phone-site-url-verify.md`](phone-site-url-verify.md). On Vercel → the CRM project `ai-autotech-crm` → Settings → Environment Variables, the Production value of `NEXT_PUBLIC_SITE_URL` should be `https://aiautotech.co.za` (no hyphen). If that value still uses `ai-autotech.co.za`, change only that host. Do not store `https://ai-autotech-crm.vercel.app` or `https://crm.aiautotech.co.za` in this variable.
 
 `sending_enabled` stays false. Steps 1 through 19 stay Already live. Steps 20 through 36 stay unapplied. This page does not set the variable, does not redeploy, and does not spend.
+
+### 12. Phone-first: business email from `Willem@aiautotech.co.za`
+
+This step does not wait on steps 20 through 36. It does not turn sending on and it does not change DNS.
+
+The phone checklist is [`docs/phone-willem-send-from.md`](phone-willem-send-from.md). Confirm the Google Workspace login for `Willem@aiautotech.co.za` (W-i-l-l-e-m). Note which email channel names from step 5 are present. Look up the MX for `aiautotech.co.za` and write down Google or Amazon SES. Leave the records as they are. Never send AI AutoTech mail from `billyfaber06@gmail.com`.
+
+`sending_enabled` stays false. The first test, after the keys exist and Billy says yes, is a draft or outbox row only. Email is not live. Steps 1 through 19 stay Already live. Steps 20 through 36 stay unapplied. Tracker item 6 (outbound channels) stays partial (4/8). `CRON_SECRET` and the channel keys still need Billy’s yes. This page does not set them, does not redeploy, and does not spend.
 
 ## 1. Apply SQL steps 20 through 36
 

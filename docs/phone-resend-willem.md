@@ -128,7 +128,7 @@ These stay blocked after a pass on this page:
 
 The rest of Phone-first unblock, step 5, stays in [`docs/GO-LIVE-RUNBOOK.md`](GO-LIVE-RUNBOOK.md): `CRON_SECRET`, then WhatsApp (`WHATSAPP_TOKEN` and `WHATSAPP_PHONE_NUMBER_ID`), one SMS provider, and the Meta and LinkedIn names. Each of those names waits for Billy’s yes. This page does not set them. After `CRON_SECRET` is saved, the schedule paste is [`docs/phone-pg-cron-schedules.md`](phone-pg-cron-schedules.md). This page does not run that paste.
 
-The next phone checklist after step 5 is step 6 in that same runbook: PayFast sandbox and billing readiness. Leave `BILLING_SANDBOX`, `PAYFAST_MERCHANT_ID`, `PAYFAST_MERCHANT_KEY`, `PAYFAST_PASSPHRASE`, and `SUPABASE_SERVICE_ROLE_KEY` unset until Billy says yes to sandbox billing. A yes for `RESEND_API_KEY` is not that yes. This page does not charge and does not open PayFast.
+The next phone checklist after step 5 is [`docs/phone-payfast-sandbox.md`](phone-payfast-sandbox.md) (Phone-first unblock, step 6): PayFast sandbox and billing readiness. Leave `BILLING_SANDBOX`, `PAYFAST_MERCHANT_ID`, `PAYFAST_MERCHANT_KEY`, `PAYFAST_PASSPHRASE`, and `SUPABASE_SERVICE_ROLE_KEY` unset until Billy says yes to sandbox billing. A yes for `RESEND_API_KEY` is not that yes. This page does not charge and does not open PayFast.
 
 ## Stop rules
 

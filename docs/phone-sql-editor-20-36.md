@@ -135,7 +135,7 @@ Until every file from 20 through 36 has shown Success, steps 20 through 36 stay 
 
 Stop on this page after step 36 shows Success. Do not click a pack here. Do not run the schema reload on this page.
 
-The next phone checklist is Phone-first unblock, step 8 in [`docs/GO-LIVE-RUNBOOK.md`](GO-LIVE-RUNBOOK.md). The click order there is:
+The next phone checklist is [`docs/phone-education-zentrix-pack-apply.md`](phone-education-zentrix-pack-apply.md) (Phone-first unblock, step 8 in [`docs/GO-LIVE-RUNBOOK.md`](GO-LIVE-RUNBOOK.md)). The click order there is:
 
 1. Schema reload: `NOTIFY pgrst, 'reload schema';`
 2. Education pack, only when Billy says yes, as an agency owner.
@@ -163,7 +163,7 @@ A yes for one line is not a yes for the others. A Success line in the editor is 
 
 - Replace `SUPABASE_ACCESS_TOKEN` with an `sbp_` token. That is [`docs/phone-supabase-access-token.md`](phone-supabase-access-token.md).
 - `--apply` for steps 20 through 36, only after that token is a real `sbp_` token, the dry-run looks correct, and he says yes on that call.
-- Schema reload, the Education pack, and the Zentrix pack. Those are step 8. Leave `ZENTRIX_WORKSPACE_PACK_ENABLED` unset until he says yes.
+- Schema reload, the Education pack, and the Zentrix pack. Those are [`docs/phone-education-zentrix-pack-apply.md`](phone-education-zentrix-pack-apply.md) (step 8). Leave `ZENTRIX_WORKSPACE_PACK_ENABLED` unset until he says yes.
 - `CRON_SECRET`, channel keys, PayFast sandbox names, and every Phase 5 flag.
 - Turning `sending_enabled` on. Live charges. That yes is separate, and it is not this page.
 - Merge the website pull requests, spend, or send.

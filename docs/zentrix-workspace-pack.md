@@ -20,7 +20,7 @@ When the older `workspace_shopify_stores` rows already exist, apply rewrites the
 
 ## Apply
 
-Apply Zentrix pack to Zentrix Online is on `/agency` and on `/agency/zentrix/settings`. The phone click order is `docs/GO-LIVE-RUNBOOK.md` (Phone-first unblock, step 8): SQL Success for steps 20 through 36, then `NOTIFY pgrst, 'reload schema';`, then the Education pack, then this pack. Agency owners and agency staff can run it. A client admin cannot. Running it again updates the same three rows. This page does not click the button. The pack is not applied.
+Apply Zentrix pack to Zentrix Online is on `/agency` and on `/agency/zentrix/settings`. The phone click order is `docs/phone-education-zentrix-pack-apply.md` (Phone-first unblock, step 8 in `docs/GO-LIVE-RUNBOOK.md`): SQL Success for steps 20 through 36, then `NOTIFY pgrst, 'reload schema';`, then the Education pack, then this pack. Agency owners and agency staff can run it. A client admin cannot. Running it again updates the same three rows. This page does not click the button. The pack is not applied.
 
 The button does not store anything while the flag is unset. With Supabase keys empty, the page is fixture-only.
 
@@ -52,7 +52,7 @@ This is step 29 in `supabase/APPLY-ORDER.md`, after step 28:
 
 `supabase/migrations/20261104120000_phase5h_zentrix_workspace_pack.sql`
 
-Steps 20 through 29 are still unapplied. After Billy re-authenticates Supabase, run steps 20 through 28, then step 29. Do not claim this SQL is already applied. The phone click order after SQL Success is `docs/GO-LIVE-RUNBOOK.md` (Phone-first unblock, step 8). Sign in as an agency owner and use Apply Education pack to EASTC only when Billy says yes. Apply this Zentrix pack later, on `/agency` or `/agency/zentrix/settings`, only after `ZENTRIX_WORKSPACE_PACK_ENABLED` is the string `true` and Billy says yes. Leave that flag unset until then. The pack is not applied.
+Steps 20 through 29 are still unapplied. After Billy re-authenticates Supabase, run steps 20 through 28, then step 29. Do not claim this SQL is already applied. The phone click order after SQL Success is `docs/phone-education-zentrix-pack-apply.md` (Phone-first unblock, step 8 in `docs/GO-LIVE-RUNBOOK.md`). Sign in as an agency owner and use Apply Education pack to EASTC only when Billy says yes. Apply this Zentrix pack later, on `/agency` or `/agency/zentrix/settings`, only after `ZENTRIX_WORKSPACE_PACK_ENABLED` is the string `true` and Billy says yes. Leave that flag unset until then. The pack is not applied.
 
 Apply it after step 28. Do not run it until `SUPABASE_DB_URL` is available. It does not turn sending on. It does not schedule a cron. It does not call Shopify.
 

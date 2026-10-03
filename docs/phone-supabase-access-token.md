@@ -168,7 +168,7 @@ The only apply Success this page treats as done is:
 
 Until that line prints, steps 20 through 36 stay unapplied.
 
-The script does not turn `sending_enabled` on, does not schedule a cron, and does not click Apply Education pack or the Zentrix pack. After that Success line, the next checklist is Phone-first unblock, step 8: `NOTIFY pgrst, 'reload schema';`, then the packs only when Billy says yes. This page does not run that reload and does not click either pack.
+The script does not turn `sending_enabled` on, does not schedule a cron, and does not click Apply Education pack or the Zentrix pack. After that Success line, the next checklist is [`docs/phone-education-zentrix-pack-apply.md`](phone-education-zentrix-pack-apply.md) (Phone-first unblock, step 8): `NOTIFY pgrst, 'reload schema';`, then the packs only when Billy says yes. This page does not run that reload and does not click either pack.
 
 ## 8. Fallback when there is still no `sbp_` token
 

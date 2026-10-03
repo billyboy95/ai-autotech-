@@ -2,7 +2,7 @@
 
 Turn Phase 5 feature flags on in Vercel Production only after Billy has seen SQL Success for steps 20 through 36 and `NOTIFY pgrst, 'reload schema';` has shown Success. Writing this page does not apply SQL, does not set a flag, and does not load a campaign. Steps 20 through 36 stay unapplied until Billy has seen that Success. Do not claim the SQL is applied. Do not claim a flag is already live.
 
-The East Rand list stays a sandbox draft. After the flags below, the click path is [`docs/phone-campaign-csv-load.md`](phone-campaign-csv-load.md). Education and Zentrix pack clicks stay in [`docs/GO-LIVE-RUNBOOK.md`](GO-LIVE-RUNBOOK.md) (Phone-first unblock, step 8). This page does not click either pack. Website publish for aiautotech #4 and #5 is [`docs/website-publish-decision.md`](website-publish-decision.md). Do not merge those pull requests from this agent.
+The East Rand list stays a sandbox draft. After the flags below, the click path is [`docs/phone-campaign-csv-load.md`](phone-campaign-csv-load.md). Education and Zentrix pack clicks stay in [`docs/phone-education-zentrix-pack-apply.md`](phone-education-zentrix-pack-apply.md) (Phone-first unblock, step 8 in [`docs/GO-LIVE-RUNBOOK.md`](GO-LIVE-RUNBOOK.md)). This page does not click either pack. Website publish for aiautotech #4 and #5 is [`docs/website-publish-decision.md`](website-publish-decision.md). Do not merge those pull requests from this agent.
 
 ## Stop until these are true
 
@@ -76,6 +76,6 @@ Lead Agent. `docs/lead-onboarding.md` names no enable flag for `/command-centre/
 ## After the flags
 
 1. East Rand dry-load, draft only. Open [`docs/phone-campaign-csv-load.md`](phone-campaign-csv-load.md). The store needs `CAMPAIGN_CSV_IMPORT_ENABLED` as the string `true` on a deployment whose **Sandbox CSV import** banner is the slate store line. Leave `EAST_RAND_CAMPAIGN_SEED_ENABLED` unset for that load. Nothing is queued. `sending_enabled` stays false.
-2. Then the Education pack, then the Zentrix pack. The click order already on main is [`docs/GO-LIVE-RUNBOOK.md`](GO-LIVE-RUNBOOK.md) (Phone-first unblock, step 8, items 3 and 4) and [`docs/zentrix-workspace-pack.md`](zentrix-workspace-pack.md). Education has no env flag. Zentrix stores stubs only once `ZENTRIX_WORKSPACE_PACK_ENABLED` is the string `true` and Billy says yes. This page does not click either pack. Packs are not applied.
+2. Then the Education pack, then the Zentrix pack. The click order is [`docs/phone-education-zentrix-pack-apply.md`](phone-education-zentrix-pack-apply.md) (Phone-first unblock, step 8 in [`docs/GO-LIVE-RUNBOOK.md`](GO-LIVE-RUNBOOK.md)) and [`docs/zentrix-workspace-pack.md`](zentrix-workspace-pack.md). Education has no env flag. Zentrix stores stubs only once `ZENTRIX_WORKSPACE_PACK_ENABLED` is the string `true` and Billy says yes. This page does not click either pack. Packs are not applied.
 
 This page does not claim steps 20 through 36 are applied, does not claim a flag is live, and does not claim a campaign was loaded.

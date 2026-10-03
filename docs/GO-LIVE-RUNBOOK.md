@@ -22,6 +22,8 @@ Preparing the Google Workspace SMTP App Password, the `SMTP_*` path alternative 
 
 Preparing the Resend API key, the Resend path alongside that SMTP page, does not wait on that SQL. The phone checklist is [`docs/phone-resend-willem.md`](phone-resend-willem.md). The From stays `Willem@aiautotech.co.za`. Each Resend name waits for Billy’s yes. Saving a name does not send and does not turn `sending_enabled` on. This page does not edit DNS and does not paste the API key.
 
+Collecting WhatsApp Cloud API and Meta Page keys does not wait on that SQL. The phone checklist is [`docs/phone-whatsapp-meta-keys.md`](phone-whatsapp-meta-keys.md) (step 5 below). Create or reuse a Meta app only after Billy says yes. Do not invent an app id. Each name waits for his yes. Saving a name does not send and does not turn `sending_enabled` on. That page does not register a webhook unless he says yes on that call. Gated Phase 5 command-centre panels stay paused. This page does not paste a token.
+
 Verifying MX for `aiautotech.co.za` does not wait on that SQL. The phone checklist is [`docs/phone-mx-dns-decision.md`](phone-mx-dns-decision.md) (step 13 below). A read-only lookup on 3 Oct 2026 already showed MX `1 smtp.google.com.` and SPF `v=spf1 include:_spf.google.com ~all`. Confirm that on the phone. Switch MX only if a new lookup shows Amazon SES, and only after Billy says yes. This page does not edit DNS and does not send.
 
 Publishing DKIM and a monitor-only DMARC record for `aiautotech.co.za` does not wait on that SQL. The phone checklist is [`docs/phone-dkim-dmarc.md`](phone-dkim-dmarc.md) (step 14 below). The 3 Oct 2026 lookup found no TXT at `google._domainkey` and no TXT at `_dmarc`. Add each TXT only after Billy says yes on that call. MX is already Google, so this step does not switch MX. `sending_enabled` stays false. This page does not edit DNS and does not send.
@@ -206,6 +208,8 @@ WhatsApp:
 - `WHATSAPP_TOKEN` and `WHATSAPP_PHONE_NUMBER_ID`
 - `WHATSAPP_APP_SECRET` and `WHATSAPP_VERIFY_TOKEN` are copied into the connection secret only when they are already set
 
+The phone steps are [`docs/phone-whatsapp-meta-keys.md`](phone-whatsapp-meta-keys.md). Open Meta Developer on the phone. Create or reuse an app only after Billy says yes. Do not invent an app id. Store `WHATSAPP_TOKEN` and `WHATSAPP_PHONE_NUMBER_ID` in a password manager. Set each of those Vercel Production names only after he says yes to that name. Mark it Sensitive. Saving a name does not send. Leave `WHATSAPP_APP_SECRET` and `WHATSAPP_VERIFY_TOKEN` unset on that visit. That page refuses a test send, refuses turning `sending_enabled` on, and refuses webhook URL registration unless he says yes on that call. Steps 20 through 36 stay unapplied. Gated Phase 5 command-centre panels stay paused. Do not paste a token into git, a pull request, chat, or this file.
+
 SMS, one provider:
 
 - `SMSPORTAL_CLIENT_ID` and `SMSPORTAL_API_SECRET` (`SMSPORTAL_SENDER_ID` and `SMSPORTAL_WEBHOOK_SECRET` when they are set)
@@ -215,7 +219,7 @@ SMS, one provider:
 
 Social:
 
-- Facebook and Instagram: `META_PAGE_ACCESS_TOKEN` with `META_PAGE_ID` or `META_IG_USER_ID` (`META_APP_SECRET` when it is set)
+- Facebook and Instagram: `META_PAGE_ACCESS_TOKEN` with `META_PAGE_ID` or `META_IG_USER_ID` (`META_APP_SECRET` when it is set). The phone steps are the same page, [`docs/phone-whatsapp-meta-keys.md`](phone-whatsapp-meta-keys.md). `META_IG_USER_ID` is only when he already uses Instagram for the business. Leave `META_APP_SECRET` unset on that visit. Each name waits for his yes. Saving a name does not send.
 - LinkedIn: `LINKEDIN_ACCESS_TOKEN` and `LINKEDIN_AUTHOR_URN`
 - TikTok has no provider env name in this repo. Leave `TIKTOK_LINKEDIN_CONNECT_STUB_ENABLED` unset until step 28 is applied. That flag is not a send key.
 

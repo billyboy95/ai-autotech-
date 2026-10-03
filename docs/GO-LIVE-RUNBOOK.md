@@ -22,6 +22,8 @@ Publishing DKIM and a monitor-only DMARC record for `aiautotech.co.za` does not 
 
 ### 1. Replace `SUPABASE_ACCESS_TOKEN`
 
+The phone checklist is [`docs/phone-supabase-access-token.md`](phone-supabase-access-token.md). On the phone, create a Personal Access Token at Account → Access Tokens, confirm it starts with `sbp_`, and save it under the name `SUPABASE_ACCESS_TOKEN` on the box and on Vercel. Reject a chat note and a JWT-looking string. Verify with `supabase projects list` or a Management API read of the project list. Dry-run on the box. Pass `--apply` only after that dry-run looks correct and Billy says yes on that call. If there is still no `sbp_` token, that page sends you to step 7. This runbook does not contain a token and does not invent Success.
+
 1. On the phone, open Supabase → Account → Access Tokens: https://supabase.com/dashboard/account/tokens
 2. Create a Personal Access Token. A real token starts with `sbp_`. Copy it once into a password manager. Supabase shows it only at creation.
 3. Replace the secret named `SUPABASE_ACCESS_TOKEN` in both places that currently hold the chat note:
@@ -32,6 +34,8 @@ Publishing DKIM and a monitor-only DMARC record for `aiautotech.co.za` does not 
 The project ref is `fnysxlswzufdnlbhndxc`, the same ref as `docs/agency-owner-setup.md`.
 
 ### 2. Dry-run, then apply steps 20–36
+
+The phone gates for this command are [`docs/phone-supabase-access-token.md`](phone-supabase-access-token.md) (step 1). `--apply` waits until that dry-run looks correct and Billy says yes on that call. A file list is not Success.
 
 From the repo root on the box, with the new token already in the environment and the chat note unset:
 
@@ -44,7 +48,7 @@ Dry-run is the default. It lists steps 20 through 36 from `supabase/APPLY-ORDER.
 
 If the chat note is still set, the script prints `Fail. Need SUPABASE_ACCESS_TOKEN starting with sbp_. The current value is not an sbp_ token. Nothing was applied.` and exits non-zero. Stop. Return to step 1. Do not pass `--apply`.
 
-When the dry-run accepts the token, apply. The script stops on the first failure and prints `Success` or `Fail` for each step:
+When the dry-run accepts the token and Billy says yes on that call, apply. Do not pass `--apply` from a file list alone. The script stops on the first failure and prints `Success` or `Fail` for each step:
 
 ```bash
 export SUPABASE_PROJECT_REF='fnysxlswzufdnlbhndxc'
@@ -61,7 +65,7 @@ node scripts/apply-pending-migrations.mjs --apply --from N
 
 A finished run prints `Success. Steps 20–36 applied.`
 
-This script does not turn `sending_enabled` on, does not schedule a cron, and does not call Apply Education pack or the Zentrix pack. While `SUPABASE_ACCESS_TOKEN` is still a chat note, use Phone-first unblock step 7 and paste one file at a time in the SQL editor, in the same order. If the box is unreachable after the token is a real `sbp_` token, use that same SQL editor path.
+This script does not turn `sending_enabled` on, does not schedule a cron, and does not call Apply Education pack or the Zentrix pack. While `SUPABASE_ACCESS_TOKEN` is still a chat note, use Phone-first unblock step 7 and paste one file at a time in the SQL editor, in the same order. That fallback is also on [`docs/phone-supabase-access-token.md`](phone-supabase-access-token.md). If the box is unreachable after the token is a real `sbp_` token, use that same SQL editor path.
 
 ### 3. Phone-first: Vercel Environment Variables
 
@@ -271,7 +275,7 @@ The next phone checklist is step 7: paste steps 20 through 36 in the Supabase SQ
 
 ### 7. Phone-first: SQL editor for steps 20–36
 
-Do this on the phone after PayFast sandbox and billing readiness (step 6). The CLI in step 2 still cannot apply SQL. The secret named `SUPABASE_ACCESS_TOKEN` on the ops box is a chat note. A Personal Access Token starts with `sbp_`. Until Billy pastes a real `sbp_` token into that shell, `scripts/apply-pending-migrations.mjs` applies nothing. This checklist does not replace that token and does not print one. The SQL editor does not need it.
+Do this on the phone after PayFast sandbox and billing readiness (step 6). The CLI in step 2 still cannot apply SQL. The secret named `SUPABASE_ACCESS_TOKEN` on the ops box is a chat note. A Personal Access Token starts with `sbp_`. Until Billy pastes a real `sbp_` token into that shell, `scripts/apply-pending-migrations.mjs` applies nothing. This checklist does not replace that token and does not print one. The SQL editor does not need it. When there is still no `sbp_` token, [`docs/phone-supabase-access-token.md`](phone-supabase-access-token.md) (step 1) sends you here. This step is that fallback.
 
 This page does not claim steps 20 through 36 are applied. They stay unapplied until each file below has been run and the editor shows success. Steps 1 through 19 stay as they are. Paste steps 20 through 36 only, in this order. Stop on the first failure. Do not skip ahead. Do not sort the migrations folder by filename.
 
@@ -329,7 +333,7 @@ These stay on their own steps. A success in the SQL editor is not a yes for any 
 - `OWNER_EMAILS` and the Owner Auth bootstrap stay on step 4. This checklist does not create the Auth user `billyfaber06@gmail.com` and does not paste `supabase/owner-bootstrap.sql`.
 - `CRON_SECRET` and the outbound channel keys stay on step 5. Leave them unset until Billy says yes.
 - PayFast sandbox names stay on step 6. Leave them unset until Billy says yes to sandbox billing. Live PayFast stays off until he says yes to live charges. Do not put a live merchant id in the environment.
-- `SUPABASE_ACCESS_TOKEN` on the ops box is still a chat note. This checklist does not paste a token.
+- `SUPABASE_ACCESS_TOKEN` on the ops box is still a chat note. The replace checklist is [`docs/phone-supabase-access-token.md`](phone-supabase-access-token.md). This checklist does not paste a token.
 - Website pull requests [aiautotech#4](https://github.com/billyboy95/aiautotech/pull/4) and [aiautotech#5](https://github.com/billyboy95/aiautotech/pull/5) stay open until Billy says yes to publish. Do not merge them from this agent.
 - This checklist does not click Apply Education pack and does not click the Zentrix pack. The click order is step 8, and only after this step has shown success. Leave `ZENTRIX_WORKSPACE_PACK_ENABLED` unset. No secret value is in this file.
 
@@ -496,13 +500,13 @@ Run one file at a time, in this order:
 
 SQL editor: sign in again, open the project SQL editor, and paste each file once. The phone checklist is Phone-first unblock, step 7: https://supabase.com/dashboard/project/fnysxlswzufdnlbhndxc/sql/new . The project ref already used in `docs/agency-owner-setup.md` is `fnysxlswzufdnlbhndxc`.
 
-CLI: follow Phone-first unblock above. `scripts/apply-pending-migrations.mjs` reads `SUPABASE_ACCESS_TOKEN` from the box environment. That value is a Personal Access Token from the Supabase account page (Access Tokens). A real token starts with `sbp_`. The value currently stored on the box and in Vercel is a chat note. Replace it before the dry-run. Do not commit it, and do not invent one. If the token is not available, use the SQL editor instead.
+CLI: follow Phone-first unblock step 1 and [`docs/phone-supabase-access-token.md`](phone-supabase-access-token.md). `scripts/apply-pending-migrations.mjs` reads `SUPABASE_ACCESS_TOKEN` from the box environment. That value is a Personal Access Token from the Supabase account page (Access Tokens). A real token starts with `sbp_`. The value currently stored on the box and in Vercel is a chat note. Replace it before the dry-run. Do not commit it, and do not invent one. If the token is not available, use the SQL editor instead (step 7).
 
 Do not push the whole migrations folder. A database URL Billy provides can be used with `psql` and `ON_ERROR_STOP`, one file at a time, in the order above. This page does not include either secret.
 
 ### Phone or box
 
-The ordered phone steps are Phone-first unblock, above. While the token is a chat note, step 7 is the SQL editor paste. `scripts/apply-pending-migrations.mjs` applies steps 20 through 36 from this repo. It does not add a page under `/command-centre` or `/agency`. Dry-run is the default and sends no SQL. The token is never printed.
+The ordered phone steps are Phone-first unblock, above. The token replace is [`docs/phone-supabase-access-token.md`](phone-supabase-access-token.md) (step 1). While the token is a chat note, step 7 is the SQL editor paste. `scripts/apply-pending-migrations.mjs` applies steps 20 through 36 from this repo. It does not add a page under `/command-centre` or `/agency`. Dry-run is the default and sends no SQL. The token is never printed.
 
 `--project-ref` overrides `SUPABASE_PROJECT_REF`. `SUPABASE_PROJECT_ID` is also accepted, as is `NEXT_PUBLIC_SUPABASE_URL` when it is exactly `https://<ref>.supabase.co`. With no token, the dry-run lists steps 20–36, prints that `--apply` needs a token starting with `sbp_`, and exits 0. Any other value, including the chat note, exits non-zero and applies nothing.
 

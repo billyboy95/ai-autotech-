@@ -176,7 +176,7 @@ Skip this section when sections 5 and 6 passed.
 
 When you cannot save a token that starts with `sbp_`, stop the CLI. Do not pass `--apply`. Do not invent a token.
 
-The SQL editor does not need the token. The paste order is already Phone-first unblock, step 7 in [`docs/GO-LIVE-RUNBOOK.md`](GO-LIVE-RUNBOOK.md). The same order is the Unapplied list in [`supabase/APPLY-ORDER.md`](../supabase/APPLY-ORDER.md). This page does not copy those files.
+The SQL editor does not need the token. The phone checklist is [`docs/phone-sql-editor-20-36.md`](phone-sql-editor-20-36.md) (Phone-first unblock, step 7 in [`docs/GO-LIVE-RUNBOOK.md`](GO-LIVE-RUNBOOK.md)). The same order is the Unapplied list in [`supabase/APPLY-ORDER.md`](../supabase/APPLY-ORDER.md). This page does not copy those files.
 
 On the phone, open a new query:
 
@@ -185,7 +185,7 @@ https://supabase.com/dashboard/project/fnysxlswzufdnlbhndxc/sql/new
 1. Paste steps 20 through 36 only, in that order. One file at a time, from `supabase/migrations`, or the matching ops-box copy `/workspace/supabase-apply/NN-*.sql` (`NN` is 20 through 36).
 2. Do not paste steps 1 through 19. They are Already live.
 3. Expect `Success. No rows returned`, or the editor’s equivalent success with no error. Stop on the first failure. Do not skip ahead.
-4. Paste each file whole. The runbook names the long files and their sizes. A phone paste can cut them short. Prefer a desktop paste for those. Do not split a file.
+4. Paste each file whole. [`docs/phone-sql-editor-20-36.md`](phone-sql-editor-20-36.md) names the long files and their sizes. A phone paste can cut them short. Prefer a desktop paste for those. Do not split a file.
 
 An editor line `Success. No rows returned` is not the CLI line `Success. Steps 20–36 applied.` Do not write either line down unless you saw it.
 

@@ -24,6 +24,8 @@ Preparing the Resend API key, the Resend path alongside that SMTP page, does not
 
 Collecting WhatsApp Cloud API and Meta Page keys does not wait on that SQL. The phone checklist is [`docs/phone-whatsapp-meta-keys.md`](phone-whatsapp-meta-keys.md) (step 5 below). Create or reuse a Meta app only after Billy says yes. Do not invent an app id. Each name waits for his yes. Saving a name does not send and does not turn `sending_enabled` on. That page does not register a webhook unless he says yes on that call. Gated Phase 5 command-centre panels stay paused. This page does not paste a token.
 
+Collecting one SMS provider’s keys does not wait on that SQL. The phone checklist is [`docs/phone-sms-provider-keys.md`](phone-sms-provider-keys.md) (step 5 below). It comes after the WhatsApp and Meta page and before PayFast sandbox. Choose one provider already in the app. SMSPortal and BulkSMS are the usual South African choices when he already has that account. Do not invent an account id. Each name waits for his yes. A yes for WhatsApp, email, or `CRON_SECRET` is not a yes for SMS. Saving a name does not send and does not turn `sending_enabled` on. That page does not buy credit and does not register a webhook. This page does not paste a secret.
+
 Preparing PayFast sandbox billing names does not wait on that SQL. The phone checklist is [`docs/phone-payfast-sandbox.md`](phone-payfast-sandbox.md) (step 6 below). Open https://sandbox.payfast.co.za only. Leave the live PayFast site closed. Leave every name unset until Billy says yes to sandbox billing. A yes for `CRON_SECRET` or a channel key is not that yes. A yes for sandbox billing is not a yes for live charges. Saving a name does not charge and does not turn `sending_enabled` on. This page does not paste a merchant key, a passphrase, or a service-role value.
 
 Pasting steps 20 through 36 in the SQL editor is the path while `SUPABASE_ACCESS_TOKEN` is still a chat note. The phone checklist is [`docs/phone-sql-editor-20-36.md`](phone-sql-editor-20-36.md) (step 7 below). Open https://supabase.com/dashboard/project/fnysxlswzufdnlbhndxc/sql/new . Paste each Unapplied file once, in that order only. Do not re-apply steps 1 through 19. Prefer a desktop paste for the large files. Expect `Success. No rows returned` only after that file has been run. This page does not invent Success. `sending_enabled` stays false. This page does not paste a token.
@@ -112,7 +114,7 @@ Outbound channel keys are required before a real send. Saving a key leaves `send
 - Email: `RESEND_API_KEY`, or `SMTP_HOST` with `SMTP_USER` and `SMTP_PASS`
 - WhatsApp: `WHATSAPP_TOKEN` and `WHATSAPP_PHONE_NUMBER_ID`
 - Meta: `META_PAGE_ACCESS_TOKEN` with `META_PAGE_ID` or `META_IG_USER_ID`
-- SMS: one of `SMSPORTAL_CLIENT_ID` plus `SMSPORTAL_API_SECRET`, `BULKSMS_TOKEN_ID` plus `BULKSMS_TOKEN_SECRET`, `CLICKATELL_API_KEY`, or `TWILIO_ACCOUNT_SID` plus `TWILIO_AUTH_TOKEN` plus `TWILIO_FROM_NUMBER`
+- SMS: one of `SMSPORTAL_CLIENT_ID` plus `SMSPORTAL_API_SECRET`, `BULKSMS_TOKEN_ID` plus `BULKSMS_TOKEN_SECRET`, `CLICKATELL_API_KEY`, or `TWILIO_ACCOUNT_SID` plus `TWILIO_AUTH_TOKEN` plus `TWILIO_FROM_NUMBER`. The phone steps are [`docs/phone-sms-provider-keys.md`](phone-sms-provider-keys.md). Choose one. A yes for WhatsApp, email, or `CRON_SECRET` is not a yes for SMS.
 
 Phase 5 feature flags stay unset until the SQL step that introduces them has been applied. The names are in section 3 below (Leave flags unset until their SQL is applied). Unset, blank, or any value other than the string `true` keeps that page fixture-only. Setting a flag stores a sandbox note only. It does not apply SQL and it does not send. Gated command-centre panels stay paused until steps 20 through 36 are applied. Also leave `AI_REPLY_CRON_ENABLED`, `E2B_API_KEY`, `BROWSERBASE_API_KEY`, and `COMPUTER_PROVIDER_ENABLED` unset.
 
@@ -217,12 +219,14 @@ WhatsApp:
 
 The phone steps are [`docs/phone-whatsapp-meta-keys.md`](phone-whatsapp-meta-keys.md). Open Meta Developer on the phone. Create or reuse an app only after Billy says yes. Do not invent an app id. Store `WHATSAPP_TOKEN` and `WHATSAPP_PHONE_NUMBER_ID` in a password manager. Set each of those Vercel Production names only after he says yes to that name. Mark it Sensitive. Saving a name does not send. Leave `WHATSAPP_APP_SECRET` and `WHATSAPP_VERIFY_TOKEN` unset on that visit. That page refuses a test send, refuses turning `sending_enabled` on, and refuses webhook URL registration unless he says yes on that call. Steps 20 through 36 stay unapplied. Gated Phase 5 command-centre panels stay paused. Do not paste a token into git, a pull request, chat, or this file.
 
-SMS, one provider:
+SMS, one provider. The phone checklist is [`docs/phone-sms-provider-keys.md`](phone-sms-provider-keys.md). Choose one account he already has. Leave the other providers’ names unset. A yes for WhatsApp, email, or `CRON_SECRET` is not a yes for SMS. Do not invent an account id. Do not buy credit. Do not send. Saving a name does not turn `sending_enabled` on. `AUTOMATION_SEND_ENABLED` stays unset, or stays the string `false`. Webhook registration is a later optional step. That page does not register a webhook on this visit. Steps 20 through 36 stay unapplied.
 
 - `SMSPORTAL_CLIENT_ID` and `SMSPORTAL_API_SECRET` (`SMSPORTAL_SENDER_ID` and `SMSPORTAL_WEBHOOK_SECRET` when they are set)
 - or `BULKSMS_TOKEN_ID` and `BULKSMS_TOKEN_SECRET`, or `BULKSMS_USERNAME` and `BULKSMS_PASSWORD` (`BULKSMS_SENDER_ID` when it is set)
 - or `CLICKATELL_API_KEY` (`CLICKATELL_FROM` when it is set)
 - or `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, and `TWILIO_FROM_NUMBER`
+
+Open the provider he already uses. Store the values in a password manager. Set each Vercel Production name only after he says yes to that name. Mark it Sensitive. Leave `SMSPORTAL_WEBHOOK_SECRET` unset on that visit. Do not paste a secret into git, a pull request, chat, or this file.
 
 Social:
 

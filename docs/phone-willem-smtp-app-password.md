@@ -1,6 +1,6 @@
 # Phone checklist: Google Workspace SMTP App Password for `Willem@aiautotech.co.za`
 
-Billy prepares Google Workspace SMTP so the CRM can later send as `Willem@aiautotech.co.za` (spelling W-i-l-l-e-m). This is the `SMTP_*` path, the alternative to Resend. The channel key names are already listed in [`docs/GO-LIVE-RUNBOOK.md`](GO-LIVE-RUNBOOK.md) (Phone-first unblock, step 5). This page does not repeat that list.
+Billy prepares Google Workspace SMTP so the CRM can later send as `Willem@aiautotech.co.za` (spelling W-i-l-l-e-m). This is the `SMTP_*` path, the alternative to Resend. The Resend path is [`docs/phone-resend-willem.md`](phone-resend-willem.md). The channel key names are already listed in [`docs/GO-LIVE-RUNBOOK.md`](GO-LIVE-RUNBOOK.md) (Phone-first unblock, step 5). This page does not repeat that list.
 
 Live MX for `aiautotech.co.za` is already Google: priority `1`, host `smtp.google.com`. Apex SPF is `v=spf1 include:_spf.google.com ~all`. That read-only lookup was 3 Oct 2026. DKIM at `google._domainkey` and DMARC at `_dmarc` were still missing (NXDOMAIN). Those two records stay on [`docs/phone-dkim-dmarc.md`](phone-dkim-dmarc.md) (step 14). This page does not edit DNS and does not claim those TXT records exist.
 

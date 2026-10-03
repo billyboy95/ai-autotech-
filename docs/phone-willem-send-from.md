@@ -40,7 +40,7 @@ On the phone, open Vercel → the CRM project `ai-autotech-crm` → Settings →
 
 Note the email names. Leave every value closed.
 
-- Resend path: `RESEND_API_KEY` and `RESEND_FROM`
+- Resend path: `RESEND_API_KEY` and `RESEND_FROM`. The phone steps are [`docs/phone-resend-willem.md`](phone-resend-willem.md). This page does not create the key.
 - SMTP path: `SMTP_HOST`, `SMTP_USER`, `SMTP_PASS`, and `SMTP_FROM` (`SMTP_PORT` is the port name). The phone steps to create a Google Workspace App Password and set those SMTP names are [`docs/phone-willem-smtp-app-password.md`](phone-willem-smtp-app-password.md). This page does not create the password and does not save the names.
 
 When a workspace connection is the email path, the Vault secret name is `channel:` plus the connection id. Email providers already in the app are `resend` and `smtp`. The channel name is `email`. Step 5 has that Vault sentence. This page does not call `store_channel_secret` and does not run `scripts/migrate-channel-credentials.mjs`.

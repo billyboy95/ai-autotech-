@@ -26,7 +26,7 @@ The panel shows the repo file `supabase/owner-bootstrap.sql` read-only, with its
 
 Create the Auth user in the dashboard first. Then paste that file in the SQL editor. The file attaches `billyfaber06@gmail.com` as `agency_owner` of `ai-autotech`. It does not delete anything. This page does not paste it and does not run it.
 
-The phone verification is `docs/GO-LIVE-RUNBOOK.md`, Phone-first unblock, step 4. Confirm the Auth user and the `OWNER_EMAILS` name there. Do not paste `supabase/owner-bootstrap.sql` until steps 20 through 36 have succeeded and the Auth user exists. Leave `OWNER_BOOTSTRAP_UI_ENABLED` unset until step 34 is applied.
+The phone checklist is `docs/phone-owner-auth-bootstrap.md` (`docs/GO-LIVE-RUNBOOK.md`, Phone-first unblock, step 4). Confirm the Auth user and the `OWNER_EMAILS` name there. Do not paste `supabase/owner-bootstrap.sql` until steps 20 through 36 have succeeded and the Auth user exists. Leave `OWNER_BOOTSTRAP_UI_ENABLED` unset until step 34 is applied.
 
 Steps 20 through 33 are not applied. Step 34 is also unapplied. Do not claim that SQL is already applied.
 

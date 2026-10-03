@@ -16,6 +16,8 @@ Confirming the public website value of `NEXT_PUBLIC_SITE_URL` does not wait on t
 
 Confirming business email send-from does not wait on that SQL. The phone checklist is [`docs/phone-willem-send-from.md`](phone-willem-send-from.md) (step 12 below). The From address is `Willem@aiautotech.co.za`. This page does not send and does not change DNS.
 
+Preparing the Google Workspace SMTP App Password, the `SMTP_*` path alternative to Resend, does not wait on that SQL. The phone checklist is [`docs/phone-willem-smtp-app-password.md`](phone-willem-smtp-app-password.md). The From stays `Willem@aiautotech.co.za`. Each SMTP name waits for Billy’s yes. Saving a name does not send and does not turn `sending_enabled` on. This page does not edit DNS and does not paste the App Password.
+
 Verifying MX for `aiautotech.co.za` does not wait on that SQL. The phone checklist is [`docs/phone-mx-dns-decision.md`](phone-mx-dns-decision.md) (step 13 below). A read-only lookup on 3 Oct 2026 already showed MX `1 smtp.google.com.` and SPF `v=spf1 include:_spf.google.com ~all`. Confirm that on the phone. Switch MX only if a new lookup shows Amazon SES, and only after Billy says yes. This page does not edit DNS and does not send.
 
 Publishing DKIM and a monitor-only DMARC record for `aiautotech.co.za` does not wait on that SQL. The phone checklist is [`docs/phone-dkim-dmarc.md`](phone-dkim-dmarc.md) (step 14 below). The 3 Oct 2026 lookup found no TXT at `google._domainkey` and no TXT at `_dmarc`. Add each TXT only after Billy says yes on that call. MX is already Google, so this step does not switch MX. `sending_enabled` stays false. This page does not edit DNS and does not send.
@@ -184,6 +186,8 @@ Email:
 
 - `RESEND_API_KEY` and `RESEND_FROM`
 - or `SMTP_HOST`, `SMTP_USER`, `SMTP_PASS`, and `SMTP_FROM` (`SMTP_PORT` is the port name that path reads)
+
+The phone steps for that SMTP path are [`docs/phone-willem-smtp-app-password.md`](phone-willem-smtp-app-password.md). That page is the Google Workspace App Password alternative to Resend, for `Willem@aiautotech.co.za`. Each SMTP name waits for Billy’s yes. Saving a name does not send and does not turn `sending_enabled` on. Do not paste the App Password into git, a pull request, chat, or this file.
 
 The business From checklist is [`docs/phone-willem-send-from.md`](phone-willem-send-from.md) (step 12). The example address is `Willem@aiautotech.co.za`. This step does not set that name and does not send.
 
@@ -455,6 +459,8 @@ The phone checklist is [`docs/phone-site-url-verify.md`](phone-site-url-verify.m
 This step does not wait on steps 20 through 36. It does not turn sending on and it does not change DNS.
 
 The phone checklist is [`docs/phone-willem-send-from.md`](phone-willem-send-from.md). Confirm the Google Workspace login for `Willem@aiautotech.co.za` (W-i-l-l-e-m). Note which email channel names from step 5 are present. Look up the MX for `aiautotech.co.za` and write down Google or Amazon SES. Leave the records as they are. Never send AI AutoTech mail from `billyfaber06@gmail.com`.
+
+The SMTP alternative to Resend is [`docs/phone-willem-smtp-app-password.md`](phone-willem-smtp-app-password.md). On the phone, open the Google Account for `Willem@aiautotech.co.za`, confirm 2-Step Verification is on, and create an App Password labeled `AI AutoTech CRM SMTP` only after Billy says yes. Store it in a password manager. Set the SMTP names on Vercel Production only after he says yes to each name. That page does not send and does not edit DNS.
 
 `sending_enabled` stays false. The first test, after the keys exist and Billy says yes, is a draft or outbox row only. Email is not live. Steps 1 through 19 stay Already live. Steps 20 through 36 stay unapplied. Tracker item 6 (outbound channels) stays partial (4/8). `CRON_SECRET` and the channel keys still need Billy’s yes. This page does not set them, does not redeploy, and does not spend.
 

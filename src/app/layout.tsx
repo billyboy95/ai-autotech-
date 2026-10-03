@@ -49,7 +49,7 @@ function installShell(appleTitle: string): Metadata {
 
 const platformMetadata: Metadata = {
   ...installShell("AIOS"),
-  metadataBase: new URL("https://ai-autotech.co.za"),
+  metadataBase: new URL("https://aiautotech.co.za"),
   title: {
     default: "AI AutoTech",
     template: "%s | AI AutoTech",
@@ -60,7 +60,7 @@ const platformMetadata: Metadata = {
     title: "AI AutoTech",
     description:
       "Automation, AI, software, and digital transformation for South African SMEs.",
-    url: "https://ai-autotech.co.za",
+    url: "https://aiautotech.co.za",
     siteName: "AI AutoTech",
     locale: "en_ZA",
     type: "website",

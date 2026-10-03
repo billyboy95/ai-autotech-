@@ -18,6 +18,8 @@ Confirming business email send-from does not wait on that SQL. The phone checkli
 
 Verifying MX for `aiautotech.co.za` does not wait on that SQL. The phone checklist is [`docs/phone-mx-dns-decision.md`](phone-mx-dns-decision.md) (step 13 below). A read-only lookup on 3 Oct 2026 already showed MX `1 smtp.google.com.` and SPF `v=spf1 include:_spf.google.com ~all`. Confirm that on the phone. Switch MX only if a new lookup shows Amazon SES, and only after Billy says yes. This page does not edit DNS and does not send.
 
+Publishing DKIM and a monitor-only DMARC record for `aiautotech.co.za` does not wait on that SQL. The phone checklist is [`docs/phone-dkim-dmarc.md`](phone-dkim-dmarc.md) (step 14 below). The 3 Oct 2026 lookup found no TXT at `google._domainkey` and no TXT at `_dmarc`. Add each TXT only after Billy says yes on that call. MX is already Google, so this step does not switch MX. `sending_enabled` stays false. This page does not edit DNS and does not send.
+
 ### 1. Replace `SUPABASE_ACCESS_TOKEN`
 
 1. On the phone, open Supabase → Account → Access Tokens: https://supabase.com/dashboard/account/tokens
@@ -182,6 +184,8 @@ Email:
 The business From checklist is [`docs/phone-willem-send-from.md`](phone-willem-send-from.md) (step 12). The example address is `Willem@aiautotech.co.za`. This step does not set that name and does not send.
 
 Inbound mail for `aiautotech.co.za` is [`docs/phone-mx-dns-decision.md`](phone-mx-dns-decision.md) (step 13). That page verifies Google MX and SPF so `Willem@aiautotech.co.za` can receive. It does not set these channel names, does not turn `sending_enabled` on, and does not send.
+
+DKIM and a monitor-only DMARC record are [`docs/phone-dkim-dmarc.md`](phone-dkim-dmarc.md) (step 14). That page publishes them only after Billy says yes. It does not set these channel names, does not turn `sending_enabled` on, and does not send. MX is already Google. An SES switch is not part of that page.
 
 WhatsApp:
 
@@ -456,9 +460,17 @@ This step does not wait on steps 20 through 36. It does not turn sending on.
 
 The phone checklist is [`docs/phone-mx-dns-decision.md`](phone-mx-dns-decision.md). On the phone, read the MX and the apex SPF for `aiautotech.co.za`. A read-only DNS-over-HTTPS lookup on 3 Oct 2026 already returned MX `1 smtp.google.com.` and SPF `v=spf1 include:_spf.google.com ~all`. When the phone lookup matches that, leave the records. Open the Google Workspace inbox for `Willem@aiautotech.co.za` (W-i-l-l-e-m). Do not send a message. Do not use `billyfaber06@gmail.com` as a From.
 
-Open the SES fallback only when that phone lookup shows Amazon SES (`amazonaws.com`). Switch the MX to priority `1` and host `smtp.google.com` at GoDaddy only after Billy says yes on that call. Leave SPF, DKIM, and DMARC unless he already said yes to those records in the same breath. DKIM (`google._domainkey`) and DMARC (`_dmarc`) had no TXT on that 3 Oct lookup. They stay later follow-ups.
+Open the SES fallback only when that phone lookup shows Amazon SES (`amazonaws.com`). Switch the MX to priority `1` and host `smtp.google.com` at GoDaddy only after Billy says yes on that call. Leave SPF, DKIM, and DMARC unless he already said yes to those records in the same breath. DKIM (`google._domainkey`) and DMARC (`_dmarc`) had no TXT on that 3 Oct lookup. The next phone checklist is [`docs/phone-dkim-dmarc.md`](phone-dkim-dmarc.md) (step 14). This step leaves those records.
 
 `sending_enabled` stays false until a separate yes. Steps 1 through 19 stay Already live. Steps 20 through 36 stay unapplied. This page does not edit DNS, does not set a channel key, does not redeploy, and does not spend.
+
+### 14. Phone-first: DKIM and DMARC for `aiautotech.co.za`
+
+This step does not wait on steps 20 through 36. It does not turn sending on. It follows step 13.
+
+The phone checklist is [`docs/phone-dkim-dmarc.md`](phone-dkim-dmarc.md). On the phone, open Google Admin → Gmail → Authenticate email and generate DKIM for `aiautotech.co.za` only after Billy says yes. Add the TXT at the host Admin shows (usually `google._domainkey`) in GoDaddy. Then, after a separate yes, add a monitor-only DMARC TXT at `_dmarc`: `v=DMARC1; p=none; rua=mailto:Willem@aiautotech.co.za` (or the `rua` he names on that call). Leave `p=none` until he says tighten. Verify both names with a phone DNS lookup. The 3 Oct 2026 lookup found neither TXT. MX was already `1 smtp.google.com.`, so this step does not switch SES to Google.
+
+`sending_enabled` stays false until a separate yes. The From, when a send is allowed later, is `Willem@aiautotech.co.za` (W-i-l-l-e-m). Do not use `billyfaber06@gmail.com` as a From or as the DMARC `rua`. Steps 1 through 19 stay Already live. Steps 20 through 36 stay unapplied. This page does not edit DNS, does not set a channel key, does not redeploy, and does not spend.
 
 ## 1. Apply SQL steps 20 through 36
 

@@ -7,11 +7,11 @@ On 3 Oct 2026 a read-only DNS-over-HTTPS lookup (Cloudflare and Google) returned
 - MX: `1 smtp.google.com.`
 - Apex TXT (SPF): `v=spf1 include:_spf.google.com ~all`
 
-That is already Google Workspace. An older note that MX pointed at Amazon SES in `eu-west-1` (`inbound-smtp.eu-west-1.amazonaws.com`) is outdated unless the phone lookup below shows SES again. The same lookup found no TXT at `google._domainkey.aiautotech.co.za` and no TXT at `_dmarc.aiautotech.co.za`. Those two stay later follow-ups.
+That is already Google Workspace. An older note that MX pointed at Amazon SES in `eu-west-1` (`inbound-smtp.eu-west-1.amazonaws.com`) is outdated unless the phone lookup below shows SES again. The same lookup found no TXT at `google._domainkey.aiautotech.co.za` and no TXT at `_dmarc.aiautotech.co.za`. The next phone checklist for those two records is [`docs/phone-dkim-dmarc.md`](phone-dkim-dmarc.md) (Phone-first unblock, step 14). This page leaves them.
 
 Writing this page does not edit DNS, does not send, and does not apply SQL. Steps 1 through 19 are already live. Steps 20 through 36 stay unapplied. `SUPABASE_ACCESS_TOKEN` on the ops box is still a chat note. A Personal Access Token starts with `sbp_`. This checklist does not need that token. `sending_enabled` stays false. Do not merge [aiautotech#4](https://github.com/billyboy95/aiautotech/pull/4) or [aiautotech#5](https://github.com/billyboy95/aiautotech/pull/5).
 
-The From checklist is [`docs/phone-willem-send-from.md`](phone-willem-send-from.md) (Phone-first unblock, step 12). Channel key names stay on step 5 in [`docs/GO-LIVE-RUNBOOK.md`](GO-LIVE-RUNBOOK.md).
+The From checklist is [`docs/phone-willem-send-from.md`](phone-willem-send-from.md) (Phone-first unblock, step 12). After this MX page, DKIM and a monitor-only DMARC record are [`docs/phone-dkim-dmarc.md`](phone-dkim-dmarc.md) (step 14). Channel key names stay on step 5 in [`docs/GO-LIVE-RUNBOOK.md`](GO-LIVE-RUNBOOK.md).
 
 ## Which address is which
 
@@ -77,16 +77,11 @@ This page does not send a message. Do not compose, forward, or reply from person
 
 Leave `RESEND_API_KEY`, `RESEND_FROM`, and the SMTP names unset on this visit. Those names are Phone-first unblock, step 5. When a From is saved later, it is `Willem@aiautotech.co.za`. The example line is `AI AutoTech <Willem@aiautotech.co.za>`.
 
-## 5. DKIM and DMARC, later
+## 5. DKIM and DMARC, next page
 
-Do not add or edit these on this visit unless Billy already said yes to that record in the same breath. The default is to leave them.
+Do not add or edit these on this visit. The default is to leave them. A verify pass on this page does not require either record.
 
-Later follow-ups, after that yes:
-
-- DKIM. In Google Admin the usual path is Apps → Google Workspace → Gmail → Authenticate email. The usual DNS name is `google._domainkey` on `aiautotech.co.za`. The 3 Oct 2026 lookup found no TXT there. Copy the value from the Admin screen when he says yes. Do not invent a key.
-- DMARC. A TXT at `_dmarc` on `aiautotech.co.za`. The 3 Oct 2026 lookup found no TXT there. Leave it until he says yes.
-
-A verify pass does not require either record.
+The next phone checklist is [`docs/phone-dkim-dmarc.md`](phone-dkim-dmarc.md) (Phone-first unblock, step 14). That page opens Google Admin → Gmail → Authenticate email, generates DKIM for `aiautotech.co.za`, and adds the TXT at the selector Admin shows (usually `google._domainkey`). It then adds a monitor-only DMARC TXT at `_dmarc` (`v=DMARC1; p=none; rua=mailto:Willem@aiautotech.co.za`). Each DNS write waits for Billy’s yes on that call. `sending_enabled` stays false. This MX page does not open that write. MX is already Google, so that page does not switch SES to Google.
 
 ## 6. Fallback: SES back to Google
 
@@ -126,8 +121,8 @@ Then return to section 2.
 
 A yes for one line is not a yes for the others.
 
-- Publish DKIM at `google._domainkey`.
-- Publish DMARC at `_dmarc`.
+- Publish DKIM at `google._domainkey` (or the selector Admin shows). The steps are [`docs/phone-dkim-dmarc.md`](phone-dkim-dmarc.md) (step 14).
+- Publish a monitor-only DMARC TXT at `_dmarc` (`v=DMARC1; p=none; rua=mailto:Willem@aiautotech.co.za`). Same page. Tightening `p=` waits for a later yes.
 - Change SPF, only when the live TXT is not `v=spf1 include:_spf.google.com ~all`.
 - Switch MX from SES to `smtp.google.com`, only when a phone lookup shows SES again.
 - One message to `Willem@aiautotech.co.za` to prove the inbox received it.

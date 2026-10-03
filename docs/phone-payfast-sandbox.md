@@ -158,7 +158,7 @@ These stay blocked after a pass on this page:
 
 ## 8. Next checklist
 
-The next phone checklist is Phone-first unblock, step 7 in [`docs/GO-LIVE-RUNBOOK.md`](GO-LIVE-RUNBOOK.md): the SQL editor for steps 20 through 36. The editor is https://supabase.com/dashboard/project/fnysxlswzufdnlbhndxc/sql/new . This page does not open it and does not paste SQL.
+The next phone checklist is [`docs/phone-sql-editor-20-36.md`](phone-sql-editor-20-36.md) (Phone-first unblock, step 7 in [`docs/GO-LIVE-RUNBOOK.md`](GO-LIVE-RUNBOOK.md)): paste steps 20 through 36 in the Supabase SQL editor. The editor is https://supabase.com/dashboard/project/fnysxlswzufdnlbhndxc/sql/new . This page does not open it and does not paste SQL.
 
 `scripts/apply-pending-migrations.mjs` still cannot run until `SUPABASE_ACCESS_TOKEN` is a real `sbp_` token. While that value is a chat note, [`docs/phone-supabase-access-token.md`](phone-supabase-access-token.md) is the fallback, and it sends you to that same SQL editor. Step 7 does not claim those steps are already applied. Do not invent Success.
 

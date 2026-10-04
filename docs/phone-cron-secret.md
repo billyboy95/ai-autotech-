@@ -28,7 +28,7 @@ Leave these unset on this visit:
 | `AI_REPLY_CRON_ENABLED` | A flag. Leave it unset. This page does not turn the ai-reply job on. |
 | `WORKFLOW_ENGINE_ENABLED` | A flag. Leave it unset. |
 | `AUTOMATION_SEND_ENABLED` | Stays unset, or stays the string `false`. |
-| `OPS_SECRETS_READY_ENABLED` | Leave it unset until step 35 is applied. |
+| `OPS_SECRETS_READY_ENABLED` | Leave it unset until step 35 is applied. The presence panel is [`docs/phone-ops-secrets.md`](phone-ops-secrets.md). Saving this name is not a yes for that flag. |
 
 A yes for WhatsApp, Meta, SMS, LinkedIn, email, or PayFast is not a yes for `CRON_SECRET`. A yes for one of those names is not a yes to paste this value into that name. Saving `CRON_SECRET` does not send.
 
@@ -123,6 +123,8 @@ Gated Phase 5 command-centre panels stay paused. Do not set a Phase 5 flag. Do n
 The previous phone checklist is [`docs/phone-owner-auth-bootstrap.md`](phone-owner-auth-bootstrap.md) (step 4). A yes on that page is not a yes for `CRON_SECRET`.
 
 The next page is [`docs/phone-pg-cron-schedules.md`](phone-pg-cron-schedules.md). Open it only after `CRON_SECRET` is saved on Vercel Production and the password manager still has that same value. That page is the redeploy and the Supabase schedule paste. This page does not run that paste. If he has not said yes to `CRON_SECRET`, stop. Do not generate the secret on the schedule page.
+
+The ops secrets panel lists whether `CRON_SECRET` is present. It does not show the value and it does not save the name. The phone checklist is [`docs/phone-ops-secrets.md`](phone-ops-secrets.md) (APPLY-ORDER step 35). This page is not that visit. A yes to save `CRON_SECRET` is not a yes for `OPS_SECRETS_READY_ENABLED`. Leave that flag unset. Signed out, `/command-centre`, `/command-centre/ops-secrets`, `/command-centre/setup`, and `/agency` answer 307 and land on `/login`. With the flag unset, `write` stays false. The panel stores presence only. It does not register a cron and it does not put a live key in the database. This page does not open that panel to tap **Record sandbox note**.
 
 Channel keys stay separate. WhatsApp and Meta are [`docs/phone-whatsapp-meta-keys.md`](phone-whatsapp-meta-keys.md). SMS is [`docs/phone-sms-provider-keys.md`](phone-sms-provider-keys.md). LinkedIn is [`docs/phone-linkedin-keys.md`](phone-linkedin-keys.md). Email is [`docs/phone-resend-willem.md`](phone-resend-willem.md) and [`docs/phone-willem-smtp-app-password.md`](phone-willem-smtp-app-password.md). A yes on any of those pages is not a yes for `CRON_SECRET`. This page does not set those names.
 

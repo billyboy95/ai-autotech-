@@ -80,6 +80,8 @@ The same 307-to-login gate covers the other paths under `/command-centre/` and `
 
 `/command-centre/owner` on this smoke is the logged-out gate only. The same gate covers `/command-centre`, `/command-centre/setup`, and `/agency`. The signed-in fixture checklist is [`docs/phone-owner-bootstrap-ui.md`](phone-owner-bootstrap-ui.md). This smoke does not sign in, does not set `OWNER_BOOTSTRAP_UI_ENABLED`, and does not tap **Record sandbox note**. A yes for this smoke is not a yes for that flag. The panel does not create an Auth user and does not run `supabase/owner-bootstrap.sql`.
 
+`/command-centre/ops-secrets` on this smoke is the logged-out gate only. The same gate covers `/command-centre`, `/command-centre/setup`, and `/agency`. The signed-in fixture checklist is [`docs/phone-ops-secrets.md`](phone-ops-secrets.md). This smoke does not sign in, does not set `OPS_SECRETS_READY_ENABLED`, and does not tap **Record sandbox note**. A yes for this smoke is not a yes for that flag. The panel stores presence only. It does not register a cron and it does not put a live Meta, SMS, email, or PayFast key in the database.
+
 ## Open audit intake still validates
 
 Send this once. Stay logged out. Do not open `/audit` and do not submit the form. The body is `{}` only. Do not add a name, email, phone, or consent.
@@ -124,5 +126,7 @@ The setup wizard phone checklist is [`docs/phone-setup-wizard.md`](phone-setup-w
 The migration runner phone checklist is [`docs/phone-migration-runner.md`](phone-migration-runner.md). It stays verify-only until step 33 has shown Success and Billy says yes to `MIGRATION_RUNNER_ENABLED`. This smoke does not open that runner to store a dry-run and does not set that flag. With the flag unset, `write` stays false. The runner does not mark a step applied.
 
 The owner bootstrap panel phone checklist is [`docs/phone-owner-bootstrap-ui.md`](phone-owner-bootstrap-ui.md). It stays verify-only until step 34 has shown Success and Billy says yes to `OWNER_BOOTSTRAP_UI_ENABLED`. This smoke does not open that panel to store a note and does not set that flag. With the flag unset, `write` stays false. The panel does not create an Auth user and does not run `supabase/owner-bootstrap.sql`. The Owner Auth verify stays [`docs/phone-owner-auth-bootstrap.md`](phone-owner-auth-bootstrap.md). A yes for this smoke is not a yes for that flag.
+
+The ops secrets panel phone checklist is [`docs/phone-ops-secrets.md`](phone-ops-secrets.md). It stays verify-only until step 35 has shown Success and Billy says yes to `OPS_SECRETS_READY_ENABLED`. This smoke does not open that panel to store a note and does not set that flag. With the flag unset, `write` stays false. The panel stores presence only. It does not register a cron and it does not put a live key in the database. Generating and saving `CRON_SECRET` stays [`docs/phone-cron-secret.md`](phone-cron-secret.md). The schedule paste stays [`docs/phone-pg-cron-schedules.md`](phone-pg-cron-schedules.md). A yes for this smoke is not a yes for that flag. There is no `docs/phone-go-live.md` yet. That visit is step 36 (`GOLIVE_CHECKLIST_ENABLED`).
 
 This page does not claim steps 20 through 36 are applied, does not claim a flag is live, and does not claim a campaign was loaded.

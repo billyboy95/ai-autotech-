@@ -105,7 +105,7 @@ A yes for one line is not a yes for the others.
 - Save `CRON_SECRET`.
 - Save the email channel names (`RESEND_API_KEY` and `RESEND_FROM`, or the SMTP names). The From is `Willem@aiautotech.co.za`.
 - A draft or outbox test, with `sending_enabled` still false.
-- Turn `sending_enabled` on. That yes is separate, and it is not this page.
+- Turn `sending_enabled` on. That yes is separate. The later gate is [`docs/phone-sending-enabled.md`](phone-sending-enabled.md). A yes to confirm the From is not that yes. `AUTOMATION_SEND_ENABLED` stays unset, or stays the string `false`.
 - Switch MX to Google at GoDaddy, only when a phone lookup shows Amazon SES again, and only after an explicit yes on [`docs/phone-mx-dns-decision.md`](phone-mx-dns-decision.md) (step 13). The 3 Oct 2026 lookup was already Google. Skip the switch when the phone lookup is Google.
 - Publish DKIM and a monitor-only DMARC TXT, only after an explicit yes on [`docs/phone-dkim-dmarc.md`](phone-dkim-dmarc.md) (step 14). The 3 Oct 2026 lookup found neither TXT. `p=none` stays until he says tighten. That yes is not a yes to send.
 - Apply SQL steps 20 through 36.

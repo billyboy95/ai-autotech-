@@ -193,7 +193,7 @@ A yes for one line is not a yes for the others.
 - Request a LinkedIn product. This page refuses that.
 - Each Vercel name, one LinkedIn yes per name: `LINKEDIN_ACCESS_TOKEN`, then `LINKEDIN_AUTHOR_URN`.
 - A test post, a campaign post, or a live post. This page refuses those.
-- Turn `sending_enabled` on. That yes is separate, and it is not this page. `AUTOMATION_SEND_ENABLED` stays unset, or stays the string `false`.
+- Turn `sending_enabled` on. That yes is separate. The later gate is [`docs/phone-sending-enabled.md`](phone-sending-enabled.md). A yes for a LinkedIn name is not that yes. `AUTOMATION_SEND_ENABLED` stays unset, or stays the string `false`.
 - Set `TIKTOK_LINKEDIN_CONNECT_STUB_ENABLED`. Leave it unset. It is not a send key.
 - Apply SQL steps 20 through 36. They stay unapplied. The token on the box is still a chat note.
 - PayFast sandbox. That is the next page. A LinkedIn yes is not that yes.

@@ -156,7 +156,7 @@ A yes for one line is not a yes for the others.
 - Save the name `CRON_SECRET` on Vercel Production. A yes for WhatsApp, Meta, SMS, LinkedIn, email, or PayFast is not that yes.
 - Add Preview. Leave it off unless he says Preview too.
 - Redeploy Production, then paste the schedules. That is [`docs/phone-pg-cron-schedules.md`](phone-pg-cron-schedules.md), after the save. This page is not that yes.
-- Turn `sending_enabled` on. That yes is separate. `AUTOMATION_SEND_ENABLED` stays unset, or stays the string `false`.
+- Turn `sending_enabled` on. That yes is separate. The later gate is [`docs/phone-sending-enabled.md`](phone-sending-enabled.md). A yes for `CRON_SECRET` is not that yes. `AUTOMATION_SEND_ENABLED` stays unset, or stays the string `false`.
 - Set `AUTOMATION_WEBHOOK_SECRET`, `AI_REPLY_CRON_ENABLED`, or `WORKFLOW_ENGINE_ENABLED`. Leave them unset.
 - Apply SQL steps 20 through 36. They stay unapplied. The token on the box is still a chat note.
 - PayFast sandbox, channel keys, spend, or a website merge.

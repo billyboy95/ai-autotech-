@@ -112,7 +112,7 @@ This visit refuses all of the following. A Success line for one file is not a ye
 - Claiming steps 20 through 36 are already applied. Writing this page is not Success.
 - Replacing `SUPABASE_ACCESS_TOKEN` here. That checklist is [`docs/phone-supabase-access-token.md`](phone-supabase-access-token.md).
 - Running `scripts/apply-pending-migrations.mjs --apply` without a real `sbp_` token.
-- Turning `sending_enabled` on. `AUTOMATION_SEND_ENABLED` stays unset, or stays the string `false`. No real send.
+- Turning `sending_enabled` on. `AUTOMATION_SEND_ENABLED` stays unset, or stays the string `false`. No real send. When he later says yes to real outbound for one named workspace, the gate is [`docs/phone-sending-enabled.md`](phone-sending-enabled.md). A Success line is not that yes.
 - Setting `CRON_SECRET`, a channel key, or a PayFast name. Those stay on steps 5 and 6.
 - Clicking Apply Education pack or the Zentrix pack. Leave `ZENTRIX_WORKSPACE_PACK_ENABLED` unset. No ad spend.
 - Merging [aiautotech#4](https://github.com/billyboy95/aiautotech/pull/4) or [aiautotech#5](https://github.com/billyboy95/aiautotech/pull/5). They stay open until Billy says yes to publish. See [`docs/website-publish-decision.md`](website-publish-decision.md).

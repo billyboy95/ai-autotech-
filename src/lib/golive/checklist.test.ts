@@ -274,6 +274,7 @@ test("go-live copy does not send, spend, register crons, apply packs, or turn fl
     "src/components/golive/golive-checklist-panel.tsx",
     "src/components/golive/golive-note-form.tsx",
     "docs/phase-5o-golive-checklist.md",
+    "docs/phone-go-live.md",
     "supabase/migrations/20261111120000_phase5o_golive_checklist.sql",
   ];
   for (const file of files) {

@@ -148,6 +148,8 @@ When the redeploy is Ready, one dry check is allowed. It does not send. `planCam
 
 Stop when the campaigns page errors, the status line does not say nothing was queued, or the outbox queued count is not 0. Do not tap another button. Do not invent a second test. The settings checkbox and the Vercel name are enough. There is no other safe check on this page.
 
+The full phone tap path for that Dry run, including the fixture report and the WhatsApp / Meta stubs, is [`docs/phone-campaign-dry-run.md`](phone-campaign-dry-run.md). This section stays the only dry check on the sending visit. It does not set `CAMPAIGN_DRY_RUN_ENABLED`.
+
 ## POPIA and STOP stay on
 
 Ticking the checkbox does not turn consent off. Marketing still needs an opt-in, or an existing customer who has not opted out. A suppression or an opt-out blocks every purpose. STOP stays honoured. The dry-run breakdown still counts STOP. Every outbound message still carries the sender name and an opt-out (reply STOP, or the unsubscribe link on email). Do not clear a consent row. Do not turn `require_human_before_send` off. This page does not edit those settings.

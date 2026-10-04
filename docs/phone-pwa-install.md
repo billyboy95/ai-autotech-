@@ -24,6 +24,8 @@ The logged-out production smoke, after SQL Success, is [`docs/phone-post-sql-smo
 
 There is no `docs/phone-go-live.md` yet. The go-live phone checklist is later. The desktop notes are [`docs/phase-5o-golive-checklist.md`](phase-5o-golive-checklist.md). This visit does not open `/command-centre/go-live` and does not set `GOLIVE_CHECKLIST_ENABLED`. The PWA row on that page is flag status only. It does not write an install intent.
 
+The next phone companion is the setup / go-live wizard, step 32. The checklist is [`docs/phone-setup-wizard.md`](phone-setup-wizard.md). This visit does not open `/command-centre/setup` to record a checklist event and does not set `SETUP_WIZARD_ENABLED`. A yes for the PWA verify is not that yes. Signed out, `/command-centre/setup` answers 307 and lands on `/login`.
+
 ## 1. Open the live manifest
 
 Stay logged out for this step. The manifest is public. It does not need the flag.
@@ -118,6 +120,7 @@ Stop on any other status. These lines mean stop:
 - Gated Phase 5 command-centre panels stay paused.
 - Steps 20 through 36 stay unapplied in [`supabase/APPLY-ORDER.md`](../supabase/APPLY-ORDER.md) until a Success from a previous visit is already logged. This page does not claim they are applied.
 - Leave **Load sandbox seed**, **Dry run**, and **Dry-load CSV** untapped. Those visits are [`docs/phone-east-rand-seed.md`](phone-east-rand-seed.md), [`docs/phone-campaign-dry-run.md`](phone-campaign-dry-run.md), and [`docs/phone-campaign-csv-load.md`](phone-campaign-csv-load.md).
+- Do not open the setup wizard to tap **Record sandbox checklist event**. That visit is [`docs/phone-setup-wizard.md`](phone-setup-wizard.md). Leave `SETUP_WIZARD_ENABLED` unset. A yes for this install verify is not that yes.
 
 ## Pass means
 

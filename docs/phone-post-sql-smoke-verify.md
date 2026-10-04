@@ -74,6 +74,8 @@ Open each of these while logged out:
 
 The same 307-to-login gate covers the other paths under `/command-centre/` and `/agency/`. A miss on any path you open is a fail. Do not sign in to finish the redirect.
 
+`/command-centre/setup` on this smoke is the logged-out gate only. The signed-in fixture checklist is [`docs/phone-setup-wizard.md`](phone-setup-wizard.md). This smoke does not sign in, does not set `SETUP_WIZARD_ENABLED`, and does not tap **Record sandbox checklist event**. A yes for this smoke is not a yes for that flag.
+
 ## Open audit intake still validates
 
 Send this once. Stay logged out. Do not open `/audit` and do not submit the form. The body is `{}` only. Do not add a name, email, phone, or consent.
@@ -112,5 +114,7 @@ A pass is not a yes for flags, the dry-load, or packs. Do these next, in this or
 1. Phase 5 flags, only the names Billy says yes to: [`docs/phone-phase5-flags-enable-order.md`](phone-phase5-flags-enable-order.md). This smoke does not set them.
 2. East Rand dry-load, draft only: [`docs/phone-campaign-csv-load.md`](phone-campaign-csv-load.md). Nothing is queued. `sending_enabled` stays false.
 3. Pack click order: [`docs/phone-education-zentrix-pack-apply.md`](phone-education-zentrix-pack-apply.md) (Phone-first unblock, step 8 in [`docs/GO-LIVE-RUNBOOK.md`](GO-LIVE-RUNBOOK.md)). Education, then Zentrix. Only when Billy says yes. This page does not click either pack. Packs are not applied.
+
+The setup wizard phone checklist is [`docs/phone-setup-wizard.md`](phone-setup-wizard.md). It stays verify-only until step 32 has shown Success and Billy says yes to `SETUP_WIZARD_ENABLED`. This smoke does not open that wizard to store an event and does not set that flag.
 
 This page does not claim steps 20 through 36 are applied, does not claim a flag is live, and does not claim a campaign was loaded.

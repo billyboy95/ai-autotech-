@@ -22,7 +22,7 @@ All of these stay true on this visit. If one is false, stop.
 
 The logged-out production smoke, after SQL Success, is [`docs/phone-post-sql-smoke-verify.md`](phone-post-sql-smoke-verify.md). This page does not replace that smoke, and that smoke does not replace this tap. The Phase 5 flag order is [`docs/phone-phase5-flags-enable-order.md`](phone-phase5-flags-enable-order.md). This page does not set a name on that list.
 
-There is no `docs/phone-owner-bootstrap-ui.md`, `docs/phone-ops-secrets.md`, or `docs/phone-go-live.md` yet. Those visits are later. The desktop notes are [`docs/phase-5m-owner-bootstrap.md`](phase-5m-owner-bootstrap.md), [`docs/phase-5n-ops-secrets.md`](phase-5n-ops-secrets.md), and [`docs/phase-5o-golive-checklist.md`](phase-5o-golive-checklist.md). This visit does not set `OWNER_BOOTSTRAP_UI_ENABLED`, `OPS_SECRETS_READY_ENABLED`, or `GOLIVE_CHECKLIST_ENABLED`.
+The next phone companion is the owner bootstrap panel, step 34. The checklist is [`docs/phone-owner-bootstrap-ui.md`](phone-owner-bootstrap-ui.md). This visit does not open `/command-centre/owner` to record a note and does not set `OWNER_BOOTSTRAP_UI_ENABLED`. A yes for the migration runner is not that yes. Signed out, `/command-centre`, `/command-centre/setup`, `/command-centre/owner`, and `/agency` answer 307 and land on `/login`. With the flag unset, `write` stays false. The panel does not create an Auth user and does not run `supabase/owner-bootstrap.sql`. There is no `docs/phone-ops-secrets.md` or `docs/phone-go-live.md` yet. Those visits are later. The desktop notes are [`docs/phase-5m-owner-bootstrap.md`](phase-5m-owner-bootstrap.md), [`docs/phase-5n-ops-secrets.md`](phase-5n-ops-secrets.md), and [`docs/phase-5o-golive-checklist.md`](phase-5o-golive-checklist.md). This visit does not set `OPS_SECRETS_READY_ENABLED` or `GOLIVE_CHECKLIST_ENABLED`.
 
 ## 1. Signed-out gate
 
@@ -149,6 +149,7 @@ Stop on any other status. These lines mean stop:
 - Gated Phase 5 command-centre panels stay paused.
 - Steps 20 through 36 stay unapplied in [`supabase/APPLY-ORDER.md`](../supabase/APPLY-ORDER.md) until a Success from a previous visit is already logged. This page does not claim they are applied.
 - Leave **Load sandbox seed**, **Dry run**, **Dry-load CSV**, **Record install intent**, and **Record sandbox checklist event** untapped. Those visits are [`docs/phone-east-rand-seed.md`](phone-east-rand-seed.md), [`docs/phone-campaign-dry-run.md`](phone-campaign-dry-run.md), [`docs/phone-campaign-csv-load.md`](phone-campaign-csv-load.md), [`docs/phone-pwa-install.md`](phone-pwa-install.md), and [`docs/phone-setup-wizard.md`](phone-setup-wizard.md).
+- Do not open the owner bootstrap panel to tap **Record sandbox note**. That visit is [`docs/phone-owner-bootstrap-ui.md`](phone-owner-bootstrap-ui.md). Leave `OWNER_BOOTSTRAP_UI_ENABLED` unset. A yes for this runner verify is not that yes. The panel does not create an Auth user and does not run `supabase/owner-bootstrap.sql`.
 
 ## Pass means
 

@@ -26,7 +26,9 @@ The panel shows the repo file `supabase/owner-bootstrap.sql` read-only, with its
 
 Create the Auth user in the dashboard first. Then paste that file in the SQL editor. The file attaches `billyfaber06@gmail.com` as `agency_owner` of `ai-autotech`. It does not delete anything. This page does not paste it and does not run it.
 
-The phone checklist is `docs/phone-owner-auth-bootstrap.md` (`docs/GO-LIVE-RUNBOOK.md`, Phone-first unblock, step 4). Confirm the Auth user and the `OWNER_EMAILS` name there. Do not paste `supabase/owner-bootstrap.sql` until steps 20 through 36 have succeeded and the Auth user exists. Leave `OWNER_BOOTSTRAP_UI_ENABLED` unset until step 34 is applied.
+The Auth and `OWNER_EMAILS` phone checklist is `docs/phone-owner-auth-bootstrap.md` (`docs/GO-LIVE-RUNBOOK.md`, Phone-first unblock, step 4). Confirm the Auth user and the `OWNER_EMAILS` name there. Do not paste `supabase/owner-bootstrap.sql` until steps 20 through 36 have succeeded and the Auth user exists. Leave `OWNER_BOOTSTRAP_UI_ENABLED` unset until step 34 is applied.
+
+The phone checklist for this panel is `docs/phone-owner-bootstrap-ui.md` (step 34). Fixture mode is the verify before the flag. Signed out, `/command-centre`, `/command-centre/setup`, `/command-centre/owner`, and `/agency` answer 307 and land on `/login`. With the flag unset the fixture sentence stays on screen and `write` stays false. Do not claim a bootstrap note is stored. That page does not create an Auth user and does not paste `supabase/owner-bootstrap.sql`. A yes for Dry run, the East Rand seed, the PWA install verify, the setup wizard, the migration runner, keys, `CRON_SECRET`, packs, a website publish, SQL, or the Owner Auth verify is not a yes for `OWNER_BOOTSTRAP_UI_ENABLED`. There is no `docs/phone-ops-secrets.md` or `docs/phone-go-live.md` yet.
 
 Steps 20 through 33 are not applied. Step 34 is also unapplied. Do not claim that SQL is already applied.
 

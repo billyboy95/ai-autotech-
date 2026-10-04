@@ -22,7 +22,7 @@ All of these stay true on this visit. If one is false, stop.
 
 The logged-out production smoke, after SQL Success, is [`docs/phone-post-sql-smoke-verify.md`](phone-post-sql-smoke-verify.md). This page does not replace that smoke, and that smoke does not replace this tap. The Phase 5 flag order is [`docs/phone-phase5-flags-enable-order.md`](phone-phase5-flags-enable-order.md). This page does not set a name on that list.
 
-There is no `docs/phone-go-live.md` yet. The go-live phone checklist is later. The desktop notes are [`docs/phase-5o-golive-checklist.md`](phase-5o-golive-checklist.md). This visit does not open `/command-centre/go-live` and does not set `GOLIVE_CHECKLIST_ENABLED`. The PWA row on that page is flag status only. It does not write an install intent.
+The go-live checklist is [`docs/phone-go-live.md`](phone-go-live.md) (step 36). The desktop notes are [`docs/phase-5o-golive-checklist.md`](phase-5o-golive-checklist.md). This visit does not open `/command-centre/go-live` to record a note and does not set `GOLIVE_CHECKLIST_ENABLED`. The PWA row on that page is flag status only. It does not write an install intent. A yes for the PWA verify is not a yes for that flag. Signed out, `/command-centre`, `/command-centre/go-live`, `/command-centre/setup`, and `/agency` answer 307 and land on `/login`. With the flag unset, `write` stays false.
 
 The next phone companion is the setup / go-live wizard, step 32. The checklist is [`docs/phone-setup-wizard.md`](phone-setup-wizard.md). This visit does not open `/command-centre/setup` to record a checklist event and does not set `SETUP_WIZARD_ENABLED`. A yes for the PWA verify is not that yes. Signed out, `/command-centre/setup` answers 307 and lands on `/login`.
 

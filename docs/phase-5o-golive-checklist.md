@@ -11,7 +11,9 @@ One page that gathers the existing Phase 5 checks so Billy can see what is left 
 
 With Supabase keys empty, the checklist is fixture and `write` is false. `sending_enabled` still shows OFF / blocked.
 
-With Supabase keys set and no session, `/command-centre/go-live` redirects to `/login` (307). `/command-centre/setup` and `/agency` do the same.
+With Supabase keys set and no session, `/command-centre/go-live` redirects to `/login` (307). `/command-centre`, `/command-centre/setup`, and `/agency` do the same.
+
+The phone checklist for this page is `docs/phone-go-live.md` (step 36). Fixture mode is the verify before the flag. Signed out, `/command-centre`, `/command-centre/go-live`, `/command-centre/setup`, and `/agency` answer 307 and land on `/login`. With the flag unset the fixture sentence stays on screen and `write` stays false. Do not claim a go-live note is stored. That page does not run SQL, click Apply, register a cron, or turn sending on. `sending_enabled` shows OFF / blocked. A yes for Dry run, the East Rand seed, the PWA install verify, the setup wizard, the migration runner, the owner bootstrap panel, the ops secrets panel, keys, `CRON_SECRET`, packs, a website publish, SQL, or the Owner Auth verify is not a yes for `GOLIVE_CHECKLIST_ENABLED`.
 
 ## Rows
 

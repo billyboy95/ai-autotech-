@@ -113,7 +113,7 @@ When he says yes to a name, set that one value from the password manager:
 | `META_PAGE_ID` | The Page ID he confirmed. Skip this row until he says yes to this name. |
 | `META_IG_USER_ID` | The Instagram account id, only when he already uses Instagram and says yes to this name. |
 
-Leave these unset on this visit: `WHATSAPP_APP_SECRET`, `WHATSAPP_VERIFY_TOKEN`, `WHATSAPP_GRAPH_VERSION`, `META_APP_SECRET`, `META_GRAPH_VERSION`. The send path already uses Graph `v21.0` when those version names are unset. Leave `RESEND_API_KEY`, `RESEND_FROM`, and the SMTP names as they already are. Leave `CRON_SECRET`, the SMS names, and the LinkedIn names unset unless a different checklist already saved them. Do not delete a name on this visit.
+Leave these unset on this visit: `WHATSAPP_APP_SECRET`, `WHATSAPP_VERIFY_TOKEN`, `WHATSAPP_GRAPH_VERSION`, `META_APP_SECRET`, `META_GRAPH_VERSION`. The send path already uses Graph `v21.0` when those version names are unset. Leave `RESEND_API_KEY`, `RESEND_FROM`, and the SMTP names as they already are. Leave `CRON_SECRET`, the SMS names, and the LinkedIn names unset unless a different checklist already saved them. The SMS names are collected on [`docs/phone-sms-provider-keys.md`](phone-sms-provider-keys.md), after this page. This visit does not set them. Do not delete a name on this visit.
 
 Paste a token from the password manager at the moment you save that name. After save, do not paste it into git, a pull request, chat, an issue, or this file.
 
@@ -178,3 +178,9 @@ A yes for one line is not a yes for the others.
 You opened Meta Developer on the phone. You did not create an app unless he said yes, and you did not invent an app id. `WHATSAPP_TOKEN` and `WHATSAPP_PHONE_NUMBER_ID` are in the password manager, or you stopped before collecting them because he had not said yes. Page and Instagram values are in the password manager only for the names he approved, or you left them unset. Each Vercel Production name is still unset, or it is set only for a name he approved on this call, marked Sensitive. Nothing was sent. `sending_enabled` is still false. No webhook URL was registered. Steps 20 through 36 are still unapplied. Gated Phase 5 command-centre panels are still paused.
 
 A pass does not mean WhatsApp or Meta is live, a message was sent, a webhook is receiving production messages, or SQL steps 20 through 36 are applied.
+
+## Next
+
+The next phone checklist is [`docs/phone-sms-provider-keys.md`](phone-sms-provider-keys.md): one SMS provider (SMSPortal, BulkSMS, Clickatell, or Twilio). It is still Phone-first unblock, step 5. A yes on this page is not a yes for an SMS name. That page does not send, does not buy credit, and does not register a webhook.
+
+After that SMS page, PayFast sandbox is [`docs/phone-payfast-sandbox.md`](phone-payfast-sandbox.md) (step 6). This page does not open an SMS provider and does not open PayFast. SQL steps 20 through 36 stay unapplied.

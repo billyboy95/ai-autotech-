@@ -22,7 +22,7 @@ All of these stay true on this visit. If one is false, stop.
 
 The logged-out production smoke, after SQL Success, is [`docs/phone-post-sql-smoke-verify.md`](phone-post-sql-smoke-verify.md). This page does not replace that smoke, and that smoke does not replace this tap. The Phase 5 flag order is [`docs/phone-phase5-flags-enable-order.md`](phone-phase5-flags-enable-order.md). This page does not set a name on that list.
 
-There is no `docs/phone-migration-runner.md`, `docs/phone-owner-bootstrap-ui.md`, `docs/phone-ops-secrets.md`, or `docs/phone-go-live.md` yet. Those visits are later. The desktop notes are [`docs/phase-5l-migration-runner.md`](phase-5l-migration-runner.md), [`docs/phase-5m-owner-bootstrap.md`](phase-5m-owner-bootstrap.md), [`docs/phase-5n-ops-secrets.md`](phase-5n-ops-secrets.md), and [`docs/phase-5o-golive-checklist.md`](phase-5o-golive-checklist.md). This visit does not set `MIGRATION_RUNNER_ENABLED`, `OWNER_BOOTSTRAP_UI_ENABLED`, `OPS_SECRETS_READY_ENABLED`, or `GOLIVE_CHECKLIST_ENABLED`.
+The next phone companion is the pending-SQL migration runner, step 33. The checklist is [`docs/phone-migration-runner.md`](phone-migration-runner.md). This visit does not open `/command-centre/migrations` to record a dry-run and does not set `MIGRATION_RUNNER_ENABLED`. A yes for the setup wizard is not that yes. Signed out, `/command-centre`, `/command-centre/migrations`, and `/agency` answer 307 and land on `/login`. With the flag unset, `write` stays false. The runner does not execute migration SQL. There is no `docs/phone-owner-bootstrap-ui.md`, `docs/phone-ops-secrets.md`, or `docs/phone-go-live.md` yet. Those visits are later. The desktop notes are [`docs/phase-5l-migration-runner.md`](phase-5l-migration-runner.md), [`docs/phase-5m-owner-bootstrap.md`](phase-5m-owner-bootstrap.md), [`docs/phase-5n-ops-secrets.md`](phase-5n-ops-secrets.md), and [`docs/phase-5o-golive-checklist.md`](phase-5o-golive-checklist.md). This visit does not set `OWNER_BOOTSTRAP_UI_ENABLED`, `OPS_SECRETS_READY_ENABLED`, or `GOLIVE_CHECKLIST_ENABLED`.
 
 ## 1. Signed-out gate
 
@@ -127,6 +127,7 @@ Stop on any other status. These lines mean stop:
 - Gated Phase 5 command-centre panels stay paused.
 - Steps 20 through 36 stay unapplied in [`supabase/APPLY-ORDER.md`](../supabase/APPLY-ORDER.md) until a Success from a previous visit is already logged. This page does not claim they are applied.
 - Leave **Load sandbox seed**, **Dry run**, **Dry-load CSV**, and **Record install intent** untapped. Those visits are [`docs/phone-east-rand-seed.md`](phone-east-rand-seed.md), [`docs/phone-campaign-dry-run.md`](phone-campaign-dry-run.md), [`docs/phone-campaign-csv-load.md`](phone-campaign-csv-load.md), and [`docs/phone-pwa-install.md`](phone-pwa-install.md).
+- Do not open the migration runner to tap **Record sandbox dry-run**. That visit is [`docs/phone-migration-runner.md`](phone-migration-runner.md). Leave `MIGRATION_RUNNER_ENABLED` unset. A yes for this wizard verify is not that yes. The runner does not execute migration SQL.
 
 ## Pass means
 

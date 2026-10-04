@@ -4,6 +4,8 @@ Browser install prep for the command centre. Nothing is bought, nothing is submi
 
 The marketing pages share the same web manifest from the root layout, so a phone browser can install this origin. The start URL is `/command-centre`, which stays behind login. The marketing pages do not claim a store listing.
 
+The phone tap path is [`docs/phone-pwa-install.md`](phone-pwa-install.md). Until `PWA_INSTALL_SHELL_ENABLED` is the string `true` after step 31 Success and Billy’s yes, that page is verify-only: open the live manifest and the Add to Home Screen notes. It does not claim the install shell UI is live. It does not turn sending on and does not claim steps 20 through 36 are applied. PWA install is optional and is not a go-live blocker.
+
 ## Install surface
 
 `/command-centre/install` explains how to install AIOS from the browser:
@@ -20,7 +22,7 @@ With Supabase keys set and no session, `/command-centre/install` redirects to `/
 
 ## Feature flag
 
-Leave this unset until step 31 is applied. Unset, blank, or any value other than `true` keeps the install page on fixture copy. Nothing is written.
+Leave this unset until step 31 is applied and Billy says yes to this name. A yes for Dry run, the East Rand seed, keys, `CRON_SECRET`, packs, a website publish, or SQL is not that yes. Unset, blank, or any value other than `true` keeps the install page on fixture copy. Nothing is written. The phone verify before that yes is [`docs/phone-pwa-install.md`](phone-pwa-install.md).
 
 - `PWA_INSTALL_SHELL_ENABLED=true` may store a sandbox `install_intent` for the signed-in workspace.
 
@@ -77,4 +79,4 @@ Open `/manifest.webmanifest`. The name is AI AutoTech / AIOS and the start URL i
 
 Open `/agency` and `/command-centre`. Ops readiness includes PWA install as Optional.
 
-With Supabase keys set and no session, `/command-centre/install` redirects to `/login`.
+With Supabase keys set and no session, `/command-centre/install` redirects to `/login` (307). On production the phone verify of the live manifest, before that sign-in, is [`docs/phone-pwa-install.md`](phone-pwa-install.md).

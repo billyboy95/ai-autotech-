@@ -2,6 +2,8 @@
 
 A checklist Billy can open without hunting docs. Nothing is sent, nothing is spent, and no secret is stored. `sending_enabled` stays false.
 
+The phone tap path is [`docs/phone-setup-wizard.md`](phone-setup-wizard.md). Until `SETUP_WIZARD_ENABLED` is the string `true` after step 32 Success and Billy’s yes, that page is verify-only. Signed out, `/command-centre/setup` answers 307 and lands on `/login`. With the flag unset the amber fixture copy stays on screen and `write` stays false. It does not claim a checklist event is stored. It does not turn sending on and does not claim steps 20 through 36 are applied.
+
 ## Setup surface
 
 `/command-centre/setup` keeps the existing team setup interview and adds the go-live wizard above it. `/command-centre` and `/agency` ops readiness link to it.
@@ -21,7 +23,7 @@ With Supabase keys set and no session, `/command-centre/setup` redirects to `/lo
 
 ## Feature flag
 
-Leave this unset until step 32 is applied. Unset, blank, or any value other than `true` keeps the wizard fixture-only. `write` stays false. Nothing is written.
+Leave this unset until step 32 is applied and Billy says yes to this name. A yes for Dry run, the East Rand seed, the PWA install verify, keys, `CRON_SECRET`, packs, a website publish, or SQL is not that yes. Unset, blank, or any value other than `true` keeps the wizard fixture-only. `write` stays false. Nothing is written. The phone verify before that yes is [`docs/phone-setup-wizard.md`](phone-setup-wizard.md).
 
 - `SETUP_WIZARD_ENABLED=true` may store one sandbox `setup_checklist_events` row for the signed-in workspace: `org_id`, `step_key`, `status`, `sandbox` true, `charged` false.
 
@@ -55,4 +57,4 @@ With Supabase keys empty, open `/command-centre/setup`. The wizard lists steps 2
 
 Open `/command-centre` and `/agency`. Both ops readiness panels link to the wizard.
 
-With Supabase keys set and no session, `/command-centre/setup` redirects to `/login`.
+With Supabase keys set and no session, `/command-centre/setup` redirects to `/login` (307). On production the phone verify is [`docs/phone-setup-wizard.md`](phone-setup-wizard.md). That visit stays fixture-only until step 32 Success is already logged and Billy says yes to `SETUP_WIZARD_ENABLED`.

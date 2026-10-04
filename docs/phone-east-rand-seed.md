@@ -112,6 +112,7 @@ When the slate store line was already honest (step 30 Success already logged, an
 - No secret, key, token, password, or merchant value in git, a pull request, chat, an issue, or this file. Do not paste the fixture phones, the box CSV, or a token.
 - `sending_enabled` stays false. `AUTOMATION_SEND_ENABLED` stays unset, or stays the string `false`.
 - `EAST_RAND_CAMPAIGN_SEED_ENABLED` stays unset on this visit. A yes for Dry run, the CSV load, keys, `CRON_SECRET`, packs, or a website publish is not a yes for that flag.
+- Do not set `PWA_INSTALL_SHELL_ENABLED`. That optional visit is [`docs/phone-pwa-install.md`](phone-pwa-install.md). A yes for this seed is not that yes. PWA install is not a go-live blocker.
 - Do not merge [aiautotech#4](https://github.com/billyboy95/aiautotech/pull/4) or [aiautotech#5](https://github.com/billyboy95/aiautotech/pull/5).
 - Gated Phase 5 command-centre panels stay paused.
 - Steps 20 through 36 stay unapplied in [`supabase/APPLY-ORDER.md`](../supabase/APPLY-ORDER.md) until a Success from a previous visit is already logged. This page does not claim they are applied.

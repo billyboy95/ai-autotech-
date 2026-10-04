@@ -78,6 +78,8 @@ The same 307-to-login gate covers the other paths under `/command-centre/` and `
 
 `/command-centre/migrations` on this smoke is the logged-out gate only. The same gate covers `/command-centre` and `/agency`. The signed-in fixture checklist is [`docs/phone-migration-runner.md`](phone-migration-runner.md). This smoke does not sign in, does not set `MIGRATION_RUNNER_ENABLED`, and does not tap **Record sandbox dry-run**. A yes for this smoke is not a yes for that flag. The runner does not execute migration SQL.
 
+`/command-centre/owner` on this smoke is the logged-out gate only. The same gate covers `/command-centre`, `/command-centre/setup`, and `/agency`. The signed-in fixture checklist is [`docs/phone-owner-bootstrap-ui.md`](phone-owner-bootstrap-ui.md). This smoke does not sign in, does not set `OWNER_BOOTSTRAP_UI_ENABLED`, and does not tap **Record sandbox note**. A yes for this smoke is not a yes for that flag. The panel does not create an Auth user and does not run `supabase/owner-bootstrap.sql`.
+
 ## Open audit intake still validates
 
 Send this once. Stay logged out. Do not open `/audit` and do not submit the form. The body is `{}` only. Do not add a name, email, phone, or consent.
@@ -120,5 +122,7 @@ A pass is not a yes for flags, the dry-load, or packs. Do these next, in this or
 The setup wizard phone checklist is [`docs/phone-setup-wizard.md`](phone-setup-wizard.md). It stays verify-only until step 32 has shown Success and Billy says yes to `SETUP_WIZARD_ENABLED`. This smoke does not open that wizard to store an event and does not set that flag.
 
 The migration runner phone checklist is [`docs/phone-migration-runner.md`](phone-migration-runner.md). It stays verify-only until step 33 has shown Success and Billy says yes to `MIGRATION_RUNNER_ENABLED`. This smoke does not open that runner to store a dry-run and does not set that flag. With the flag unset, `write` stays false. The runner does not mark a step applied.
+
+The owner bootstrap panel phone checklist is [`docs/phone-owner-bootstrap-ui.md`](phone-owner-bootstrap-ui.md). It stays verify-only until step 34 has shown Success and Billy says yes to `OWNER_BOOTSTRAP_UI_ENABLED`. This smoke does not open that panel to store a note and does not set that flag. With the flag unset, `write` stays false. The panel does not create an Auth user and does not run `supabase/owner-bootstrap.sql`. The Owner Auth verify stays [`docs/phone-owner-auth-bootstrap.md`](phone-owner-auth-bootstrap.md). A yes for this smoke is not a yes for that flag.
 
 This page does not claim steps 20 through 36 are applied, does not claim a flag is live, and does not claim a campaign was loaded.

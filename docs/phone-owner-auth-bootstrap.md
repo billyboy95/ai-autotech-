@@ -79,7 +79,7 @@ Saving this name does not create the Auth user. Leaving it unset does not delete
 Confirming the Auth user does not apply SQL. Saving `OWNER_EMAILS`, or leaving it unset, does not apply SQL.
 
 - Steps 20 through 36 stay unapplied. Do not claim Success. Do not invent a Success line.
-- Gated Phase 5 command-centre panels stay paused. Leave `OWNER_BOOTSTRAP_UI_ENABLED` unset until step 34 is applied. Setting a flag does not apply SQL. The panel at `/command-centre/owner` does not create the Auth user and does not run SQL.
+- Gated Phase 5 command-centre panels stay paused. Leave `OWNER_BOOTSTRAP_UI_ENABLED` unset until step 34 is applied. Setting a flag does not apply SQL. The panel at `/command-centre/owner` does not create the Auth user and does not run SQL. The phone tap for that panel is [`docs/phone-owner-bootstrap-ui.md`](phone-owner-bootstrap-ui.md) (APPLY-ORDER step 34). This page is not that visit. A yes to confirm the Auth user, or to save `OWNER_EMAILS`, is not a yes for `OWNER_BOOTSTRAP_UI_ENABLED`. Signed out, `/command-centre`, `/command-centre/setup`, `/command-centre/owner`, and `/agency` answer 307 and land on `/login`. With the flag unset, `write` stays false. That panel does not store a note on the verify-only visit.
 - `sending_enabled` stays false on every workspace. `AUTOMATION_SEND_ENABLED` stays unset, or stays the string `false`. Do not send.
 - No spend. No charge. No DNS edit. No cron registration. No pack click.
 
@@ -122,7 +122,7 @@ Step 7 (the SQL editor paste of steps 20 through 36) stays after those, and it s
 - Do not create the Auth user, and do not save `OWNER_EMAILS`, until Billy says yes on this call.
 - Do not put a password, a token, a key, a passphrase, or a service-role value into git, a pull request, chat, or this file.
 - `sending_enabled` stays false. No send. No spend. No DNS edit. No cron registration. No pack click.
-- Gated Phase 5 command-centre panels stay paused. Leave `OWNER_BOOTSTRAP_UI_ENABLED` unset.
+- Gated Phase 5 command-centre panels stay paused. Leave `OWNER_BOOTSTRAP_UI_ENABLED` unset. The panel verify is [`docs/phone-owner-bootstrap-ui.md`](phone-owner-bootstrap-ui.md). This page does not replace it.
 - `SUPABASE_ACCESS_TOKEN` on the ops box is still not an `sbp_` token.
 - Do not use `billyfaber06@gmail.com` as a From. Business From is `Willem@aiautotech.co.za` on [`docs/phone-willem-send-from.md`](phone-willem-send-from.md).
 - [aiautotech#4](https://github.com/billyboy95/aiautotech/pull/4) and [aiautotech#5](https://github.com/billyboy95/aiautotech/pull/5) stay open until Billy says yes to publish. Do not merge them.

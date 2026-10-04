@@ -4,7 +4,7 @@ Two sandbox controls. Neither one sends, spends, or stores a secret. `sending_en
 
 ## East Rand sandbox seed
 
-`/command-centre/campaigns` shows a one-click control on the AI AutoTech workspace. It dry-loads the in-repo fixture `data/campaigns/east-rand-sandbox.csv`.
+`/command-centre/campaigns` shows a one-click control on the AI AutoTech workspace. It dry-loads the in-repo fixture `data/campaigns/east-rand-sandbox.csv`. The phone tap path is `docs/phone-east-rand-seed.md`. Fixture mode is the verify before `EAST_RAND_CAMPAIGN_SEED_ENABLED`. That page does not turn sending on and does not claim steps 20 through 36 are applied.
 
 The file uses the phase 5f consent-ready columns, including `consent_basis`. The rows are labelled sandbox. Names, emails, and phones are fake. The file is not Billy's box export.
 
@@ -65,8 +65,8 @@ Apply it after step 29. Do not run it until `SUPABASE_DB_URL` is available. It d
 
 ## Fixture check
 
-With Supabase keys empty, open `/command-centre/campaigns`. The East Rand sandbox seed shows sandbox rows, a missing-consent skip, a POPIA block, and a STOP block. Load sandbox seed does not queue. Send now and Go live are refused. The page names `EAST_RAND_CAMPAIGN_SEED_ENABLED`.
+With Supabase keys empty, open `/command-centre/campaigns`. The East Rand sandbox seed shows sandbox rows, a missing-consent skip, a POPIA block, and a STOP block. Load sandbox seed does not queue. Send now and Go live are refused. The page names `EAST_RAND_CAMPAIGN_SEED_ENABLED`. The phone tap path for that fixture verify is `docs/phone-east-rand-seed.md`.
 
 Open `/agency` and `/command-centre`. Both show Ops readiness, steps 20 through 29, `sending_enabled`, `CRON_SECRET`, `BILLING_SANDBOX`, and `ZENTRIX_WORKSPACE_PACK_ENABLED`. Channel keys say needs Billy. Step 30 is also unapplied. Step 31 is also unapplied. PWA install is optional and is not a Billy blocker.
 
-With Supabase keys set and no session, `/command-centre/campaigns`, `/command-centre`, and `/agency` redirect to `/login`.
+With Supabase keys set and no session, `/command-centre/campaigns`, `/command-centre`, and `/agency` redirect to `/login`. On production that redirect is 307. The signed-in phone tap is `docs/phone-east-rand-seed.md`.

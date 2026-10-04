@@ -30,7 +30,7 @@ The logged-out production smoke, after SQL Success, is [`docs/phone-post-sql-smo
 Scroll to the heading **Campaign dry run**. Leave these alone on this visit:
 
 - **Sandbox CSV import** and **Dry-load CSV**. That path is [`docs/phone-campaign-csv-load.md`](phone-campaign-csv-load.md).
-- **Load sandbox seed** under **East Rand sandbox seed**.
+- **Load sandbox seed** under **East Rand sandbox seed**. That path is [`docs/phone-east-rand-seed.md`](phone-east-rand-seed.md). A yes to this dry run is not a yes to `EAST_RAND_CAMPAIGN_SEED_ENABLED`.
 - **Import and queue** under **Import prospects**.
 - **Save sequence**.
 
@@ -125,7 +125,7 @@ The other account cards stay on the step 24 checklist ([`docs/connect-import.md`
 
 ## Stop rules
 
-- No real send. Leave **Send now**, **Go live**, **Send test**, **Import and queue**, **Load sandbox seed**, and **Dry-load CSV** untapped.
+- No real send. Leave **Send now**, **Go live**, **Send test**, **Import and queue**, **Load sandbox seed**, and **Dry-load CSV** untapped. **Load sandbox seed** is a different visit: [`docs/phone-east-rand-seed.md`](phone-east-rand-seed.md).
 - No social post. Leave **Publish** and **Post now** untapped.
 - No ad spend, no SMS credit, no phone-number purchase, and no card charge.
 - No cron registration. Leave `/api/cron/automation`, `/api/cron/workflows`, `/api/cron/billing`, and `/api/cron/ai-replies` uncalled. The schedule paste stays on [`docs/phone-pg-cron-schedules.md`](phone-pg-cron-schedules.md).

@@ -114,7 +114,7 @@ This dry-load also refuses those buttons if sending were on. The line is `This d
 
 Leave these controls alone on this visit:
 
-- **Load sandbox seed** under **East Rand sandbox seed**. That loads fake rows from `data/campaigns/east-rand-sandbox.csv` into `East Rand sandbox (draft)`. See `docs/phase-5i-sandbox-readiness.md`.
+- **Load sandbox seed** under **East Rand sandbox seed**. That loads fake rows from `data/campaigns/east-rand-sandbox.csv` into `East Rand sandbox (draft)`. Leave it untapped on this CSV visit. The phone tap path is [`docs/phone-east-rand-seed.md`](phone-east-rand-seed.md). Desktop notes are [`docs/phase-5i-sandbox-readiness.md`](phase-5i-sandbox-readiness.md). A yes to this CSV load is not a yes to `EAST_RAND_CAMPAIGN_SEED_ENABLED`.
 - **Load held draft** under **East Rand draft**. That loads the bundled repo file, not the box consent CSV.
 - **Import and queue** under **Import prospects**. That is a different action.
 - **Save sequence** while Status is Active.
@@ -122,4 +122,4 @@ Leave these controls alone on this visit:
 
 ## Do not invent live rows
 
-Do not insert campaign rows in production by hand, by SQL, or with **Load sandbox seed**, until steps 20 through 36 have shown Success, `NOTIFY pgrst, 'reload schema';` has shown Success, and `CAMPAIGN_CSV_IMPORT_ENABLED` is the string `true` on a deployment whose **Sandbox CSV import** banner is the slate store line. Until then the dry-load is fixture-only and stores nothing. No real sends. `sending_enabled` stays false.
+Do not insert campaign rows in production by hand, by SQL, or with **Dry-load CSV**, until steps 20 through 36 have shown Success, `NOTIFY pgrst, 'reload schema';` has shown Success, and `CAMPAIGN_CSV_IMPORT_ENABLED` is the string `true` on a deployment whose **Sandbox CSV import** banner is the slate store line. Until then the dry-load is fixture-only and stores nothing. **Load sandbox seed** stays untapped on this visit. Its fixture tap stores nothing and is [`docs/phone-east-rand-seed.md`](phone-east-rand-seed.md). A stored seed waits for step 30 and Billy’s yes to `EAST_RAND_CAMPAIGN_SEED_ENABLED`. A yes to this CSV load is not that yes. No real sends. `sending_enabled` stays false.

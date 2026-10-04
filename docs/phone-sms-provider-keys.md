@@ -1,6 +1,6 @@
 # Phone checklist: SMS provider keys
 
-Billy collects keys for one SMS provider the CRM already supports, so those names can be saved later. This page is still Phone-first unblock, step 5 in [`docs/GO-LIVE-RUNBOOK.md`](GO-LIVE-RUNBOOK.md). It comes after [`docs/phone-whatsapp-meta-keys.md`](phone-whatsapp-meta-keys.md). The next checklist is [`docs/phone-payfast-sandbox.md`](phone-payfast-sandbox.md) (step 6).
+Billy collects keys for one SMS provider the CRM already supports, so those names can be saved later. This page is still Phone-first unblock, step 5 in [`docs/GO-LIVE-RUNBOOK.md`](GO-LIVE-RUNBOOK.md). It comes after [`docs/phone-whatsapp-meta-keys.md`](phone-whatsapp-meta-keys.md). The next checklist is [`docs/phone-linkedin-keys.md`](phone-linkedin-keys.md), still step 5. PayFast sandbox is [`docs/phone-payfast-sandbox.md`](phone-payfast-sandbox.md) (step 6), after that LinkedIn page.
 
 Email stays on [`docs/phone-resend-willem.md`](phone-resend-willem.md) and [`docs/phone-willem-smtp-app-password.md`](phone-willem-smtp-app-password.md). The From address is `Willem@aiautotech.co.za` (spelling W-i-l-l-e-m). `billyfaber06@gmail.com` is the agency owner login. This page does not set an email name and does not use that Gmail address as an SMS sender.
 
@@ -157,7 +157,7 @@ Set only the names for the one provider from section 1. Skip every other row. Pa
 | `TWILIO_AUTH_TOKEN` | He chose Twilio and said yes to this name. |
 | `TWILIO_FROM_NUMBER` | He chose Twilio, the number is already on the account, and he said yes to this name. |
 
-Leave `RESEND_API_KEY`, `RESEND_FROM`, the SMTP names, the WhatsApp names, the Meta names, `CRON_SECRET`, and the LinkedIn names as they already are. Do not delete a name on this visit.
+Leave `RESEND_API_KEY`, `RESEND_FROM`, the SMTP names, the WhatsApp names, the Meta names, `CRON_SECRET`, and the LinkedIn names as they already are. The LinkedIn names are collected on [`docs/phone-linkedin-keys.md`](phone-linkedin-keys.md), after this page. This visit does not set them. Do not delete a name on this visit.
 
 After save, do not paste a secret into git, a pull request, chat, an issue, or this file.
 
@@ -189,7 +189,9 @@ Gated Phase 5 command-centre panels stay paused. Do not set a Phase 5 flag. Do n
 
 The previous phone checklist is [`docs/phone-whatsapp-meta-keys.md`](phone-whatsapp-meta-keys.md). A yes on that page is not a yes for an SMS name.
 
-The next phone checklist is [`docs/phone-payfast-sandbox.md`](phone-payfast-sandbox.md) (Phone-first unblock, step 6): PayFast sandbox and billing readiness. Leave `BILLING_SANDBOX`, `PAYFAST_MERCHANT_ID`, `PAYFAST_MERCHANT_KEY`, `PAYFAST_PASSPHRASE`, and `SUPABASE_SERVICE_ROLE_KEY` unset until Billy says yes to sandbox billing. A yes for an SMS name is not that yes. This page does not charge and does not open PayFast.
+The next phone checklist is [`docs/phone-linkedin-keys.md`](phone-linkedin-keys.md): `LINKEDIN_ACCESS_TOKEN` and `LINKEDIN_AUTHOR_URN` for the LinkedIn account and Company Page he already uses. It is still Phone-first unblock, step 5. A yes for an SMS name is not a yes for a LinkedIn name. That page does not create a LinkedIn app, does not post, and does not buy anything. TikTok has no provider env name. That page leaves `TIKTOK_LINKEDIN_CONNECT_STUB_ENABLED` unset.
+
+After that LinkedIn page, PayFast sandbox is [`docs/phone-payfast-sandbox.md`](phone-payfast-sandbox.md) (Phone-first unblock, step 6). Leave `BILLING_SANDBOX`, `PAYFAST_MERCHANT_ID`, `PAYFAST_MERCHANT_KEY`, `PAYFAST_PASSPHRASE`, and `SUPABASE_SERVICE_ROLE_KEY` unset until Billy says yes to sandbox billing. A yes for an SMS name is not that yes. This page does not charge and does not open PayFast.
 
 SQL steps 20 through 36 are still unapplied. The SQL editor page is [`docs/phone-sql-editor-20-36.md`](phone-sql-editor-20-36.md) (step 7). This page does not open it.
 
@@ -224,7 +226,8 @@ A yes for one line is not a yes for the others.
 - Turn `sending_enabled` on. That yes is separate, and it is not this page.
 - Webhook registration. That is a later call. A yes then still comes before any URL is pasted. This page does not register one.
 - Apply SQL steps 20 through 36. They stay unapplied. The token on the box is still a chat note.
-- PayFast sandbox. That is the next page. An SMS yes is not that yes.
+- LinkedIn. That is the next page. An SMS yes is not that yes.
+- PayFast sandbox. That page comes after the LinkedIn page. An SMS yes is not that yes.
 - Merge the website pull requests, spend, or post.
 
 ## Pass means

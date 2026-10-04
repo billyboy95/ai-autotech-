@@ -113,7 +113,7 @@ When he says yes to a name, set that one value from the password manager:
 | `META_PAGE_ID` | The Page ID he confirmed. Skip this row until he says yes to this name. |
 | `META_IG_USER_ID` | The Instagram account id, only when he already uses Instagram and says yes to this name. |
 
-Leave these unset on this visit: `WHATSAPP_APP_SECRET`, `WHATSAPP_VERIFY_TOKEN`, `WHATSAPP_GRAPH_VERSION`, `META_APP_SECRET`, `META_GRAPH_VERSION`. The send path already uses Graph `v21.0` when those version names are unset. Leave `RESEND_API_KEY`, `RESEND_FROM`, and the SMTP names as they already are. Leave `CRON_SECRET`, the SMS names, and the LinkedIn names unset unless a different checklist already saved them. The SMS names are collected on [`docs/phone-sms-provider-keys.md`](phone-sms-provider-keys.md), after this page. This visit does not set them. Do not delete a name on this visit.
+Leave these unset on this visit: `WHATSAPP_APP_SECRET`, `WHATSAPP_VERIFY_TOKEN`, `WHATSAPP_GRAPH_VERSION`, `META_APP_SECRET`, `META_GRAPH_VERSION`. The send path already uses Graph `v21.0` when those version names are unset. Leave `RESEND_API_KEY`, `RESEND_FROM`, and the SMTP names as they already are. Leave `CRON_SECRET`, the SMS names, and the LinkedIn names unset unless a different checklist already saved them. The SMS names are collected on [`docs/phone-sms-provider-keys.md`](phone-sms-provider-keys.md), after this page. The LinkedIn names are collected on [`docs/phone-linkedin-keys.md`](phone-linkedin-keys.md), after that SMS page. This visit does not set them. Do not delete a name on this visit.
 
 Paste a token from the password manager at the moment you save that name. After save, do not paste it into git, a pull request, chat, an issue, or this file.
 
@@ -183,4 +183,6 @@ A pass does not mean WhatsApp or Meta is live, a message was sent, a webhook is 
 
 The next phone checklist is [`docs/phone-sms-provider-keys.md`](phone-sms-provider-keys.md): one SMS provider (SMSPortal, BulkSMS, Clickatell, or Twilio). It is still Phone-first unblock, step 5. A yes on this page is not a yes for an SMS name. That page does not send, does not buy credit, and does not register a webhook.
 
-After that SMS page, PayFast sandbox is [`docs/phone-payfast-sandbox.md`](phone-payfast-sandbox.md) (step 6). This page does not open an SMS provider and does not open PayFast. SQL steps 20 through 36 stay unapplied.
+After that SMS page, LinkedIn keys are [`docs/phone-linkedin-keys.md`](phone-linkedin-keys.md): `LINKEDIN_ACCESS_TOKEN` and `LINKEDIN_AUTHOR_URN`. It is still step 5. A yes on this page, or on the SMS page, is not a yes for a LinkedIn name. That page does not create a LinkedIn app, does not post, and does not buy anything.
+
+After that LinkedIn page, PayFast sandbox is [`docs/phone-payfast-sandbox.md`](phone-payfast-sandbox.md) (step 6). This page does not open an SMS provider, does not open LinkedIn, and does not open PayFast. SQL steps 20 through 36 stay unapplied.

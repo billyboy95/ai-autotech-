@@ -22,6 +22,8 @@ Preparing the Google Workspace SMTP App Password, the `SMTP_*` path alternative 
 
 Preparing the Resend API key, the Resend path alongside that SMTP page, does not wait on that SQL. The phone checklist is [`docs/phone-resend-willem.md`](phone-resend-willem.md). The From stays `Willem@aiautotech.co.za`. Each Resend name waits for Billy’s yes. Saving a name does not send and does not turn `sending_enabled` on. This page does not edit DNS and does not paste the API key.
 
+Generating and saving `CRON_SECRET` does not wait on that SQL. The phone checklist is [`docs/phone-cron-secret.md`](phone-cron-secret.md) (step 5 below). Generate a long random value in a password manager, or with `openssl rand -base64 32` when a computer is available, and store it in the password manager. Do not save the placeholder `generate-a-long-random-string` from `.env.example`. Add the name on Vercel project `ai-autotech-crm`, Production only, only after Billy says yes to `CRON_SECRET`. A yes for WhatsApp, Meta, SMS, LinkedIn, email, or PayFast is not that yes. Mark it Sensitive if the UI allows. Add Preview only when he says Preview too. Saving the name does not register a cron, does not send, and does not turn `sending_enabled` on. There is no separate `docs/phone-cron-channel-keys.md`. The schedule paste after that save is [`docs/phone-pg-cron-schedules.md`](phone-pg-cron-schedules.md). This page does not run that paste, does not claim the name is already set, and does not paste a secret value.
+
 Collecting WhatsApp Cloud API and Meta Page keys does not wait on that SQL. The phone checklist is [`docs/phone-whatsapp-meta-keys.md`](phone-whatsapp-meta-keys.md) (step 5 below). Create or reuse a Meta app only after Billy says yes. Do not invent an app id. Each name waits for his yes. Saving a name does not send and does not turn `sending_enabled` on. That page does not register a webhook unless he says yes on that call. Gated Phase 5 command-centre panels stay paused. This page does not paste a token.
 
 Collecting one SMS provider’s keys does not wait on that SQL. The phone checklist is [`docs/phone-sms-provider-keys.md`](phone-sms-provider-keys.md) (step 5 below). It comes after the WhatsApp and Meta page and before the LinkedIn checklist. Choose one provider already in the app. SMSPortal and BulkSMS are the usual South African choices when he already has that account. Do not invent an account id. Each name waits for his yes. A yes for WhatsApp, email, or `CRON_SECRET` is not a yes for SMS. Saving a name does not send and does not turn `sending_enabled` on. That page does not buy credit and does not register a webhook. This page does not paste a secret.
@@ -99,7 +101,7 @@ Owner auto-attach (PR #17). When `OWNER_EMAILS` is unset or blank, the app alrea
 
 - `OWNER_EMAILS` = `billyfaber06@gmail.com`
 
-Cron routes (`/api/cron/automation`, `/api/cron/workflows`, `/api/cron/billing`, `/api/cron/ai-replies`) read `CRON_SECRET`. Leave it unset until Billy says yes. How he generates and sets it on the phone is Phone-first unblock, step 5. This checklist does not register a cron:
+Cron routes (`/api/cron/automation`, `/api/cron/workflows`, `/api/cron/billing`, `/api/cron/ai-replies`) read `CRON_SECRET`. Leave it unset until Billy says yes. How he generates and saves it on the phone is [`docs/phone-cron-secret.md`](phone-cron-secret.md) (Phone-first unblock, step 5). This checklist does not register a cron:
 
 - `CRON_SECRET`
 
@@ -167,7 +169,7 @@ This checklist does not apply the Education pack and does not apply the Zentrix 
 
 After this verification, the next phone checklists stay in this order. This verification does not claim steps 20 through 36 are applied:
 
-- Step 5: `CRON_SECRET` and the outbound channel key names. Leave every name unset until Billy says yes.
+- Step 5: `CRON_SECRET` ([`docs/phone-cron-secret.md`](phone-cron-secret.md)) and the outbound channel key names. Leave every name unset until Billy says yes.
 - Step 6: PayFast sandbox and billing readiness. Leave those names unset until Billy says yes to sandbox billing. Live PayFast stays off until he says yes to live charges.
 - [`docs/phone-sql-editor-20-36.md`](phone-sql-editor-20-36.md) (step 7): the SQL editor paste of steps 20 through 36. Those files are still unapplied.
 - [`docs/phone-education-zentrix-pack-apply.md`](phone-education-zentrix-pack-apply.md) (step 8): schema reload, then the Education pack, then the Zentrix pack, only after that Success and only when Billy says yes to that pack. Packs are not applied.
@@ -185,14 +187,11 @@ Do this on the phone after Owner Auth bootstrap (step 4). It is a names checklis
 
 #### `CRON_SECRET`
 
-The cron routes `/api/cron/automation`, `/api/cron/workflows`, `/api/cron/billing`, and `/api/cron/ai-replies` read the name `CRON_SECRET`. The inbound route `/api/automation/inbound` reads `AUTOMATION_WEBHOOK_SECRET` and, when that name is unset, the same `CRON_SECRET`. This checklist does not set `AUTOMATION_WEBHOOK_SECRET`.
+The cron routes `/api/cron/automation`, `/api/cron/workflows`, `/api/cron/billing`, and `/api/cron/ai-replies` read the name `CRON_SECRET`. The inbound route `/api/automation/inbound` reads `AUTOMATION_WEBHOOK_SECRET` and, when that name is unset, the same `CRON_SECRET`. This checklist does not set `AUTOMATION_WEBHOOK_SECRET`. There is no separate `docs/phone-cron-channel-keys.md`. Channel keys stay in the sections below.
 
-When Billy says yes to the name `CRON_SECRET`:
+The generate-and-save phone checklist is [`docs/phone-cron-secret.md`](phone-cron-secret.md). Generate a long random value in a password manager, or with `openssl rand -base64 32` when a computer is available. Store it in the password manager. This page does not contain a value. The text `generate-a-long-random-string` in `.env.example` is a placeholder. Do not save that placeholder as the secret.
 
-1. On the phone, generate a new long random password in the password manager. Keep it there. This page does not contain a value. The text `generate-a-long-random-string` in `.env.example` is a placeholder. Do not save that placeholder as the secret.
-2. Stay on the Vercel session from step 3. Open Vercel → the CRM project → Settings → Environment Variables.
-3. Add the name `CRON_SECRET`. Paste the generated value. Save it for Production. Mark it Sensitive so the phone does not keep the value on screen after save. Add Preview only when Billy says yes to Preview.
-4. Leave the value out of git, pull requests, issues, and docs.
+Leave the name unset until Billy says yes to `CRON_SECRET`. A yes for WhatsApp, Meta, SMS, LinkedIn, email, or PayFast is not that yes. A yes for the Auth user is not that yes. When he says yes, that page adds the name `CRON_SECRET` on the Vercel CRM project `ai-autotech-crm`, Production only, and marks it Sensitive if the UI allows. Add Preview only when he says yes to Preview. Leave the value out of git, pull requests, issues, and docs. Writing that page does not claim the name is already set.
 
 A saved variable is read on the next deployment. This checklist does not ask for a redeploy. It does not register a cron. The ops panel lists the job names `automation`, `workflow-engine`, `billing-cycle`, and `ai-reply-drafts` and does not register them. Leave `AI_REPLY_CRON_ENABLED` unset. Leave `OPS_SECRETS_READY_ENABLED` unset until step 35 is applied. Setting `CRON_SECRET` does not turn `sending_enabled` on. `sending_enabled` stays false until Billy says yes. After `CRON_SECRET` is saved on Production, the redeploy and the Supabase schedule paste are [`docs/phone-pg-cron-schedules.md`](phone-pg-cron-schedules.md). This step does not run that paste.
 
@@ -592,10 +591,10 @@ The phone verification is Phone-first unblock, step 4. Confirm the Auth user `bi
 
 ## 7. Blockers Billy decides
 
-Names only. The phone checklist for Vercel names is Phone-first unblock, step 3 (Vercel → the CRM project → Settings → Environment Variables). The Owner Auth user is step 4. `CRON_SECRET` generation and the outbound channel key names are step 5. PayFast sandbox and billing readiness is [`docs/phone-payfast-sandbox.md`](phone-payfast-sandbox.md) (step 6). The phone SQL editor paste of steps 20 through 36 is [`docs/phone-sql-editor-20-36.md`](phone-sql-editor-20-36.md) (step 7). It does not set the names below, does not claim the SQL is applied, and does not open gated Phase 5 panels. The pack click order after SQL Success is [`docs/phone-education-zentrix-pack-apply.md`](phone-education-zentrix-pack-apply.md) (step 8). Neither pack is applied. Creating the Auth user does not set the names below. Each name needs Billy’s yes before live use. This runbook does not supply secret values. `sending_enabled` stays false until he says yes. Live PayFast stays off until he says yes to live charges.
+Names only. The phone checklist for Vercel names is Phone-first unblock, step 3 (Vercel → the CRM project → Settings → Environment Variables). The Owner Auth user is step 4. `CRON_SECRET` generation is [`docs/phone-cron-secret.md`](phone-cron-secret.md), and the outbound channel key names are step 5. PayFast sandbox and billing readiness is [`docs/phone-payfast-sandbox.md`](phone-payfast-sandbox.md) (step 6). The phone SQL editor paste of steps 20 through 36 is [`docs/phone-sql-editor-20-36.md`](phone-sql-editor-20-36.md) (step 7). It does not set the names below, does not claim the SQL is applied, and does not open gated Phase 5 panels. The pack click order after SQL Success is [`docs/phone-education-zentrix-pack-apply.md`](phone-education-zentrix-pack-apply.md) (step 8). Neither pack is applied. Creating the Auth user does not set the names below. Each name needs Billy’s yes before live use. This runbook does not supply secret values. `sending_enabled` stays false until he says yes. Live PayFast stays off until he says yes to live charges.
 
 - `OWNER_EMAILS` = `billyfaber06@gmail.com` (owner auto-attach, PR #17)
-- `CRON_SECRET` (step 5; generate it in a password manager and set the name on Vercel only after Billy says yes; leave it unset until then)
+- `CRON_SECRET` ([`docs/phone-cron-secret.md`](phone-cron-secret.md), step 5; generate a long random value, store it in a password manager, and set the name on Vercel Production only after Billy says yes to that name; a yes for a channel key or PayFast is not that yes; leave it unset until then)
 - Sandbox billing only ([`docs/phone-payfast-sandbox.md`](phone-payfast-sandbox.md), step 6): `BILLING_SANDBOX` = `true`, `PAYFAST_MERCHANT_ID` = `10000100` (PayFast’s published sandbox merchant), `PAYFAST_MERCHANT_KEY`, `PAYFAST_PASSPHRASE`, and `SUPABASE_SERVICE_ROLE_KEY`. Leave them unset until Billy says yes to sandbox billing. Do not invent the key, the passphrase, or the service-role key. Do not put a live merchant id in the environment. Leave `BILLING_ALLOW_MOCK_ITN` unset. Leave live PayFast off until he says yes to live charges.
 - Outbound channel keys (step 5) are required before a real send. `sending_enabled` stays false until Billy says yes.
 - Gated Phase 5 flags stay unset until their SQL is applied (section 3, Leave flags unset until their SQL is applied). Command-centre panels stay paused until then. `ZENTRIX_WORKSPACE_PACK_ENABLED` stays unset until Billy says yes on [`docs/phone-education-zentrix-pack-apply.md`](phone-education-zentrix-pack-apply.md) (step 8).
@@ -604,4 +603,4 @@ Names only. The phone checklist for Vercel names is Phone-first unblock, step 3 
 
 ## 8. Sending stays off
 
-`sending_enabled` stays false on every workspace. Do not turn it on while applying this backlog. Do not register a cron that sends. The phone paste that schedules the cron routes while sending stays off, after `CRON_SECRET` is saved, is [`docs/phone-pg-cron-schedules.md`](phone-pg-cron-schedules.md). Do not create a paid developer account and do not submit a store listing.
+`sending_enabled` stays false on every workspace. Do not turn it on while applying this backlog. Do not register a cron that sends. The phone paste that schedules the cron routes while sending stays off, after `CRON_SECRET` is saved on [`docs/phone-cron-secret.md`](phone-cron-secret.md), is [`docs/phone-pg-cron-schedules.md`](phone-pg-cron-schedules.md). Do not create a paid developer account and do not submit a store listing.

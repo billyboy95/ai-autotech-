@@ -1,5 +1,7 @@
 # Phone checklist: schedules after `CRON_SECRET`
 
+Previous: generate and save the name on [`docs/phone-cron-secret.md`](phone-cron-secret.md). This page starts only after that save. It does not generate a secret. It does not claim `CRON_SECRET` is already set. If the name is missing on Vercel Production for project `ai-autotech-crm`, go back to that page. Do not paste schedules on this visit.
+
 `CRON_SECRET` on Vercel Production lets the CRM cron routes accept a call. It does not register a job. This page is the phone paste that registers the three Supabase schedules in [`supabase/APPLY-ORDER.md`](../supabase/APPLY-ORDER.md), and the check that the one daily job already in `vercel.json` is still the only Vercel cron.
 
 Writing this page does not run SQL, does not redeploy, and does not set a flag. Steps 20 through 36 stay unapplied. `SUPABASE_ACCESS_TOKEN` on the ops box is still a chat note. A Personal Access Token starts with `sbp_`. This paste does not need that token and does not need `SUPABASE_DB_URL`. Do not claim the SQL for steps 20 through 36 is applied. Do not paste a secret into git, a pull request, chat, or this file.
@@ -8,7 +10,7 @@ The statements below are the blocks already in `supabase/APPLY-ORDER.md`. The ho
 
 ## Stop until these are true
 
-1. `CRON_SECRET` is already saved on Vercel Production for the CRM project `ai-autotech-crm`. That save is [`docs/GO-LIVE-RUNBOOK.md`](GO-LIVE-RUNBOOK.md) (Phone-first unblock, step 5). If the name is missing, stop and do that step. Do not generate a second secret.
+1. `CRON_SECRET` is already saved on Vercel Production for the CRM project `ai-autotech-crm`, by the steps in [`docs/phone-cron-secret.md`](phone-cron-secret.md). That page is the generate-and-save checklist. Phone-first unblock, step 5 in [`docs/GO-LIVE-RUNBOOK.md`](GO-LIVE-RUNBOOK.md) points there. If the name is missing, stop and open that page. Do not generate a secret here. Do not generate a second secret. This page does not claim that save has already happened.
 2. The password manager still has that same value. Vercel hides a Sensitive value after save. If the password manager value is gone, stop. Do not invent a replacement here.
 3. Steps 11, 13, and 15 are already live (workflow tables, billing cycle, conversation AI). They are under Already live in [`supabase/APPLY-ORDER.md`](../supabase/APPLY-ORDER.md). Do not paste them again. This page does not paste steps 20 through 36.
 4. `sending_enabled` stays false on every workspace. `AUTOMATION_SEND_ENABLED` stays unset, or stays the string `false`. `AI_REPLY_CRON_ENABLED` stays unset. `WORKFLOW_ENGINE_ENABLED` stays unset.
@@ -224,7 +226,7 @@ Stop:
 
 This page does not replace them.
 
-1. `CRON_SECRET` and the outbound channel key names: [`docs/GO-LIVE-RUNBOOK.md`](GO-LIVE-RUNBOOK.md) (Phone-first unblock, step 5). WhatsApp Cloud API and Meta Page / Instagram keys are [`docs/phone-whatsapp-meta-keys.md`](phone-whatsapp-meta-keys.md). That page does not send, does not turn `sending_enabled` on, and does not register a webhook unless Billy says yes on that call.
+1. Previous: generate and save `CRON_SECRET` on [`docs/phone-cron-secret.md`](phone-cron-secret.md) before any paste on this page. That page does not claim the name is already set. Channel key names stay in [`docs/GO-LIVE-RUNBOOK.md`](GO-LIVE-RUNBOOK.md) (Phone-first unblock, step 5). WhatsApp Cloud API and Meta Page / Instagram keys are [`docs/phone-whatsapp-meta-keys.md`](phone-whatsapp-meta-keys.md). That page does not send, does not turn `sending_enabled` on, and does not register a webhook unless Billy says yes on that call. A yes for a channel key is not a yes for `CRON_SECRET`.
 2. After SQL steps 20 through 36 and `NOTIFY pgrst, 'reload schema';` have shown Success, the logged-out production smoke is [`docs/phone-post-sql-smoke-verify.md`](phone-post-sql-smoke-verify.md). Run that before any Phase 5 flag. This schedule page does not call those public URLs and does not claim that smoke has passed.
 3. Phase 5 flags, only the names Billy says yes to, after that smoke: [`docs/phone-phase5-flags-enable-order.md`](phone-phase5-flags-enable-order.md). That page leaves `AI_REPLY_CRON_ENABLED` unset. This page does not set a flag.
 

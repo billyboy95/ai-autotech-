@@ -154,7 +154,7 @@ A yes for one line is not a yes for the others.
 - A later DNS write, copied from the Resend screen on that later call, and only for the rows he names. This page is not that yes.
 - Each Resend name, one yes per name: `RESEND_API_KEY`, then `RESEND_FROM` when the Production value is not already `AI AutoTech <Willem@aiautotech.co.za>`.
 - The rest of step 5 (WhatsApp, SMS, Meta, and `CRON_SECRET`), then step 6 PayFast sandbox.
-- Turn `sending_enabled` on. That yes is separate, and it is not this page.
+- Turn `sending_enabled` on. That yes is separate. The later gate is [`docs/phone-sending-enabled.md`](phone-sending-enabled.md). A yes for a Resend name is not that yes. `AUTOMATION_SEND_ENABLED` stays unset, or stays the string `false`.
 - Apply SQL steps 20 through 36. They stay unapplied. The token on the box is still a chat note.
 - Merge the website pull requests, spend, or post.
 

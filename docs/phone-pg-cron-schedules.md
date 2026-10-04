@@ -211,7 +211,7 @@ Stop:
 
 ## Still blocked
 
-- `sending_enabled` stays false. `AUTOMATION_SEND_ENABLED` stays unset, or stays the string `false`.
+- `sending_enabled` stays false. `AUTOMATION_SEND_ENABLED` stays unset, or stays the string `false`. When he later says yes to real outbound for one named workspace, the gate is [`docs/phone-sending-enabled.md`](phone-sending-enabled.md). A yes to paste a schedule is not that yes.
 - `AI_REPLY_CRON_ENABLED` and `WORKFLOW_ENGINE_ENABLED` stay unset.
 - Channel keys stay on Phone-first unblock, step 5. WhatsApp and Meta collection is [`docs/phone-whatsapp-meta-keys.md`](phone-whatsapp-meta-keys.md). A fired cron is not a yes to send. See that step for the names. This page does not set them.
 - PayFast names stay on Phone-first unblock, step 6. Live PayFast stays off.

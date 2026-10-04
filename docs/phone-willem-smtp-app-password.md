@@ -140,7 +140,7 @@ A yes for one line is not a yes for the others.
 - Create the App Password labeled `AI AutoTech CRM SMTP`.
 - Each SMTP name, one yes per name: `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM`.
 - A draft or outbox test, with `sending_enabled` still false.
-- Turn `sending_enabled` on. That yes is separate, and it is not this page.
+- Turn `sending_enabled` on. That yes is separate. The later gate is [`docs/phone-sending-enabled.md`](phone-sending-enabled.md). A yes for an SMTP name is not that yes. `AUTOMATION_SEND_ENABLED` stays unset, or stays the string `false`.
 - Publish DKIM and a monitor-only DMARC TXT, only after an explicit yes on [`docs/phone-dkim-dmarc.md`](phone-dkim-dmarc.md) (step 14). The 3 Oct 2026 lookup found neither TXT.
 - Apply SQL steps 20 through 36. They stay unapplied. The token on the box is still a chat note.
 - Merge the website pull requests, spend, or post.

@@ -223,7 +223,7 @@ A yes for one line is not a yes for the others.
 - A sender id or From number, only when the account already shows it.
 - Buy credit, add a card, or buy a Twilio number. This page refuses those.
 - A test send or a campaign send. This page refuses those.
-- Turn `sending_enabled` on. That yes is separate, and it is not this page.
+- Turn `sending_enabled` on. That yes is separate. The later gate is [`docs/phone-sending-enabled.md`](phone-sending-enabled.md). A yes for an SMS name is not that yes. `AUTOMATION_SEND_ENABLED` stays unset, or stays the string `false`.
 - Webhook registration. That is a later call. A yes then still comes before any URL is pasted. This page does not register one.
 - Apply SQL steps 20 through 36. They stay unapplied. The token on the box is still a chat note.
 - LinkedIn. That is the next page. An SMS yes is not that yes.

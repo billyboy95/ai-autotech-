@@ -153,7 +153,7 @@ These stay blocked after a pass on this page:
 - Steps 1 through 19 stay Already live in [`supabase/APPLY-ORDER.md`](../supabase/APPLY-ORDER.md). Do not paste them again. Steps 20 through 36 stay unapplied. Do not claim this SQL is already applied. The headers Already live and Unapplied stay as they are.
 - `SUPABASE_ACCESS_TOKEN` on the ops box is still a chat note, not an `sbp_` token, until Billy replaces it. The checklist is [`docs/phone-supabase-access-token.md`](phone-supabase-access-token.md). This page does not paste a token.
 - Gated Phase 5 command-centre panels stay paused. Do not set a Phase 5 flag.
-- `sending_enabled` stays false. No real send. No ad spend. No live charge.
+- `sending_enabled` stays false. No real send. No ad spend. No live charge. When he later says yes to real outbound for one named workspace, the gate is [`docs/phone-sending-enabled.md`](phone-sending-enabled.md). A yes for sandbox billing is not that yes. `AUTOMATION_SEND_ENABLED` stays unset, or stays the string `false`.
 - Website pull requests [aiautotech#4](https://github.com/billyboy95/aiautotech/pull/4) and [aiautotech#5](https://github.com/billyboy95/aiautotech/pull/5) stay open.
 
 ## 8. Next checklist
@@ -183,7 +183,7 @@ A yes for one line is not a yes for the others.
 - Set a sandbox Salt Passphrase when Settings shows the salt empty.
 - Preview, only if he says yes to Preview.
 - Live charges. That yes is separate, and it is not this page.
-- Turn `sending_enabled` on. That yes is separate, and it is not this page.
+- Turn `sending_enabled` on. That yes is separate. The later gate is [`docs/phone-sending-enabled.md`](phone-sending-enabled.md). A yes for sandbox billing is not that yes. `AUTOMATION_SEND_ENABLED` stays unset, or stays the string `false`.
 - Apply SQL steps 20 through 36. They stay unapplied. The token on the box is still a chat note.
 - Merge the website pull requests, spend, or post.
 

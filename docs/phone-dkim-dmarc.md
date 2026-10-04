@@ -147,7 +147,7 @@ A yes for one line is not a yes for the others.
 - Publish the DKIM TXT at the host Admin shows (usually `google._domainkey`), then tap **Start authentication** after the phone lookup shows `v=DKIM1`.
 - Publish the monitor-only DMARC TXT at `_dmarc`: `v=DMARC1; p=none; rua=mailto:Willem@aiautotech.co.za`, or his preferred `rua` on this call.
 - Tighten DMARC later (`p=quarantine` or `p=reject`). This page leaves `p=none`.
-- One outbound message, and turning `sending_enabled` on. The From is `Willem@aiautotech.co.za`.
+- One outbound message, and turning `sending_enabled` on. The later gate is [`docs/phone-sending-enabled.md`](phone-sending-enabled.md). A yes to publish DKIM or DMARC is not that yes. The From is `Willem@aiautotech.co.za`. `AUTOMATION_SEND_ENABLED` stays unset, or stays the string `false`.
 - Save the email channel names. Those stay on step 5.
 
 ## Pass means

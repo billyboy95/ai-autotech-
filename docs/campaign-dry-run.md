@@ -2,6 +2,8 @@
 
 `/command-centre/campaigns` can preview a campaign against sandbox contacts. `/command-centre/connect-accounts` keeps the account list, and WhatsApp (Meta Cloud) plus Facebook / Instagram open a sandbox stub. Nothing is sent, nothing is charged, and `sending_enabled` stays false.
 
+The phone tap path is [`docs/phone-campaign-dry-run.md`](phone-campaign-dry-run.md). Fixture mode is the verify before `CAMPAIGN_DRY_RUN_ENABLED`. Steps 20 through 36 stay unapplied until a Success is already logged. That page does not turn sending on.
+
 ## Campaign dry run
 
 The panel shows the recipient count, the `consent_basis` breakdown, and an estimated cost in ZAR. The estimate is a placeholder (WhatsApp R0.62, SMS R0.35, email R0.05 per person who would receive). It is not charged.

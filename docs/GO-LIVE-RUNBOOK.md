@@ -38,6 +38,8 @@ The pack click order starts only after every paste for steps 20 through 36 has s
 
 Turning sending on is a later gate. It is not step 5 and it is not the pack click. The phone checklist is [`docs/phone-sending-enabled.md`](phone-sending-enabled.md). Open it only when Billy says yes to real outbound for one named workspace, and only after the prerequisites on that page are already true. A yes for keys, `CRON_SECRET`, PayFast sandbox, a pack, a website publish, or SQL is not that yes. This page does not tick **Sending enabled** and does not set `AUTOMATION_SEND_ENABLED`. Steps 20 through 36 stay unapplied until a Success from a previous visit is already logged. This page does not invent that Success.
 
+The campaigns panel Dry run on the phone is a fixture verify. It does not wait on a yes to send. The phone checklist is [`docs/phone-campaign-dry-run.md`](phone-campaign-dry-run.md). Open signed-in `/command-centre/campaigns` on https://ai-autotech-crm.vercel.app and tap **Dry run** only. Leave **Send now** and **Go live** untapped. The outbox queued count stays 0. Leave `CAMPAIGN_DRY_RUN_ENABLED` unset until step 26 (`phase5e_campaign_dry_run`) has succeeded and Billy says yes to that flag. Fixture mode is the verify before that flag. Steps 20 through 36 stay unapplied until a Success from a previous visit is already logged. This page does not invent that Success. Gated Phase 5 command-centre panels stay paused. `sending_enabled` stays false. `AUTOMATION_SEND_ENABLED` stays unset, or stays the string `false`.
+
 Verifying MX for `aiautotech.co.za` does not wait on that SQL. The phone checklist is [`docs/phone-mx-dns-decision.md`](phone-mx-dns-decision.md) (step 13 below). A read-only lookup on 3 Oct 2026 already showed MX `1 smtp.google.com.` and SPF `v=spf1 include:_spf.google.com ~all`. Confirm that on the phone. Switch MX only if a new lookup shows Amazon SES, and only after Billy says yes. This page does not edit DNS and does not send.
 
 Publishing DKIM and a monitor-only DMARC record for `aiautotech.co.za` does not wait on that SQL. The phone checklist is [`docs/phone-dkim-dmarc.md`](phone-dkim-dmarc.md) (step 14 below). The 3 Oct 2026 lookup found no TXT at `google._domainkey` and no TXT at `_dmarc`. Add each TXT only after Billy says yes on that call. MX is already Google, so this step does not switch MX. `sending_enabled` stays false. This page does not edit DNS and does not send.
@@ -340,7 +342,7 @@ After step 36 shows success, stop on this step. Do not click a pack here. The ne
 Leave these flags unset. Unset, blank, or any value other than the string `true` keeps that page fixture-only. Setting a flag stores a sandbox note only. It does not apply SQL and it does not send. This checklist does not set them:
 
 - `HOME_CHAT_ENABLED` (step 25)
-- `CAMPAIGN_DRY_RUN_ENABLED` and `META_CONNECT_STUB_ENABLED` (step 26)
+- `CAMPAIGN_DRY_RUN_ENABLED` and `META_CONNECT_STUB_ENABLED` (step 26). The phone verify is [`docs/phone-campaign-dry-run.md`](phone-campaign-dry-run.md). Leave both unset until this step has succeeded and Billy says yes to that name.
 - `CAMPAIGN_CSV_IMPORT_ENABLED` and `EMAIL_SMS_CONNECT_STUB_ENABLED` (step 27)
 - `SOCIAL_DRAFTS_ENABLED` and `TIKTOK_LINKEDIN_CONNECT_STUB_ENABLED` (step 28)
 - `ZENTRIX_WORKSPACE_PACK_ENABLED` (step 29)
@@ -457,7 +459,7 @@ The store list on the page is the same before and after the click. The green lin
 - No ad spend.
 - Steps 20 through 36 stay unapplied until Billy re-authenticates the SQL editor or provides an `sbp_` token and the apply prints Success. Writing this page does not apply them. Neither pack is applied.
 
-Tracker item 8 (prospect list and the first campaign) is a sandbox dry-load only. After SQL steps 20 through 36 show Success and `NOTIFY pgrst, 'reload schema';` has succeeded, the phone checklist is [`docs/phone-campaign-csv-load.md`](phone-campaign-csv-load.md). Do not invent campaign rows in production until that page’s SQL and flag checks are true. No real sends.
+Tracker item 8 (prospect list and the first campaign) is a sandbox dry-load only. After SQL steps 20 through 36 show Success and `NOTIFY pgrst, 'reload schema';` has succeeded, the phone checklist is [`docs/phone-campaign-csv-load.md`](phone-campaign-csv-load.md). Do not invent campaign rows in production until that page’s SQL and flag checks are true. No real sends. The campaigns panel verify on the phone is [`docs/phone-campaign-dry-run.md`](phone-campaign-dry-run.md). Tap **Dry run** only. That page can run in fixture mode before `CAMPAIGN_DRY_RUN_ENABLED` is set. It does not load the East Rand CSV and it does not claim steps 20 through 36 are applied.
 
 ### 9. Wait for an explicit yes
 
@@ -570,7 +572,7 @@ Leave these unset until the step that introduces them has been applied. Unset, b
 Leave the earlier phase 5 flags unset until their own SQL is applied:
 
 - `HOME_CHAT_ENABLED` (step 25)
-- `CAMPAIGN_DRY_RUN_ENABLED` and `META_CONNECT_STUB_ENABLED` (step 26)
+- `CAMPAIGN_DRY_RUN_ENABLED` and `META_CONNECT_STUB_ENABLED` (step 26). The phone tap path is [`docs/phone-campaign-dry-run.md`](phone-campaign-dry-run.md). Leave both unset until step 26 has succeeded and Billy says yes to that name. The desktop notes are [`docs/campaign-dry-run.md`](campaign-dry-run.md).
 - `CAMPAIGN_CSV_IMPORT_ENABLED` and `EMAIL_SMS_CONNECT_STUB_ENABLED` (step 27)
 - `SOCIAL_DRAFTS_ENABLED` and `TIKTOK_LINKEDIN_CONNECT_STUB_ENABLED` (step 28)
 - `ZENTRIX_WORKSPACE_PACK_ENABLED` (step 29)

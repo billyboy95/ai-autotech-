@@ -2,6 +2,8 @@
 
 A checklist Billy can open on the agency and command centre. It lists APPLY-ORDER steps 20 through 33 with a sha256 checksum of each file. Nothing is sent, nothing is spent, and no secret is stored. `sending_enabled` stays false. The runner does not apply SQL.
 
+The phone tap path is [`docs/phone-migration-runner.md`](phone-migration-runner.md). Until `MIGRATION_RUNNER_ENABLED` is the string `true` after step 33 Success and Billy’s yes, that page is verify-only. Signed out, `/command-centre`, `/command-centre/migrations`, and `/agency` answer 307 and land on `/login`. With the flag unset, or without `SUPABASE_DB_URL`, the fixture sentence stays on screen and `write` stays false. It does not claim a dry-run is stored. It does not execute migration SQL and does not mark a step applied. It does not turn sending on and does not claim steps 20 through 36 are applied.
+
 ## Where it shows
 
 - `/command-centre`
@@ -20,7 +22,7 @@ Filenames come from the numbered list in `supabase/APPLY-ORDER.md`. Checksums ar
 
 ## Feature flag
 
-Leave this unset until step 33 is applied. Unset, blank, or any value other than the string `true` keeps `write` false. A preview render stays fixture-only even if the flag is set.
+Leave this unset until step 33 is applied and Billy says yes to this name. A yes for Dry run, the East Rand seed, the PWA install verify, the setup wizard, keys, `CRON_SECRET`, packs, a website publish, or SQL is not that yes. Unset, blank, or any value other than the string `true` keeps `write` false. A preview render stays fixture-only even if the flag is set. The phone verify before that yes is [`docs/phone-migration-runner.md`](phone-migration-runner.md).
 
 - `MIGRATION_RUNNER_ENABLED` as the string `true`, a signed-in workspace, and a configured `SUPABASE_DB_URL` may store a sandbox dry-run: one `migration_runner_events` row per step, with `status` `pending`, `sandbox` true, and `charged` false.
 
@@ -54,4 +56,4 @@ Apply it after step 32. Do not run it until `SUPABASE_DB_URL` is available. It d
 
 With Supabase keys empty, open `/command-centre`, `/agency`, and `/command-centre/migrations`. Each panel lists steps 20 through 33 as pending, shows `phase5l_migration_runner`, and shows `MIGRATION_RUNNER_ENABLED` unset. Record sandbox dry-run does not write. `write` stays false.
 
-With Supabase keys set and no session, `/command-centre/migrations` redirects to `/login`.
+With Supabase keys set and no session, `/command-centre/migrations` redirects to `/login` (307). `/command-centre` and `/agency` do the same. On production the phone verify is [`docs/phone-migration-runner.md`](phone-migration-runner.md). That visit stays fixture-only until step 33 Success is already logged and Billy says yes to `MIGRATION_RUNNER_ENABLED`.

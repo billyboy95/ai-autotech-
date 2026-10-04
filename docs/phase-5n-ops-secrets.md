@@ -19,7 +19,9 @@ Whether `Willem@aiautotech.co.za` can receive is [`docs/phone-mx-dns-decision.md
 
 When Supabase keys are empty, the panel is fixture and `write` is false.
 
-With Supabase keys set and no session, `/command-centre/ops-secrets` redirects to `/login` (307). `/command-centre/setup` and `/agency` do the same.
+With Supabase keys set and no session, `/command-centre/ops-secrets` redirects to `/login` (307). `/command-centre`, `/command-centre/setup`, and `/agency` do the same.
+
+The phone checklist for this panel is `docs/phone-ops-secrets.md` (step 35). Fixture mode is the verify before the flag. Signed out, `/command-centre`, `/command-centre/ops-secrets`, `/command-centre/setup`, and `/agency` answer 307 and land on `/login`. With the flag unset the fixture sentence stays on screen and `write` stays false. Do not claim an ops note is stored. That page does not register a cron and does not put a live Meta, SMS, email, or PayFast key in the database. A yes for Dry run, the East Rand seed, the PWA install verify, the setup wizard, the migration runner, the owner bootstrap panel, keys, `CRON_SECRET`, packs, a website publish, SQL, or the Owner Auth verify is not a yes for `OPS_SECRETS_READY_ENABLED`. Generating and saving `CRON_SECRET` stays `docs/phone-cron-secret.md`. The schedule paste stays `docs/phone-pg-cron-schedules.md`. There is no `docs/phone-go-live.md` yet. That visit is step 36 (`GOLIVE_CHECKLIST_ENABLED`).
 
 ## Cron dry-run
 

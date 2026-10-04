@@ -25,7 +25,7 @@ All of these stay true on this visit. If one is false, stop.
 
 The logged-out production smoke, after SQL Success, is [`docs/phone-post-sql-smoke-verify.md`](phone-post-sql-smoke-verify.md). This page does not replace that smoke, and that smoke does not replace this tap. The Phase 5 flag order is [`docs/phone-phase5-flags-enable-order.md`](phone-phase5-flags-enable-order.md). This page does not set a name on that list.
 
-There is no `docs/phone-ops-secrets.md` or `docs/phone-go-live.md` yet. Those visits are later. The desktop notes are [`docs/phase-5n-ops-secrets.md`](phase-5n-ops-secrets.md) and [`docs/phase-5o-golive-checklist.md`](phase-5o-golive-checklist.md). This visit does not set `OPS_SECRETS_READY_ENABLED` or `GOLIVE_CHECKLIST_ENABLED`.
+The next phone companion is the ops secrets panel, step 35. The checklist is [`docs/phone-ops-secrets.md`](phone-ops-secrets.md). This visit does not open `/command-centre/ops-secrets` to record a note and does not set `OPS_SECRETS_READY_ENABLED`. A yes for the owner bootstrap panel is not that yes. Signed out, `/command-centre`, `/command-centre/ops-secrets`, `/command-centre/setup`, and `/agency` answer 307 and land on `/login`. With the flag unset, `write` stays false. The panel stores presence only. It does not register a cron and it does not put a live Meta, SMS, email, or PayFast key in the database. There is no `docs/phone-go-live.md` yet. That visit is later. It is step 36 (`GOLIVE_CHECKLIST_ENABLED`). The desktop notes are [`docs/phase-5n-ops-secrets.md`](phase-5n-ops-secrets.md) and [`docs/phase-5o-golive-checklist.md`](phase-5o-golive-checklist.md). This visit does not set `GOLIVE_CHECKLIST_ENABLED`.
 
 ## 1. Signed-out gate
 
@@ -79,7 +79,7 @@ That sentence is the last line under the heading, and the form under **Sandbox n
 
 `Fixture only. This panel writes nothing until OWNER_BOOTSTRAP_UI_ENABLED is the string true and step 34 is applied. It does not create an Auth user and does not run owner-bootstrap.sql. write: false.`
 
-`write` stays false. Leave **Record sandbox note** untapped. The button under **Ops secrets** uses the same words. Leave that one untapped too. There is no phone checklist for ops secrets yet.
+`write` stays false. Leave **Record sandbox note** untapped. The button under **Ops secrets** uses the same words. Leave that one untapped too. That visit is [`docs/phone-ops-secrets.md`](phone-ops-secrets.md). Leave `OPS_SECRETS_READY_ENABLED` unset.
 
 Flag-on sentence (the slate line). This visit does not create it. Do not set the flag to see it.
 
@@ -100,8 +100,8 @@ Leave these alone on the same screens. They are other visits:
 
 - **Setup wizard** and **Record sandbox checklist event** on `/command-centre/setup`.
 - **Migration runner** and **Record sandbox dry-run**.
-- **Ops secrets** and its **Record sandbox note**.
-- **Go-live checklist**. It links to `/command-centre/go-live`. There is no phone checklist for that page yet.
+- **Ops secrets** and its **Record sandbox note**. That visit is [`docs/phone-ops-secrets.md`](phone-ops-secrets.md). Leave `OPS_SECRETS_READY_ENABLED` unset.
+- **Go-live checklist**. It links to `/command-centre/go-live`. There is no phone checklist for that page yet. That later page is step 36 (`GOLIVE_CHECKLIST_ENABLED`).
 - **Run automations** under Advanced.
 - **Apply Education pack to EASTC** and **Apply Zentrix pack to Zentrix Online** on `/agency`.
 - **Create client workspace**.
@@ -145,6 +145,7 @@ Stop on any other status. These lines mean stop:
 - Gated Phase 5 command-centre panels stay paused.
 - Steps 20 through 36 stay unapplied in [`supabase/APPLY-ORDER.md`](../supabase/APPLY-ORDER.md) until a Success from a previous visit is already logged. This page does not claim they are applied.
 - Leave **Load sandbox seed**, **Dry run**, **Dry-load CSV**, **Record install intent**, **Record sandbox checklist event**, and **Record sandbox dry-run** untapped. Those visits are [`docs/phone-east-rand-seed.md`](phone-east-rand-seed.md), [`docs/phone-campaign-dry-run.md`](phone-campaign-dry-run.md), [`docs/phone-campaign-csv-load.md`](phone-campaign-csv-load.md), [`docs/phone-pwa-install.md`](phone-pwa-install.md), [`docs/phone-setup-wizard.md`](phone-setup-wizard.md), and [`docs/phone-migration-runner.md`](phone-migration-runner.md).
+- Do not open the ops secrets panel to tap **Record sandbox note**. That visit is [`docs/phone-ops-secrets.md`](phone-ops-secrets.md). Leave `OPS_SECRETS_READY_ENABLED` unset. A yes for this panel verify is not that yes. The panel stores presence only. It does not register a cron and it does not put a live key in the database.
 
 ## Pass means
 

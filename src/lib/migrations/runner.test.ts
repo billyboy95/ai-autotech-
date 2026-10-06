@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { readFileSync } from "node:fs";
+import { cpSync, mkdtempSync, readFileSync, rmSync, unlinkSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
 import test from "node:test";
 import { NextResponse } from "next/server";
 import { decideAccess, requiresSession } from "@/lib/auth/gate";
@@ -9,6 +11,8 @@ import {
   CONNECTION_REQUIRED_COPY,
   DRY_RUN_READY_COPY,
   FIXTURE_RUNNER_COPY,
+  FIXTURE_STEP_CHECKSUM,
+  MISSING_CATALOG_COPY,
   PHASE5L_MIGRATION,
   SECRET_REFUSAL_COPY,
   STEP_FROM,
@@ -16,6 +20,7 @@ import {
   annotateMigrationSteps,
   buildPageMigrationRunner,
   dryRunAccepted,
+  fixturePendingSteps,
   formCarriesSecret,
   loadMigrationCatalog,
   migrationRunnerDisplayMode,
@@ -91,6 +96,9 @@ test("the catalog lists steps 20 through 33 as pending and hides secrets", () =>
   assert.ok(step33 > step32);
 
   const catalog = loadMigrationCatalog();
+  const fixtures = fixturePendingSteps();
+  assert.deepEqual(fixtures.map((step) => step.file), catalog.map((step) => step.file));
+  assert.equal(fixtures.every((step) => step.checksum === FIXTURE_STEP_CHECKSUM), true);
   assert.equal(verifiedMigrationSteps().length, 0);
   const model = buildPageMigrationRunner({
     env: {
@@ -118,6 +126,7 @@ test("the catalog lists steps 20 through 33 as pending and hides secrets", () =>
   assert.match(text, /The value is not shown/);
   assert.match(text, /phase5l_migration_runner/);
   assert.match(text, /phase4c_aios_pricing/);
+  assert.equal(text.includes(MISSING_CATALOG_COPY), false);
   for (const step of model.steps) {
     const hashed = createHash("sha256").update(readFileSync(new URL(`../../../${step.file}`, import.meta.url))).digest("hex");
     assert.equal(step.checksum, hashed);
@@ -174,6 +183,59 @@ test("the catalog lists steps 20 through 33 as pending and hides secrets", () =>
     applied: false,
     sending_enabled: false,
   }), false);
+});
+
+test("a missing APPLY-ORDER or migration file stays fixture pending and does not throw", () => {
+  const missingOrder = mkdtempSync(path.join(tmpdir(), "migration-catalog-"));
+  try {
+    const catalog = loadMigrationCatalog(missingOrder);
+    assert.equal(catalog.length, STEP_TO - STEP_FROM + 1);
+    assert.equal(catalog[0]?.step, STEP_FROM);
+    assert.equal(catalog[catalog.length - 1]?.step, STEP_TO);
+    assert.equal(catalog[catalog.length - 1]?.file, PHASE5L_MIGRATION);
+    assert.equal(catalog.every((step) => step.checksum === FIXTURE_STEP_CHECKSUM), true);
+    const model = buildPageMigrationRunner({
+      root: missingOrder,
+      tenantMode: "member",
+      env: { MIGRATION_RUNNER_ENABLED: "", SUPABASE_DB_URL: databaseUrl } as NodeJS.ProcessEnv,
+    });
+    assert.equal(model.write, false);
+    assert.equal(model.mode, "fixture");
+    assert.equal(model.steps.length, catalog.length);
+    assert.equal(model.steps.every((step) => step.status === "pending"), true);
+    assert.match(model.lines[0] ?? "", /fixture pending/);
+    assert.match(JSON.stringify(model), /SQL was not applied/);
+    assert.equal(JSON.stringify(model).includes(databaseUrl), false);
+  } finally {
+    rmSync(missingOrder, { recursive: true, force: true });
+  }
+
+  const missingSql = mkdtempSync(path.join(tmpdir(), "migration-sql-"));
+  try {
+    cpSync(path.join(process.cwd(), "supabase"), path.join(missingSql, "supabase"), { recursive: true });
+    unlinkSync(path.join(missingSql, PHASE5L_MIGRATION));
+    const catalog = loadMigrationCatalog(missingSql);
+    assert.equal(catalog.length, 14);
+    assert.equal(catalog.every((step) => step.checksum === FIXTURE_STEP_CHECKSUM), true);
+    const model = buildPageMigrationRunner({
+      root: missingSql,
+      tenantMode: "member",
+      env: { MIGRATION_RUNNER_ENABLED: "true", SUPABASE_DB_URL: databaseUrl } as NodeJS.ProcessEnv,
+    });
+    assert.equal(model.write, false);
+    assert.equal(model.mode, "fixture");
+    assert.equal(model.steps.every((step) => step.status === "pending"), true);
+    assert.equal(model.lines[0], MISSING_CATALOG_COPY);
+  } finally {
+    rmSync(missingSql, { recursive: true, force: true });
+  }
+
+  const tracing = readFileSync(new URL("../../../next.config.ts", import.meta.url), "utf8");
+  assert.match(tracing, /outputFileTracingIncludes/);
+  assert.match(tracing, /supabase\/APPLY-ORDER\.md/);
+  assert.match(tracing, /supabase\/migrations\/\*\*\/\*\.sql/);
+  assert.match(tracing, /\/agency/);
+  assert.match(tracing, /\/command-centre/);
 });
 
 test("migration runner copy does not send, spend, or turn flags on", () => {

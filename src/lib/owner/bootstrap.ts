@@ -95,12 +95,35 @@ export function formCarriesSecret(formData: FormData) {
   return false;
 }
 
+export const FIXTURE_OWNER_SQL =
+  "Fixture only. supabase/owner-bootstrap.sql is missing from this runtime. SQL was not applied. Nothing was written. An Auth user was not created.";
+
+function filesystemError(error: unknown) {
+  if (!error || typeof error !== "object") return false;
+  const code = "code" in error ? String((error as { code?: unknown }).code ?? "") : "";
+  if (code === "ENOENT" || code === "ENOTDIR" || code === "EACCES" || code === "EPERM" || code === "EISDIR") return true;
+  const message = error instanceof Error ? error.message : "";
+  return message.startsWith("ENOENT:");
+}
+
+function fixtureOwnerSql() {
+  return {
+    sqlText: FIXTURE_OWNER_SQL,
+    checksum: createHash("sha256").update(FIXTURE_OWNER_SQL).digest("hex"),
+  };
+}
+
 export function loadOwnerSql(root = process.cwd()) {
-  const sqlText = readFileSync(path.join(root, OWNER_SQL_FILE), "utf8");
-  const checksum = createHash("sha256").update(sqlText).digest("hex");
-  if (!CHECKSUM.test(checksum)) throw new Error("owner-bootstrap.sql checksum must be sha256 hex");
-  if (!sqlText.includes(DEFAULT_OWNER_EMAIL)) throw new Error("owner-bootstrap.sql must name the documented owner");
-  return { sqlText, checksum };
+  try {
+    const sqlText = readFileSync(path.join(root, OWNER_SQL_FILE), "utf8");
+    const checksum = createHash("sha256").update(sqlText).digest("hex");
+    if (!CHECKSUM.test(checksum)) throw new Error("owner-bootstrap.sql checksum must be sha256 hex");
+    if (!sqlText.includes(DEFAULT_OWNER_EMAIL)) throw new Error("owner-bootstrap.sql must name the documented owner");
+    return { sqlText, checksum };
+  } catch (error) {
+    if (!filesystemError(error)) throw error;
+    return fixtureOwnerSql();
+  }
 }
 
 export function planOwnerBootstrapNote(input: {
@@ -143,10 +166,17 @@ export function buildOwnerBootstrap(input: {
     authUser: input.authUser ?? "unread",
     membership: input.membership ?? "unread",
   });
-  const { sqlText, checksum } = loadOwnerSql(input.root);
+  let loaded: { sqlText: string; checksum: string };
+  try {
+    loaded = loadOwnerSql(input.root);
+  } catch {
+    loaded = fixtureOwnerSql();
+  }
+  const { sqlText, checksum } = loaded;
   const emailsLine = ownerEmails === "configured"
     ? "OWNER_EMAILS is configured. The list is not shown."
     : "OWNER_EMAILS is missing. The server uses the documented default.";
+  const missingSql = sqlText === FIXTURE_OWNER_SQL;
   const flag = ownerBootstrapMode(env) === "sandbox" ? "set" : "unset";
   const lines = [
     `${emailsLine} The documented owner is ${DEFAULT_OWNER_EMAIL}. This page does not invent another address.`,
@@ -154,15 +184,17 @@ export function buildOwnerBootstrap(input: {
     "Steps 20 through 33 are not applied. Step 34 is also unapplied. Step 35 is also unapplied. Do not claim this SQL is already applied.",
     "Open the Supabase SQL editor and paste supabase/owner-bootstrap.sql only after the Auth user exists. This page does not run that file.",
     "sending_enabled stays false. Nothing is sent. Nothing is spent.",
-    flag === "set"
-      ? "OWNER_BOOTSTRAP_UI_ENABLED is set. A sandbox note can be stored. It does not create an Auth user and does not run the SQL."
-      : "OWNER_BOOTSTRAP_UI_ENABLED is unset. Leave it unset until step 34 is applied. This page does not turn it on.",
+    missingSql
+      ? "owner-bootstrap.sql is missing from this runtime. SQL was not applied. Nothing was written. An Auth user was not created."
+      : flag === "set"
+        ? "OWNER_BOOTSTRAP_UI_ENABLED is set. A sandbox note can be stored. It does not create an Auth user and does not run the SQL."
+        : "OWNER_BOOTSTRAP_UI_ENABLED is unset. Leave it unset until step 34 is applied. This page does not turn it on.",
     "Leave MIGRATION_RUNNER_ENABLED and SETUP_WIZARD_ENABLED unset. This page does not turn them on.",
-    plan.message,
+    missingSql ? FIXTURE_OWNER_COPY : plan.message,
   ];
   return {
-    mode: plan.mode,
-    write: plan.write,
+    mode: missingSql ? "fixture" : plan.mode,
+    write: missingSql ? false : plan.write,
     flag,
     ownerEmails,
     authAttach,

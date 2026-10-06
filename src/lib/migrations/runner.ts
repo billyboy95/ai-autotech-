@@ -36,6 +36,29 @@ export type MigrationRunnerModel = {
 export const FIXTURE_RUNNER_COPY =
   "Fixture only. This runner writes nothing until MIGRATION_RUNNER_ENABLED is the string true, step 33 is applied, and SUPABASE_DB_URL is configured. SQL is not applied.";
 
+export const MISSING_CATALOG_COPY =
+  "Migration catalog files could not be read. These steps stay fixture pending. SQL was not applied.";
+
+/** Stable checksum for the fixture list used when the catalog files are absent. */
+export const FIXTURE_STEP_CHECKSUM = createHash("sha256").update("fixture-pending").digest("hex");
+
+const FIXTURE_CATALOG_FILES = [
+  "supabase/migrations/20261026120000_phase4c_aios_pricing.sql",
+  "supabase/migrations/20261027120000_phase4d_eastc_education.sql",
+  "supabase/migrations/20261028120000_phase5a_agent_computers.sql",
+  "supabase/migrations/20261029120000_phase5b_lead_onboarding.sql",
+  "supabase/migrations/20261030120000_phase5c_connect_import.sql",
+  "supabase/migrations/20261031120000_phase5d_home_chat.sql",
+  "supabase/migrations/20261101120000_phase5e_campaign_dry_run.sql",
+  "supabase/migrations/20261102120000_phase5f_campaign_csv_channels.sql",
+  "supabase/migrations/20261103120000_phase5g_social_drafts.sql",
+  "supabase/migrations/20261104120000_phase5h_zentrix_workspace_pack.sql",
+  "supabase/migrations/20261105120000_phase5i_campaign_seed_ops.sql",
+  "supabase/migrations/20261106120000_phase5j_pwa_mobile_shell.sql",
+  "supabase/migrations/20261107120000_phase5k_setup_wizard.sql",
+  PHASE5L_MIGRATION,
+] as const;
+
 export const CONNECTION_REQUIRED_COPY =
   "SUPABASE_DB_URL is missing. Nothing was written. SQL was not applied.";
 
@@ -89,26 +112,49 @@ export function parseApplyOrder(markdown: string): CatalogStep[] {
   return steps;
 }
 
+function filesystemError(error: unknown) {
+  if (!error || typeof error !== "object") return false;
+  const code = "code" in error ? String((error as { code?: unknown }).code ?? "") : "";
+  if (code === "ENOENT" || code === "ENOTDIR" || code === "EACCES" || code === "EPERM" || code === "EISDIR") return true;
+  const message = error instanceof Error ? error.message : "";
+  return message.startsWith("ENOENT:");
+}
+
+/** Steps 20–33 as pending fixtures. Used when the runtime bundle has no SQL files. */
+export function fixturePendingSteps(): Array<CatalogStep & { checksum: string }> {
+  return FIXTURE_CATALOG_FILES.map((file, index) => ({
+    step: STEP_FROM + index,
+    file,
+    name: migrationName(file),
+    checksum: FIXTURE_STEP_CHECKSUM,
+  }));
+}
+
 export function loadMigrationCatalog(root = process.cwd()): Array<CatalogStep & { checksum: string }> {
-  const order = readFileSync(path.join(root, "supabase/APPLY-ORDER.md"), "utf8");
-  const parsed = parseApplyOrder(order);
-  if (parsed.length !== STEP_TO - STEP_FROM + 1) {
-    throw new Error("APPLY-ORDER steps 20 through 33 are incomplete");
-  }
-  for (let index = 0; index < parsed.length; index += 1) {
-    const step = parsed[index];
-    if (step.step !== STEP_FROM + index) {
-      throw new Error("APPLY-ORDER steps 20 through 33 must stay in order");
+  try {
+    const order = readFileSync(path.join(root, "supabase/APPLY-ORDER.md"), "utf8");
+    const parsed = parseApplyOrder(order);
+    if (parsed.length !== STEP_TO - STEP_FROM + 1) {
+      throw new Error("APPLY-ORDER steps 20 through 33 are incomplete");
     }
+    for (let index = 0; index < parsed.length; index += 1) {
+      const step = parsed[index];
+      if (step.step !== STEP_FROM + index) {
+        throw new Error("APPLY-ORDER steps 20 through 33 must stay in order");
+      }
+    }
+    if (parsed[parsed.length - 1]?.file !== PHASE5L_MIGRATION) {
+      throw new Error("step 33 must be the phase 5l migration runner");
+    }
+    return parsed.map((step) => {
+      const checksum = createHash("sha256").update(readFileSync(path.join(root, step.file))).digest("hex");
+      if (!CHECKSUM.test(checksum)) throw new Error("checksum must be sha256 hex");
+      return { ...step, checksum };
+    });
+  } catch (error) {
+    if (!filesystemError(error)) throw error;
+    return fixturePendingSteps();
   }
-  if (parsed[parsed.length - 1]?.file !== PHASE5L_MIGRATION) {
-    throw new Error("step 33 must be the phase 5l migration runner");
-  }
-  return parsed.map((step) => {
-    const checksum = createHash("sha256").update(readFileSync(path.join(root, step.file))).digest("hex");
-    if (!CHECKSUM.test(checksum)) throw new Error("checksum must be sha256 hex");
-    return { ...step, checksum };
-  });
 }
 
 /**
@@ -203,12 +249,34 @@ export function buildPageMigrationRunner(input: {
   tenantMode: string;
   root?: string;
 }): MigrationRunnerModel {
-  return buildMigrationRunner({
+  let steps: Array<CatalogStep & { checksum: string }>;
+  try {
+    steps = loadMigrationCatalog(input.root);
+  } catch {
+    steps = fixturePendingSteps();
+  }
+  const model = buildMigrationRunner({
     env: input.env,
     tenantMode: input.tenantMode,
-    steps: loadMigrationCatalog(input.root),
+    steps,
     verifiedSteps: verifiedMigrationSteps(),
   });
+  const fixtureCatalog = steps.length > 0 && steps.every((step) => step.checksum === FIXTURE_STEP_CHECKSUM);
+  if (!fixtureCatalog) return model;
+  const lines = model.lines.map((line) => {
+    if (line === "Checklist source is the workspace session. Every unverified step stays pending.") {
+      return "Fixture. Every step is pending.";
+    }
+    if (line === DRY_RUN_READY_COPY) return FIXTURE_RUNNER_COPY;
+    return line;
+  });
+  return {
+    ...model,
+    write: false,
+    mode: "fixture",
+    source: "fixture",
+    lines: [MISSING_CATALOG_COPY, ...lines],
+  };
 }
 
 export function missingMigrationRunner(message: string) {

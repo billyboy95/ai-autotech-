@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { CrmFrame } from "@/components/crm/frame";
 import { presentWorkspace } from "@/lib/brand/present";
 import { loadBillingNote } from "@/lib/billing/load";
+import { loadNotificationUnread } from "@/lib/funnel/load";
 import { loadInboxUnread } from "@/lib/inbox/load";
 import { recordAgencyView, rememberActiveOrg, safeResolveWorkspace } from "@/lib/tenant/context";
 import { isAgencyRole } from "@/lib/tenant/types";
@@ -64,6 +65,7 @@ export async function CommandShell({
 
   const brand = presentWorkspace(tenant.active);
   const inboxUnread = await loadInboxUnread();
+  const alerts = await loadNotificationUnread({ tenantMode: tenant.mode, orgId: tenant.active.id });
   const billingNote =
     tenant.mode === "member" && tenant.scoped && !tenant.active.id.startsWith("preview-")
       ? await loadBillingNote(tenant.active.id)
@@ -74,6 +76,8 @@ export async function CommandShell({
       setupError={setupError}
       sendingEnabled={sendingEnabled}
       inboxUnread={inboxUnread}
+      alertUnread={alerts.unread}
+      alertsFixture={alerts.fixture}
       chrome={{
         activeSlug: tenant.active.slug,
         activeName: tenant.active.name,

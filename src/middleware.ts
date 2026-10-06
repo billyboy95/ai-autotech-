@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { authGateEnabled, decideAccess, supabaseAuthConfigured } from "@/lib/auth/gate";
 import { authOnlyRealtime } from "@/lib/supabase/realtime";
 import { BRAND_HOST_COOKIE, brandHostFrom, brandRedirectPath, isMarketingPath, stubPath } from "@/lib/brand/host";
+import { AFFILIATE_COOKIE, AFFILIATE_MAX_AGE_SECONDS, readAffiliateCode } from "@/lib/commissions/calc";
 import { REFERRAL_COOKIE, REFERRAL_MAX_AGE_SECONDS, readReferralCode } from "@/lib/referrals/codes";
 import { ORG_COOKIE, WORKSPACE_COOKIE } from "@/lib/tenant/types";
 
@@ -31,9 +32,23 @@ function rememberReferral(request: NextRequest, response: NextResponse) {
   return response;
 }
 
+function rememberAffiliate(request: NextRequest, response: NextResponse) {
+  const code = readAffiliateCode(request.nextUrl.searchParams.get("aff"));
+  if (!code) return response;
+  response.cookies.set(AFFILIATE_COOKIE, code, {
+    httpOnly: true,
+    sameSite: "lax",
+    path: "/",
+    maxAge: AFFILIATE_MAX_AGE_SECONDS,
+    secure: request.nextUrl.protocol === "https:",
+  });
+  return response;
+}
+
 function stampWorkspace(request: NextRequest, response: NextResponse) {
   rememberWorkspace(request, response);
   rememberReferral(request, response);
+  rememberAffiliate(request, response);
   return response;
 }
 

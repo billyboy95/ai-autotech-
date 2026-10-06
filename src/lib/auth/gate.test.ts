@@ -15,6 +15,8 @@ const publicPaths = [
   "/login/forgot",
   "/login/reset",
   "/audit",
+  "/start",
+  "/start/open",
   "/api/public/audit",
   "/api/public/leads",
   "/book/ai-autotech-audit",

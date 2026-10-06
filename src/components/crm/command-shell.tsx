@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { CrmFrame } from "@/components/crm/frame";
 import { presentWorkspace } from "@/lib/brand/present";
 import { loadBillingNote } from "@/lib/billing/load";
+import { loadTrialNote } from "@/lib/trial/load";
 import { loadNotificationUnread } from "@/lib/funnel/load";
 import { loadInboxUnread } from "@/lib/inbox/load";
 import { recordAgencyView, rememberActiveOrg, safeResolveWorkspace } from "@/lib/tenant/context";
@@ -66,10 +67,14 @@ export async function CommandShell({
   const brand = presentWorkspace(tenant.active);
   const inboxUnread = await loadInboxUnread();
   const alerts = await loadNotificationUnread({ tenantMode: tenant.mode, orgId: tenant.active.id });
-  const billingNote =
+  const trialNote =
     tenant.mode === "member" && tenant.scoped && !tenant.active.id.startsWith("preview-")
-      ? await loadBillingNote(tenant.active.id)
+      ? await loadTrialNote(tenant.active.id)
       : null;
+  const billingNote =
+    trialNote || !(tenant.mode === "member" && tenant.scoped && !tenant.active.id.startsWith("preview-"))
+      ? null
+      : await loadBillingNote(tenant.active.id);
 
   return (
     <CrmFrame
@@ -88,8 +93,9 @@ export async function CommandShell({
         userEmail: tenant.userEmail,
         note,
         agencyBanner,
-        billingBanner: billingNote?.text ?? null,
-        billingTone: billingNote?.tone ?? null,
+        billingBanner: trialNote?.text ?? billingNote?.text ?? null,
+        billingTone: trialNote?.tone ?? billingNote?.tone ?? null,
+        billingHref: trialNote?.href ?? null,
         productName: brand.productName,
         logoUrl: brand.logoUrl,
         showPlatformName: brand.showPlatformName,

@@ -21,6 +21,7 @@ export type CommandChrome = {
   agencyBanner: string | null;
   billingBanner: string | null;
   billingTone: "block" | "warn" | null;
+  billingHref?: string | null;
   productName: string;
   logoUrl: string;
   showPlatformName: boolean;
@@ -166,6 +167,14 @@ export function CrmFrame({
         {chrome?.billingBanner ? (
           <p className={`rounded-xl border px-4 py-3 text-sm ${chrome.billingTone === "block" ? "border-rose-200 bg-rose-50 text-rose-950" : "border-amber-200 bg-amber-50 text-amber-950"}`}>
             {chrome.billingBanner}
+            {chrome.billingHref ? (
+              <>
+                {" "}
+                <Link href={chrome.billingHref} className="font-semibold underline">
+                  View plans
+                </Link>
+              </>
+            ) : null}
           </p>
         ) : null}
         {chrome?.agencyBanner ? (

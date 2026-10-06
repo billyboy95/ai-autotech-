@@ -89,6 +89,8 @@ export async function callServiceRpc(fn: string, args: Record<string, unknown>) 
     "apply_billing_dunning",
     "run_billing_cycle",
     "bill_usage_period",
+    "start_free_trial",
+    "expire_free_trials",
   ]);
   if (!allowed.has(fn)) throw new Error("That billing call is not allowed.");
   const client = serviceClient();
@@ -144,6 +146,23 @@ export async function listAuthEmails() {
     if (user.email) emails.set(user.id, user.email);
   }
   return emails;
+}
+
+/** Confirms the user immediately so Supabase does not send a confirmation email. */
+export async function createConfirmedUser(email: string, password: string) {
+  const client = serviceClient();
+  if (!client) return { id: null as string | null, created: false, reason: "unconfigured" as const };
+  const listed = await client.auth.admin.listUsers({ page: 1, perPage: 200 });
+  if (listed.error) return { id: null, created: false, reason: "failed" as const };
+  const existing = listed.data.users.find((item) => item.email?.toLowerCase() === email.toLowerCase());
+  if (existing) return { id: existing.id, created: false, reason: "exists" as const };
+  const created = await client.auth.admin.createUser({
+    email,
+    password,
+    email_confirm: true,
+  });
+  if (created.error || !created.data.user) return { id: null, created: false, reason: "failed" as const };
+  return { id: created.data.user.id, created: true, reason: "created" as const };
 }
 
 export async function findAuthUserIdByEmail(email: string) {

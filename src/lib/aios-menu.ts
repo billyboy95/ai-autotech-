@@ -61,6 +61,7 @@ export const AIOS_SECTIONS = [
     label: "Agency",
     links: [
       ["/agency", "Agency"],
+      ["/agency/duplicate", "Duplicate workspace"],
       ["/command-centre/bots/agency", "Agent MRR"],
       ["/command-centre/clients", "Clients"],
       ["/command-centre/settings", "Settings"],

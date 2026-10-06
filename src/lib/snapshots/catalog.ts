@@ -2,6 +2,9 @@ import { PIPELINE_STAGES } from "@/lib/automation/types";
 import { DEFAULT_TEMPLATES, STEP_TEMPLATES } from "@/lib/automation/templates";
 import { phase1SnapshotWorkflows } from "@/lib/workflows/phase1";
 import type { SnapshotPayload, SnapshotPipeline, SnapshotSequence, SnapshotTemplate } from "@/lib/snapshots/payload";
+import { AGENCY_DRAFT_WORKFLOWS, AGENCY_V2_EXTRAS, RESTAURANT_PAYLOAD, RESTAURANT_SNAPSHOT, RESTAURANT_SNAPSHOT_ID } from "@/lib/snapshots/templates-v2";
+
+export { RESTAURANT_PAYLOAD, RESTAURANT_SNAPSHOT_ID };
 
 export const AGENCY_DEFAULT_SNAPSHOT_ID = "a2c00000-0000-4000-8000-000000000001";
 export const EDUCATION_SNAPSHOT_ID = "a2c00000-0000-4000-8000-000000000002";
@@ -117,7 +120,7 @@ function agencySequences(): SnapshotSequence[] {
 }
 
 export const AGENCY_DEFAULT_PAYLOAD: SnapshotPayload = {
-  version: 1,
+  version: 2,
   pipelines: [agencyPipeline()],
   message_templates: agencyTemplates(),
   sequences: agencySequences(),
@@ -126,7 +129,8 @@ export const AGENCY_DEFAULT_PAYLOAD: SnapshotPayload = {
     { asset_key: "field:lead:industry", entity: "lead", field_key: "industry", label: "Industry", field_type: "text", options: [], required: false, position: 2 },
     { asset_key: "field:lead:website", entity: "lead", field_key: "website", label: "Website", field_type: "text", options: [], required: false, position: 3 },
   ],
-  workflows: phase1SnapshotWorkflows(),
+  workflows: [...phase1SnapshotWorkflows(), ...AGENCY_DRAFT_WORKFLOWS],
+  ...AGENCY_V2_EXTRAS,
 };
 
 export const EDUCATION_STAGES = [
@@ -237,6 +241,7 @@ export const EDUCATION_SNAPSHOT: SnapshotOption = {
 export const SEEDED_SNAPSHOTS = [
   { ...AGENCY_DEFAULT_SNAPSHOT, payload: AGENCY_DEFAULT_PAYLOAD },
   { ...EDUCATION_SNAPSHOT, payload: EDUCATION_PAYLOAD },
+  { ...RESTAURANT_SNAPSHOT, payload: RESTAURANT_PAYLOAD },
 ] as const;
 
 export function seededSnapshotOptions(): SnapshotOption[] {

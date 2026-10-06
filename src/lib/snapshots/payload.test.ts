@@ -8,11 +8,22 @@ import {
   EDUCATION_STAGES,
   SEEDED_SNAPSHOTS,
 } from "@/lib/snapshots/catalog";
-import { checksum, collectPayloadIssues, planPush, SNAPSHOT_TOP_LEVEL_KEYS, templateContent } from "@/lib/snapshots/payload";
+import {
+  checksum,
+  collectPayloadIssues,
+  planPush,
+  SNAPSHOT_TOP_LEVEL_KEYS,
+  SNAPSHOT_V2_EXTRA_KEYS,
+  templateContent,
+} from "@/lib/snapshots/payload";
 
 test("seeded snapshots contain catalogue data only", () => {
   for (const snapshot of SEEDED_SNAPSHOTS) {
-    assert.deepEqual(Object.keys(snapshot.payload).sort(), [...SNAPSHOT_TOP_LEVEL_KEYS].sort());
+    const expected =
+      snapshot.payload.version === 2
+        ? [...SNAPSHOT_TOP_LEVEL_KEYS, ...SNAPSHOT_V2_EXTRA_KEYS].sort()
+        : [...SNAPSHOT_TOP_LEVEL_KEYS].sort();
+    assert.deepEqual(Object.keys(snapshot.payload).sort(), expected);
     assert.deepEqual(collectPayloadIssues(snapshot.payload), []);
     const encoded = JSON.stringify(snapshot.payload);
     assert.equal(encoded.includes("@"), false);
@@ -50,6 +61,18 @@ test("education admissions snapshot is templates only", () => {
   for (const template of EDUCATION_PAYLOAD.message_templates) {
     assert.match(template.body, /not sent/i);
   }
+});
+
+test("a public website phone is allowed and a template phone is not", () => {
+  assert.deepEqual(
+    collectPayloadIssues({
+      website: { phone: "0821234567", email: "hello@example.com" },
+      ai_knowledge: { entries: [{ body: "Call 0821234567 or hello@example.com" }] },
+    }),
+    [],
+  );
+  assert.deepEqual(collectPayloadIssues({ website: { contacts: [] } }), ["contacts"]);
+  assert.deepEqual(collectPayloadIssues({ body: "Call 0821234567 today" }), ["phone_number"]);
 });
 
 test("uuid asset keys are not phone numbers", () => {

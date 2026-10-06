@@ -42,6 +42,7 @@ const EXTRA_PHRASES: Record<string, string[]> = {
   "/command-centre/workflows": ["automations", "workflows"],
   "/command-centre/billing": ["billing"],
   "/command-centre/referrals": ["referrals", "refer"],
+  "/command-centre/commissions": ["commissions", "salesperson", "affiliate"],
   "/agency": ["agency"],
   "/command-centre/bots/agency": ["agent mrr"],
   "/command-centre/clients": ["clients"],

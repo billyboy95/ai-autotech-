@@ -56,6 +56,7 @@ export const AIOS_SECTIONS = [
     links: [
       ["/command-centre/billing", "Billing"],
       ["/command-centre/referrals", "Referrals"],
+      ["/command-centre/commissions", "Commissions"],
     ],
   },
   {

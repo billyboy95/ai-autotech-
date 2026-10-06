@@ -156,6 +156,8 @@ test("every command-centre and agency page requires a session, and public intake
     "/command-centre/pipeline",
     "/command-centre/reviews",
     "/command-centre/referrals",
+    "/command-centre/commissions",
+    "/command-centre/commissions/fixture-nomsa",
     "/command-centre/lead-agent",
     "/command-centre/onboarding",
     "/command-centre/connect-accounts",
@@ -207,7 +209,7 @@ test("middleware redirects an unauthenticated /command-centre request to /login"
     const location = denied.headers.get("location") ?? "";
     assert.match(location, /\/login\?next=%2Fcommand-centre$/);
 
-    for (const path of ["/command-centre/pipeline", "/command-centre/reviews", "/command-centre/referrals", "/command-centre/lead-agent", "/command-centre/onboarding", "/command-centre/connect-accounts", "/command-centre/connect-accounts/whatsapp", "/command-centre/connect-accounts/gmail", "/command-centre/connect-accounts/sms", "/command-centre/connect-accounts/tiktok", "/command-centre/connect-accounts/linkedin", "/command-centre/social", "/command-centre/campaigns", "/command-centre/import-contacts", "/command-centre/assistant", "/command-centre/setup", "/command-centre/migrations", "/command-centre/owner", "/command-centre/ops-secrets", "/command-centre/go-live", "/agency"]) {
+    for (const path of ["/command-centre/pipeline", "/command-centre/reviews", "/command-centre/referrals", "/command-centre/commissions", "/command-centre/commissions/fixture-nomsa", "/command-centre/lead-agent", "/command-centre/onboarding", "/command-centre/connect-accounts", "/command-centre/connect-accounts/whatsapp", "/command-centre/connect-accounts/gmail", "/command-centre/connect-accounts/sms", "/command-centre/connect-accounts/tiktok", "/command-centre/connect-accounts/linkedin", "/command-centre/social", "/command-centre/campaigns", "/command-centre/import-contacts", "/command-centre/assistant", "/command-centre/setup", "/command-centre/migrations", "/command-centre/owner", "/command-centre/ops-secrets", "/command-centre/go-live", "/agency"]) {
       const response = await middleware(new NextRequest(`http://localhost${path}`));
       assert.equal(response.status, 307, path);
       assert.match(response.headers.get("location") ?? "", new RegExp(`/login\\?next=${encodeURIComponent(path).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`));
@@ -284,6 +286,10 @@ test("a referral code is stored on public links without a session", async () => 
     assert.equal(gated.status, 307);
     assert.match(gated.headers.get("location") ?? "", /\/login\?next=%2Fcommand-centre%2Freferrals/);
     assert.match(gated.headers.get("set-cookie") || "", /aat_ref=BILLY42/);
+
+    const affiliate = await middleware(new NextRequest("http://localhost/audit?aff=nomsa-30"));
+    assert.equal(affiliate.status, 200);
+    assert.match(affiliate.headers.get("set-cookie") || "", /aat_aff=NOMSA30/);
   } finally {
     if (previous.url === undefined) delete process.env.NEXT_PUBLIC_SUPABASE_URL;
     else process.env.NEXT_PUBLIC_SUPABASE_URL = previous.url;

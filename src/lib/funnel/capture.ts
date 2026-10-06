@@ -23,6 +23,9 @@ export type PublicCaptureInput = {
   leadEmail: string;
   detail?: string;
   audit?: AuditSource | null;
+  reportPath?: string;
+  consentAccepted?: boolean;
+  consentText?: string;
 };
 
 export type CaptureDeps = {

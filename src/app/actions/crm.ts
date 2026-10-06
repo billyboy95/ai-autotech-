@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { isJobKind } from "@/lib/brand/catalog";
 import { insertClient, insertInvoice, insertJob, nid, updateInvoiceStatus, updateJobStatus, type Job } from "@/lib/crm-store";
+import { noteClassicInvoicePaid } from "@/server/workers/sales-agents";
 
 function refresh() {
   revalidatePath("/command-centre");
@@ -52,5 +53,6 @@ export async function addInvoice(formData: FormData) {
 
 export async function markInvoicePaid(id: string) {
   await updateInvoiceStatus(id, "Paid on Yoco");
+  await noteClassicInvoicePaid(id);
   refresh();
 }

@@ -41,6 +41,7 @@ export function isPublicPath(pathname: string) {
   if (MARKETING.has(pathname)) return true;
   if (pathname === "/login" || pathname.startsWith("/login/")) return true;
   if (pathname === "/audit" || pathname.startsWith("/audit/")) return true;
+  if (pathname === "/start" || pathname.startsWith("/start/")) return true;
   if (pathname === "/auth" || pathname.startsWith("/auth/")) return true;
   if (pathname.startsWith("/api/public/")) return true;
   if (pathname === "/book" || pathname.startsWith("/book/")) return true;

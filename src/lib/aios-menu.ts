@@ -24,6 +24,7 @@ export const AIOS_SECTIONS = [
       ["/command-centre/contacts", "Contacts"],
       ["/command-centre/pipeline", "Pipeline"],
       ["/command-centre/notifications", "Alerts"],
+      ["/command-centre/approvals", "Approvals"],
       ["/command-centre/inbox", "Inbox"],
       ["/command-centre/calendars", "Calendars"],
       ["/command-centre/reviews", "Reviews"],
@@ -55,6 +56,7 @@ export const AIOS_SECTIONS = [
     links: [
       ["/command-centre/billing", "Billing"],
       ["/command-centre/referrals", "Referrals"],
+      ["/command-centre/commissions", "Commissions"],
     ],
   },
   {
@@ -62,6 +64,7 @@ export const AIOS_SECTIONS = [
     label: "Agency",
     links: [
       ["/agency", "Agency"],
+      ["/agency/duplicate", "Duplicate workspace"],
       ["/command-centre/bots/agency", "Agent MRR"],
       ["/command-centre/clients", "Clients"],
       ["/command-centre/settings", "Settings"],

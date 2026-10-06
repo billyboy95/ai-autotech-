@@ -1,4 +1,5 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { AI_AUTOTECH_AGENCY_SLUG, AI_AUTOTECH_CLIENT_SLUG, choosePublicIntakeOrg } from "@/lib/aios/public-intake";
 import { authOnlyRealtime } from "@/lib/supabase/realtime";
 import { missingOrgColumn } from "@/lib/tenant/rows";
 
@@ -89,6 +90,8 @@ export async function callServiceRpc(fn: string, args: Record<string, unknown>) 
     "apply_billing_dunning",
     "run_billing_cycle",
     "bill_usage_period",
+    "start_free_trial",
+    "expire_free_trials",
   ]);
   if (!allowed.has(fn)) throw new Error("That billing call is not allowed.");
   const client = serviceClient();
@@ -128,8 +131,44 @@ export async function ensureAuditShareToken(auditLeadId: string, token: string) 
 }
 
 export async function agencyOrgId() {
-  const found = await lookupRow("organizations", "slug", "ai-autotech", "id");
+  const found = await lookupRow("organizations", "slug", AI_AUTOTECH_AGENCY_SLUG, "id");
   if (!found.configured || found.error || !found.data) return null;
+  const id = (found.data as { id?: string }).id;
+  return id ? String(id) : null;
+}
+
+/**
+ * Audit and guide forms land on the provisioned AI AutoTech client when that
+ * workspace is marked. Until then they stay on the agency workspace.
+ */
+export async function publicIntakeOrgId() {
+  const client = serviceClient();
+  if (!client) return null;
+  const listed = await client
+    .from("organizations")
+    .select("id, slug, settings")
+    .in("slug", [AI_AUTOTECH_CLIENT_SLUG, AI_AUTOTECH_AGENCY_SLUG]);
+  if (listed.error || !listed.data?.length) return agencyOrgId();
+  const rows = (listed.data as { id?: string; slug?: string; settings?: unknown }[]).flatMap((row) => {
+    if (!row.id || !row.slug) return [];
+    return [{ id: String(row.id), slug: String(row.slug), settings: row.settings }];
+  });
+  return choosePublicIntakeOrg(rows);
+}
+
+/** First sales-pipeline stage for a public lead. Null when the template is not applied yet. */
+export async function salesPipelineStageId(orgId: string | null, stageName = "New") {
+  const client = serviceClient();
+  if (!client || !orgId) return null;
+  const found = await client
+    .from("pipeline_stages")
+    .select("id")
+    .eq("org_id", orgId)
+    .eq("name", stageName)
+    .order("position", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  if (found.error || !found.data) return null;
   const id = (found.data as { id?: string }).id;
   return id ? String(id) : null;
 }
@@ -144,6 +183,23 @@ export async function listAuthEmails() {
     if (user.email) emails.set(user.id, user.email);
   }
   return emails;
+}
+
+/** Confirms the user immediately so Supabase does not send a confirmation email. */
+export async function createConfirmedUser(email: string, password: string) {
+  const client = serviceClient();
+  if (!client) return { id: null as string | null, created: false, reason: "unconfigured" as const };
+  const listed = await client.auth.admin.listUsers({ page: 1, perPage: 200 });
+  if (listed.error) return { id: null, created: false, reason: "failed" as const };
+  const existing = listed.data.users.find((item) => item.email?.toLowerCase() === email.toLowerCase());
+  if (existing) return { id: existing.id, created: false, reason: "exists" as const };
+  const created = await client.auth.admin.createUser({
+    email,
+    password,
+    email_confirm: true,
+  });
+  if (created.error || !created.data.user) return { id: null, created: false, reason: "failed" as const };
+  return { id: created.data.user.id, created: true, reason: "created" as const };
 }
 
 export async function findAuthUserIdByEmail(email: string) {

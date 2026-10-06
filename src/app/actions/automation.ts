@@ -7,6 +7,7 @@ import { saveCampaign } from "@/lib/automation/campaigns";
 import { importConsentCampaign } from "@/lib/compliance/campaign-import";
 import { assertDraftOrg, loadDraftProspectCampaign, readBundledProspectsCsv } from "@/lib/compliance/draft-campaign";
 import { safeResolveWorkspace } from "@/lib/tenant/context";
+import { noteLeadMarkedWon } from "@/server/workers/sales-agents";
 import {
   addNote,
   advanceHandovers,
@@ -123,6 +124,7 @@ export async function markLeadWon(formData: FormData) {
       payload: { stage: "Won", value_zar: valueZar, what_sold: whatSold, delivered_by: "Billy" },
     }).state;
   });
+  await noteLeadMarkedWon(id);
   refresh();
 }
 

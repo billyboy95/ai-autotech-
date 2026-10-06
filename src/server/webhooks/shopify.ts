@@ -1,6 +1,7 @@
 import { classifyShopifyEvent, type ShopifyClassification } from "@/lib/shopify/classify";
 import { verifyShopifyHmac } from "@/lib/shopify/hmac";
 import { missingTenantTable, parseSettings } from "@/lib/tenant/rows";
+import { noteDealWon } from "@/server/workers/sales-agents";
 import { lookupRow, withOrg } from "@/server/workers/with-org";
 
 export type WebhookResult = {
@@ -136,4 +137,15 @@ async function writeEvent(orgId: string, storeId: string, event: ShopifyClassifi
     { onConflict: "org_id,external_key" },
   );
   if (deal.error) throw new Error(deal.error.message);
+  if (event.dealStatus === "won") {
+    await noteDealWon({
+      orgId,
+      leadId: `shopify:${event.kind}:${event.shopifyId}`.slice(0, 80),
+      name: event.email || "Client",
+      company: event.email || "",
+      phone: "",
+      email: event.email || "",
+      profile: null,
+    });
+  }
 }

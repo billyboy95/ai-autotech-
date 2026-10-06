@@ -1,6 +1,15 @@
 import { createHash } from "node:crypto";
 
-export const SNAPSHOT_TOP_LEVEL_KEYS = ["version", "pipelines", "message_templates", "sequences", "custom_fields", "workflows"] as const;
+export const SNAPSHOT_V1_KEYS = ["version", "pipelines", "message_templates", "sequences", "custom_fields", "workflows"] as const;
+
+export const SNAPSHOT_V2_EXTRA_KEYS = ["tags", "calendars", "ai_reply", "ai_knowledge", "agent_team", "website"] as const;
+
+export const SNAPSHOT_TOP_LEVEL_KEYS = SNAPSHOT_V1_KEYS;
+
+/** Public site and knowledge text may name a business phone or email. Contacts and secrets stay forbidden. */
+export const PUBLIC_SNAPSHOT_ZONES = ["website", "ai_knowledge"] as const;
+
+const PUBLIC_CONTACT_KEYS = new Set(["email", "phone"]);
 
 export const FORBIDDEN_PAYLOAD_KEYS = [
   "access_token",
@@ -105,14 +114,112 @@ export type SnapshotWorkflow = {
   steps: unknown[];
 };
 
-export type SnapshotPayload = {
-  version: 1;
+export type SnapshotTag = {
+  asset_key: string;
+  name: string;
+  color: string;
+};
+
+export type SnapshotWeekly = {
+  weekday: number;
+  start_minute: number;
+  end_minute: number;
+};
+
+export type SnapshotBooking = {
+  asset_key: string;
+  slug_suffix: string;
+  active: boolean;
+  consent_text: string;
+};
+
+export type SnapshotEventType = {
+  asset_key: string;
+  name: string;
+  duration_minutes: number;
+  buffer_before_minutes: number;
+  buffer_after_minutes: number;
+  location_mode: "phone" | "video" | "in_person" | "custom";
+  location_detail: string;
+  booking: SnapshotBooking;
+};
+
+export type SnapshotCalendar = {
+  asset_key: string;
+  name: string;
+  timezone: string;
+  description: string;
+  active: boolean;
+  weekly: SnapshotWeekly[];
+  event_types: SnapshotEventType[];
+};
+
+export type SnapshotAiReply = {
+  enabled: boolean;
+  mode: "draft_only";
+  tone: string;
+  system_prompt: string;
+  max_auto_per_hour: number;
+  require_human_before_send: boolean;
+};
+
+export type SnapshotKnowledgeEntry = {
+  asset_key: string;
+  title: string;
+  body: string;
+};
+
+export type SnapshotKnowledge = {
+  entries: SnapshotKnowledgeEntry[];
+};
+
+export type SnapshotAgentTeam = {
+  template_slug: string;
+  sandbox: true;
+  charged: false;
+  agents: string[];
+};
+
+export type SnapshotService = {
+  name: string;
+  price_label: string;
+};
+
+export type SnapshotWebsite = {
+  business_name: string;
+  colours: { primary: string; accent: string };
+  logo_url: string;
+  phone: string;
+  email: string;
+  address: string;
+  hours: string;
+  services: SnapshotService[];
+  booking_url: string;
+};
+
+export type SnapshotPayloadBase = {
   pipelines: SnapshotPipeline[];
   message_templates: SnapshotTemplate[];
   sequences: SnapshotSequence[];
   custom_fields: SnapshotField[];
   workflows: SnapshotWorkflow[];
 };
+
+export type SnapshotPayloadV1 = SnapshotPayloadBase & {
+  version: 1;
+};
+
+export type SnapshotPayloadV2 = SnapshotPayloadBase & {
+  version: 2;
+  tags: SnapshotTag[];
+  calendars: SnapshotCalendar[];
+  ai_reply: SnapshotAiReply;
+  ai_knowledge: SnapshotKnowledge;
+  agent_team: SnapshotAgentTeam;
+  website: SnapshotWebsite;
+};
+
+export type SnapshotPayload = SnapshotPayloadV1 | SnapshotPayloadV2;
 
 export type PushResult = "created" | "updated" | "unchanged" | "skipped_client_edit";
 
@@ -145,22 +252,25 @@ function hasPhoneNumber(value: string) {
   return PHONE.test(value.replace(UUID, ""));
 }
 
-function walk(value: unknown, issues: string[], parentKey = "") {
+function walk(value: unknown, issues: string[], parentKey = "", publicZone = false) {
   if (Array.isArray(value)) {
-    for (const item of value) walk(item, issues, parentKey);
+    for (const item of value) walk(item, issues, parentKey, publicZone);
     return;
   }
   if (value && typeof value === "object") {
     for (const [key, child] of Object.entries(value as Record<string, unknown>)) {
-      if (FORBIDDEN.has(key.toLowerCase())) issues.push(key);
-      walk(child, issues, key);
+      const lower = key.toLowerCase();
+      const allowedPublicContact = publicZone && PUBLIC_CONTACT_KEYS.has(lower);
+      if (FORBIDDEN.has(lower) && !allowedPublicContact) issues.push(key);
+      const nextZone = publicZone || (PUBLIC_SNAPSHOT_ZONES as readonly string[]).includes(lower);
+      walk(child, issues, key, nextZone);
     }
     return;
   }
   if (typeof value === "string") {
-    if (EMAIL.test(value)) issues.push("email_address");
+    if (!publicZone && EMAIL.test(value)) issues.push("email_address");
     if (SECRET.test(value)) issues.push("secret_value");
-    if (!isAssetKeyField(parentKey) && hasPhoneNumber(value)) issues.push("phone_number");
+    if (!publicZone && !isAssetKeyField(parentKey) && hasPhoneNumber(value)) issues.push("phone_number");
   }
 }
 

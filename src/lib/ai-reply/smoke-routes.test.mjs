@@ -529,6 +529,23 @@ test("inbox, conversation AI, calendars, reviews, referrals, and public pages re
     assert.match(referralsHtml, /WhatsApp/);
     assert.match(referralsHtml, /placeholder/i);
 
+    const commissions = await fetch(`http://127.0.0.1:${port}/command-centre/commissions`, { redirect: "manual" });
+    assert.equal(commissions.status, 200);
+    const commissionsHtml = await commissions.text();
+    assert.match(commissionsHtml, /Salespeople/);
+    assert.match(commissionsHtml, /COMMISSIONS_ENABLED is unset/);
+    assert.match(commissionsHtml, /Nomsa Dlamini/);
+    assert.match(commissionsHtml, /not a tax invoice/);
+
+    const statement = await fetch(`http://127.0.0.1:${port}/command-centre/commissions/fixture-nomsa`, { redirect: "manual" });
+    assert.equal(statement.status, 200);
+    const statementHtml = await statement.text();
+    assert.match(statementHtml, /data-testid="commission-statement"/);
+    assert.match(statementHtml, /data-commission-mode="fixture"/);
+    assert.match(statementHtml, /R1,200\.00/);
+    assert.match(statementHtml, /EFT/);
+    assert.match(statementHtml, /No money was sent/);
+
     const audit = await fetch(`http://127.0.0.1:${port}/audit?ref=BILLY42`, { redirect: "manual" });
     assert.equal(audit.status, 200);
     assert.match(audit.headers.get("set-cookie") || "", /aat_ref=BILLY42/);

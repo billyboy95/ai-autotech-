@@ -65,6 +65,7 @@ async function applyTemplates(db) {
     "20260926160000_crm_automation.sql",
     "20260926183000_outbound_channels.sql",
     "20260926200000_send_compliance.sql",
+    "20260925000000_audit_leads.sql",
     "20260926160000_agency_tenancy.sql",
     "20260926200000_phase2a_access.sql",
     "20261015120000_org_scope_phase1_tables.sql",
@@ -76,6 +77,7 @@ async function applyTemplates(db) {
     "20261021120000_phase3a_conversation_ai.sql",
     "20261022120000_phase3b_calendars.sql",
     "20261024120000_phase4a_bots.sql",
+    "20261112120000_phase5p_sales_funnel.sql",
     "20261112120100_phase5p_workspace_templates.sql",
   ]) {
     await db.exec(migration(name));
@@ -97,6 +99,18 @@ async function asUser(db, userId, sql, params = []) {
 test("duplicate_workspace swaps a restaurant template and stays off", async () => {
   const db = new PGlite();
   await applyTemplates(db);
+  const both = await db.query(`
+    select to_regclass('public.crm_notifications') is not null as notifications,
+           to_regclass('public.crm_audit_reports') is not null as reports,
+           to_regprocedure('public.record_owner_notification(uuid,text,text,text,text,text,text)') is not null as notify,
+           to_regprocedure('public.duplicate_workspace(text,uuid,jsonb,text)') is not null as duplicate,
+           to_regclass('public.workspace_duplicates') is not null as duplicates
+  `);
+  assert.equal(both.rows[0].notifications, true);
+  assert.equal(both.rows[0].reports, true);
+  assert.equal(both.rows[0].notify, true);
+  assert.equal(both.rows[0].duplicate, true);
+  assert.equal(both.rows[0].duplicates, true);
   await db.exec(`
     insert into auth.users (id, email) values
       ('${AGENCY_USER}', 'owner@aiautotech.co.za'),

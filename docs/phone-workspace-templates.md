@@ -21,4 +21,4 @@ The flag is `WORKSPACE_TEMPLATES_ENABLED`. Leave it unset. Sending stays off. Th
 
 `?fixture=1` keeps the same fixture screen even if the flag is later set to `true`.
 
-Apply `supabase/migrations/20261112120100_phase5p_workspace_templates.sql` in the SQL editor only after the earlier migrations are already in place, and only when you say yes. Do not use `supabase db push`. Do not set the flag in the same step.
+Apply `supabase/migrations/20261112120100_phase5p_workspace_templates.sql` in the SQL editor only after `supabase/migrations/20261112120000_phase5p_sales_funnel.sql` and the earlier migrations are already in place, and only when you say yes. Do not use `supabase db push`. Do not set the flag in the same step.

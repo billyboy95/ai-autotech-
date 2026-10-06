@@ -3,7 +3,8 @@
 -- sending_enabled stays false. Message templates, sequences, and workflows copied
 -- by duplicate_workspace are stored inactive. AI replies stay draft_only and off.
 -- Do not apply this file to production from an agent. Paste it once in the SQL editor
--- after step 36, only when Billy says yes. Do not use supabase db push.
+-- after 20261112120000_phase5p_sales_funnel.sql (that file follows step 36),
+-- only when Billy says yes. Do not use supabase db push.
 
 do $need$
 begin

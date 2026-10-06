@@ -1,4 +1,5 @@
 import { contactLookup, planInboundThread, windowExpiry } from "@/lib/inbox/rules";
+import { noteLeadReply } from "@/server/workers/sales-agents";
 import { openServiceDatabase } from "@/server/workers/service-db";
 import { withOrg } from "@/server/workers/with-org";
 
@@ -108,6 +109,10 @@ export async function recordInboundThread(input: {
       providerMessageId: input.providerMessageId,
       body: input.body,
     });
+
+    if (contact.leadId) {
+      await noteLeadReply({ orgId: input.orgId, leadId: contact.leadId, stop: input.stop });
+    }
 
     return { ok: true, conversationId, contactId: contact.id, messageId, duplicate };
   } catch (error) {

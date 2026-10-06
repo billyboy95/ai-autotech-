@@ -309,6 +309,9 @@ export async function POST(request: Request) {
     phone: input.phone,
     leadEmail: input.email,
     detail: reference,
+    reportPath: storedToken ? `/team/${shareToken}` : "",
+    consentAccepted: true,
+    consentText: input.consentText,
     audit: {
       company: input.company,
       industry: input.industry,

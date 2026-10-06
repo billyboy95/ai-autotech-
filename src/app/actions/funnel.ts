@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { isSalesFunnelEnabled } from "@/lib/funnel/flag";
+import { noteReportApproved } from "@/server/workers/sales-agents";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { safeResolveWorkspace } from "@/lib/tenant/context";
 
@@ -90,6 +91,7 @@ export async function approveAuditReport(formData: FormData) {
     .update({ status: "approved", approved_by: userId })
     .eq("org_id", orgId)
     .eq("audit_lead_id", auditLeadId);
+  await noteReportApproved({ orgId, auditLeadId, leadId });
   revalidatePath(back);
   redirect(back);
 }

@@ -24,6 +24,7 @@ export const AIOS_SECTIONS = [
       ["/command-centre/contacts", "Contacts"],
       ["/command-centre/pipeline", "Pipeline"],
       ["/command-centre/notifications", "Alerts"],
+      ["/command-centre/approvals", "Approvals"],
       ["/command-centre/inbox", "Inbox"],
       ["/command-centre/calendars", "Calendars"],
       ["/command-centre/reviews", "Reviews"],

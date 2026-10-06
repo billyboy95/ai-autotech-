@@ -5,6 +5,7 @@ import { loadPublicBooking } from "@/lib/calendars/public";
 import { formatSlot } from "@/lib/calendars/slots";
 import { bookPublicAppointment, orgIdForBookingSlug, serviceConfigured } from "@/server/workers/booking";
 import { notifyPublicCapture } from "@/server/workers/funnel";
+import { noteResultsCallBooked } from "@/server/workers/sales-agents";
 
 export type BookingState = { ok: boolean; message: string };
 
@@ -70,6 +71,17 @@ export async function submitPublicBooking(_prev: BookingState, formData: FormDat
       phone: String(formData.get("phone") || "").trim(),
       leadEmail: String(formData.get("email") || "").trim(),
       detail: when,
+    });
+    await noteResultsCallBooked({
+      orgId,
+      appointmentId,
+      leadId: saved.data.lead_id ? String(saved.data.lead_id) : "",
+      name: String(formData.get("name") || "").trim(),
+      company: "",
+      phone: String(formData.get("phone") || "").trim(),
+      email: String(formData.get("email") || "").trim(),
+      startsAt: plan.startsAt,
+      consentAccepted: true,
     });
   }
   return { ok: true, message: `You're booked for ${when}. No confirmation SMS or email was sent.` };

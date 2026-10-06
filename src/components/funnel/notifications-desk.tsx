@@ -29,6 +29,9 @@ export function NotificationsDesk({ data }: { data: NotificationDesk }) {
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#2563EB]">Alerts</p>
         <h1 className="mt-1 font-display text-2xl font-bold text-[#0B1F3A]">Owner notifications</h1>
         <p className="mt-2 text-sm leading-6 text-slate-600">{data.notice}</p>
+        <Link href="/command-centre/approvals" className="mt-3 inline-flex h-11 items-center text-sm font-semibold text-[#2563EB]">
+          Approval queue
+        </Link>
         <p className="mt-3 text-sm font-semibold text-[#0B1F3A]">{unread} unread</p>
       </header>
 

@@ -5,6 +5,7 @@ import { handlePublicCapture, type CaptureDeps, type PublicCaptureInput } from "
 import { isSalesFunnelEnabled } from "@/lib/funnel/flag";
 import { draftsFromNotifyMemory, planOwnerAlert, type WorkflowNote } from "@/lib/funnel/notify";
 import { acceptPolish, type ReportSection } from "@/lib/funnel/report";
+import { notePublicCaptureForSalesAgents } from "@/server/workers/sales-agents";
 import { openServiceDatabase } from "@/server/workers/service-db";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -105,7 +106,9 @@ function liveDeps(orgId: string): CaptureDeps {
 /** Public audit, contact, and booking capture. Flag off stores nothing extra and emails nobody. */
 export async function notifyPublicCapture(input: PublicCaptureInput) {
   try {
-    return await handlePublicCapture(input, liveDeps(input.orgId || ""));
+    const outcome = await handlePublicCapture(input, liveDeps(input.orgId || ""));
+    await notePublicCaptureForSalesAgents(input);
+    return outcome;
   } catch (error) {
     console.error("sales funnel capture skipped", error instanceof Error ? error.message : "failed");
     return null;

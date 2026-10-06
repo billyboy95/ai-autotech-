@@ -3,6 +3,7 @@ import { isWorkflowEngineEnabled } from "@/lib/workflows/flag";
 import { phase1Workflows } from "@/lib/workflows/phase1";
 import { dispatchEvent } from "@/lib/workflows/runner";
 import { CLAIM_LIMIT, type TriggerType, type WorkflowDefinition } from "@/lib/workflows/types";
+import { persistWorkflowNotifications } from "@/server/workers/funnel";
 import { openServiceDatabase } from "@/server/workers/service-db";
 
 const SKIPPED = "WORKFLOW_ENGINE_ENABLED is off. Phase 1 automations still run from /api/cron/automation.";
@@ -56,19 +57,37 @@ async function executeClaimed(rows: ClaimedRun[]) {
     for (const row of rows) {
       const workflow = definitionFor(row);
       if (!workflow || !row.subject_id) continue;
-      state = dispatchEvent(state, [workflow], {
+      const store = dispatchEvent(state, [workflow], {
         type: (row.event_type || workflow.trigger_type) as TriggerType,
         subjectId: row.subject_id,
         occurredAt: now.toISOString(),
         id: row.event_id || `claimed-${row.id || row.subject_id}`,
         payload: row.event_payload || {},
-      }).state;
+      });
+      state = store.state;
+      const orgId = await orgIdForLead(row.subject_id);
+      if (orgId) {
+        try {
+          await persistWorkflowNotifications(store.memory.notifications, orgId);
+        } catch (error) {
+          console.error("workflow notification skipped", error instanceof Error ? error.message : "failed");
+        }
+      }
     }
     await saveWorkspace(workspace.state, state);
     return { ok: true as const, count: rows.length, error: undefined };
   } catch (error) {
     return { ok: false as const, count: 0, error: error instanceof Error ? error.message : "Could not execute claimed workflow runs." };
   }
+}
+
+async function orgIdForLead(leadId: string) {
+  const db = openServiceDatabase();
+  if (!db) return null;
+  const row = await db.from("crm_leads").select("org_id").eq("id", leadId).maybeSingle();
+  if (row.error || !row.data) return null;
+  const orgId = (row.data as { org_id?: string }).org_id;
+  return orgId ? String(orgId) : null;
 }
 
 function definitionFor(row: ClaimedRun): WorkflowDefinition | null {

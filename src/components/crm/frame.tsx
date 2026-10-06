@@ -1,8 +1,9 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { Bell } from "lucide-react";
 import { BrandLogo } from "@/components/brand-logo";
 import { WorkspaceSwitcher } from "@/components/workspace-switcher";
 import { AIOS_SECTIONS } from "@/lib/aios-menu";
@@ -42,15 +43,31 @@ export function CrmFrame({
   setupError,
   sendingEnabled = false,
   inboxUnread = 0,
+  alertUnread = 0,
+  alertsFixture = false,
   chrome,
 }: {
   children: ReactNode;
   setupError?: string | null;
   sendingEnabled?: boolean;
   inboxUnread?: number;
+  alertUnread?: number;
+  alertsFixture?: boolean;
   chrome?: CommandChrome | null;
 }) {
   const pathname = usePathname();
+  const [unreadAlerts, setUnreadAlerts] = useState(alertUnread);
+  useEffect(() => {
+    setUnreadAlerts(alertUnread);
+  }, [alertUnread]);
+  useEffect(() => {
+    function onUnread(event: Event) {
+      const detail = (event as CustomEvent<number>).detail;
+      if (typeof detail === "number") setUnreadAlerts(detail);
+    }
+    window.addEventListener("funnel-alerts-unread", onUnread);
+    return () => window.removeEventListener("funnel-alerts-unread", onUnread);
+  }, []);
 
   return (
     <div className="min-h-screen bg-[#F3F4F6] text-[#111827]">
@@ -79,6 +96,17 @@ export function CrmFrame({
               userEmail={chrome.userEmail}
             />
           ) : null}
+          <Link
+            href="/command-centre/notifications"
+            aria-label={alertsFixture ? `${unreadAlerts} sample alerts` : `${unreadAlerts} unread alerts`}
+            className="inline-flex h-11 items-center gap-2 rounded-full border border-slate-200 px-3 text-sm font-semibold text-[#0B1F3A]"
+          >
+            <Bell size={16} />
+            Alerts
+            {unreadAlerts > 0 ? (
+              <span className="rounded-full bg-[#2563EB] px-1.5 text-xs text-white">{unreadAlerts}</span>
+            ) : null}
+          </Link>
           <p
             className={`rounded-full px-3 py-1 text-xs font-semibold ${
               sendingEnabled ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-900"

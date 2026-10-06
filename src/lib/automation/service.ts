@@ -7,6 +7,7 @@ import { applyStageRules, captureLead, createInitialState, runCron } from "@/lib
 import { isWorkflowEngineEnabled } from "@/lib/workflows/flag";
 import { phase1Workflows } from "@/lib/workflows/phase1";
 import { dispatchEvent, runScheduledWorkflows } from "@/lib/workflows/runner";
+import { persistWorkflowNotifications } from "@/server/workers/funnel";
 import { messageCategory } from "@/lib/automation/compliance";
 import { flushOutbox } from "@/lib/automation/flush";
 import { loadSupabaseWorkspace, MIGRATION_FILE, saveSupabaseWorkspace } from "@/lib/automation/persist";
@@ -82,18 +83,30 @@ async function enrollOn(supabase: SupabaseClient, input: CaptureInput) {
   }
   const now = new Date();
   let after = captureLead(workspace.state, input, now, { automate: !isWorkflowEngineEnabled() });
+  let notes: { subjectId: string; text: string; at: string }[] = [];
   if (isWorkflowEngineEnabled()) {
-    after = dispatchEvent(after, phase1Workflows(), {
+    const store = dispatchEvent(after, phase1Workflows(), {
       type: "lead.created",
       subjectId: input.id,
       occurredAt: now.toISOString(),
       id: `lead.created-${input.id}-${now.toISOString()}`,
       payload: { source: input.source || "" },
-    }).state;
+    });
+    after = store.state;
+    notes = store.memory.notifications;
   } else {
     after = applyStageRules(after, now, process.env, input.id);
   }
   await saveSupabaseWorkspace(supabase, workspace.state, after);
+  if (notes.length) {
+    try {
+      const org = await supabase.from("crm_leads").select("org_id").eq("id", input.id).maybeSingle();
+      const orgId = org.data?.org_id ? String(org.data.org_id) : "";
+      if (orgId) await persistWorkflowNotifications(notes, orgId);
+    } catch (error) {
+      console.error("workflow notification skipped", error instanceof Error ? error.message : "failed");
+    }
+  }
   return { ok: true as const };
 }
 

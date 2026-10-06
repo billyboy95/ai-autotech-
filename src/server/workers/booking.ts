@@ -33,5 +33,18 @@ export async function bookPublicAppointment(input: {
     p_consent_text: input.consentText,
   });
   if (result.error) return { configured: true as const, data: null, error: result.error.message };
-  return { configured: true as const, data: result.data as { ok?: boolean; appointment_id?: string } | null, error: null as string | null };
+  return {
+    configured: true as const,
+    data: result.data as { ok?: boolean; appointment_id?: string; lead_id?: string } | null,
+    error: null as string | null,
+  };
+}
+
+export async function orgIdForBookingSlug(slug: string) {
+  const db = openServiceDatabase();
+  if (!db) return null;
+  const row = await db.from("booking_links").select("org_id").eq("slug", slug).maybeSingle();
+  if (row.error || !row.data) return null;
+  const orgId = (row.data as { org_id?: string }).org_id;
+  return orgId ? String(orgId) : null;
 }

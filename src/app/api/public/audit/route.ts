@@ -5,6 +5,7 @@ import { newShareToken } from "@/lib/bots/share-token";
 import { nid } from "@/lib/crm-store";
 import { readReferralCode, referralCodeFromCookieHeader } from "@/lib/referrals/codes";
 import { recordReferralClick } from "@/server/workers/referrals";
+import { notifyPublicCapture } from "@/server/workers/funnel";
 import { agencyOrgId, insertForOrg, serviceConfigured } from "@/server/workers/with-org";
 
 export const runtime = "nodejs";
@@ -298,8 +299,35 @@ export async function POST(request: Request) {
   const ref = readReferralCode(input.tracking.ref) || referralCodeFromCookieHeader(request.headers.get("cookie"));
   if (ref) await recordReferralClick(ref, "audit", crmLeadId);
 
+  const funnel = await notifyPublicCapture({
+    kind: "audit",
+    orgId,
+    sourceId: String(data.id),
+    leadId: crmLeadId,
+    name: `${input.firstName} ${input.lastName}`.trim(),
+    company: input.company,
+    phone: input.phone,
+    leadEmail: input.email,
+    detail: reference,
+    audit: {
+      company: input.company,
+      industry: input.industry,
+      website: input.website,
+      answers: input.answers,
+      score: input.score,
+      recommendations: input.recommendations,
+      recommendedAgents: input.recommendedAgents,
+    },
+  });
+
   return json(
-    { ok: true, id: data.id, reference, ...(storedToken ? { teamPath: `/team/${shareToken}` } : {}) },
+    {
+      ok: true,
+      id: data.id,
+      reference,
+      ...(storedToken ? { teamPath: `/team/${shareToken}` } : {}),
+      ...(funnel && !funnel.skipped && funnel.resultsCallUrl ? { resultsCallUrl: funnel.resultsCallUrl } : {}),
+    },
     200,
     origin,
   );

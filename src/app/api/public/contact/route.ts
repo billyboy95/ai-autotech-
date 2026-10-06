@@ -5,6 +5,7 @@ import { enrollLead } from "@/lib/automation/service";
 import { recordConsent } from "@/server/webhooks/compliance";
 import { nid } from "@/lib/crm-store";
 import { agencyOrgId, insertForOrg, serviceConfigured } from "@/server/workers/with-org";
+import { notifyPublicCapture } from "@/server/workers/funnel";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -246,6 +247,18 @@ export async function POST(request: Request) {
     if (!enrolled.ok) {
       console.error("contact automation skipped", enrolled.error);
     }
+
+    await notifyPublicCapture({
+      kind: "contact",
+      orgId,
+      sourceId: String(data.id),
+      leadId: crmLeadId,
+      name: input.name,
+      company,
+      phone: input.phone,
+      leadEmail: input.email,
+      detail: "Website contact form",
+    });
   }
 
   if (orgId) {

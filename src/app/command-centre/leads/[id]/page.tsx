@@ -10,9 +10,11 @@ import { loadCommandData } from "@/lib/automation/page-data";
 import { PIPELINE_STAGES } from "@/lib/automation/types";
 import { presentWorkspace } from "@/lib/brand/present";
 import { TeamRecommendationView } from "@/components/bots/team-recommendation";
+import { LeadAuditReport } from "@/components/funnel/lead-audit-report";
 import { auditToSetup, recommendTeam } from "@/lib/bots/recommend";
 import { newShareToken } from "@/lib/bots/share-token";
 import { ensureAuditShareToken } from "@/server/workers/with-org";
+import { loadLeadReport } from "@/lib/funnel/load";
 
 export const dynamic = "force-dynamic";
 
@@ -42,6 +44,12 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
     ? recommendTeam(auditToSetup({ industry: lead.industry, answers: lead.answers, companySize: lead.companySize }))
     : null;
   const teamToken = lead.auditLeadId ? await ensureAuditShareToken(lead.auditLeadId, newShareToken()) : null;
+  const auditReport = await loadLeadReport({
+    tenantMode: tenant.mode,
+    orgId: tenant.active.id,
+    auditLeadId: lead.auditLeadId,
+    leadId: lead.id,
+  });
 
   return (
     <CommandShell setupError={workspace.setupError} sendingEnabled={sendingEnabled}>
@@ -102,6 +110,8 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
             <TeamRecommendationView recommendation={recommendation} publicPath={teamToken ? `/team/${teamToken}` : null} />
           </section>
         ) : null}
+
+        {auditReport ? <LeadAuditReport report={auditReport} leadId={lead.id} /> : null}
 
         <div className="grid gap-4 lg:grid-cols-[280px_1fr]">
           <div className="grid gap-4">

@@ -4,7 +4,8 @@ import { marketingConsentText, serviceConsentText } from "@/lib/compliance/conse
 import { enrollLead } from "@/lib/automation/service";
 import { recordConsent } from "@/server/webhooks/compliance";
 import { nid } from "@/lib/crm-store";
-import { agencyOrgId, insertForOrg, serviceConfigured } from "@/server/workers/with-org";
+import { crmLeadMirror, intakeContactRow, publicFormSource } from "@/lib/aios/public-intake";
+import { insertForOrg, publicIntakeOrgId, salesPipelineStageId, serviceConfigured } from "@/server/workers/with-org";
 import { notifyPublicCapture } from "@/server/workers/funnel";
 
 export const runtime = "nodejs";
@@ -14,7 +15,8 @@ export const dynamic = "force-dynamic";
  * Public endpoint for the aiautotech.co.za contact form.
  * No shared secret (static JS is public). Protected by: CORS allow-list, payload size limit,
  * zod validation, honeypot (_honey / hp), optional minimum fill time, per-IP rate limit.
- * Writes crm_contact_leads (source of truth) and mirrors real leads into crm_leads for the CRM UI.
+ * Writes crm_contact_leads (source of truth) and mirrors real leads into crm_leads.
+ * A page path that contains /guide is the guide form. Both land on the public intake workspace.
  */
 
 const ALLOWED_ORIGINS = new Set([
@@ -184,7 +186,7 @@ export async function POST(request: Request) {
   const test = isTestSubmission(input.name, input.email);
   const crmLeadId = test ? null : nid();
 
-  const orgId = await agencyOrgId();
+  const orgId = await publicIntakeOrgId();
   const { data, error } = await insertForOrg(orgId, "crm_contact_leads", {
     status: test ? "test" : "new",
     source: "website_contact",
@@ -210,26 +212,51 @@ export async function POST(request: Request) {
   }
 
   if (crmLeadId) {
+    const source = publicFormSource(input.page);
     const utm = [input.utm_source, input.utm_medium, input.utm_campaign].filter(Boolean).join(" / ");
     const notes = [
-      "Website contact form",
+      source === "website_guide" ? "Website guide form" : "Website contact form",
       `Email: ${input.email}`,
       `Message: ${input.message.slice(0, 1500)}`,
-      `Source: website_contact${utm ? ` · UTM: ${utm}` : ""}${input.page ? ` · Page: ${input.page}` : ""}`,
+      `Source: ${source}${utm ? ` · UTM: ${utm}` : ""}${input.page ? ` · Page: ${input.page}` : ""}`,
     ].join("\n");
-
-    const lead = await insertForOrg(orgId, "crm_leads", {
+    const stageId = await salesPipelineStageId(orgId, "New");
+    const mirror = crmLeadMirror({
       id: crmLeadId,
       name: input.name,
       company,
       phone: input.phone,
-      stage: "New",
+      email: input.email,
       notes,
+      source,
       ord: -Math.floor(Date.now() / 1000),
+      stageId,
     });
+    let lead = await insertForOrg(orgId, "crm_leads", mirror);
+    if (lead.error && /column|schema cache/i.test(lead.error.message)) {
+      const legacy = { ...mirror };
+      delete legacy.stage_id;
+      lead = await insertForOrg(orgId, "crm_leads", legacy);
+    }
     if (lead.error) {
       // Contact row is saved; CRM mirror failure should not lose the lead.
       console.error("crm_leads mirror failed", lead.error.message);
+    } else if (orgId) {
+      const linked = await insertForOrg(
+        orgId,
+        "crm_contacts",
+        intakeContactRow({
+          name: input.name,
+          email: input.email,
+          phone: input.phone,
+          company,
+          leadId: crmLeadId,
+          source,
+        }),
+      );
+      if (linked.error && !/duplicate|unique/i.test(linked.error.message)) {
+        console.error("intake contact skipped", linked.error.message);
+      }
     }
 
     const enrolled = await enrollLead({
@@ -239,7 +266,7 @@ export async function POST(request: Request) {
       phone: input.phone,
       email: input.email,
       notes,
-      source: "website_contact",
+      source,
       utmSource: input.utm_source,
       campaign: input.utm_campaign,
       contactLeadId: data.id,
@@ -257,7 +284,7 @@ export async function POST(request: Request) {
       company,
       phone: input.phone,
       leadEmail: input.email,
-      detail: "Website contact form",
+      detail: source === "website_guide" ? "Website guide form" : "Website contact form",
     });
   }
 

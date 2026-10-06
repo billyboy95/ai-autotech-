@@ -10,8 +10,8 @@ export const dynamic = "force-dynamic";
 
 /**
  * Per-workspace public intake. POST /api/public/intake/{formKey}
- * AI AutoTech's existing /api/public/audit route is unchanged and still lands
- * in the agency workspace. Each client workspace has its own form_key.
+ * The aiautotech.co.za audit and guide forms use publicIntakeOrgId, which
+ * prefers the provisioned AI AutoTech client. Each other client has its own form_key.
  */
 
 const MAX_BODY_BYTES = 16 * 1024;

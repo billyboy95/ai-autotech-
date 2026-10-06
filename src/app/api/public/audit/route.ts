@@ -5,8 +5,9 @@ import { newShareToken } from "@/lib/bots/share-token";
 import { nid } from "@/lib/crm-store";
 import { readReferralCode, referralCodeFromCookieHeader } from "@/lib/referrals/codes";
 import { recordReferralClick } from "@/server/workers/referrals";
+import { crmLeadMirror, intakeContactRow } from "@/lib/aios/public-intake";
 import { notifyPublicCapture } from "@/server/workers/funnel";
-import { agencyOrgId, insertForOrg, serviceConfigured } from "@/server/workers/with-org";
+import { insertForOrg, publicIntakeOrgId, salesPipelineStageId, serviceConfigured } from "@/server/workers/with-org";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -198,7 +199,7 @@ export async function POST(request: Request) {
   const crmLeadId = nid();
   const userAgent = (request.headers.get("user-agent") ?? "").slice(0, 400);
 
-  const orgId = await agencyOrgId();
+  const orgId = await publicIntakeOrgId();
   const shareToken = newShareToken();
   const auditRow = {
     reference,
@@ -260,18 +261,48 @@ export async function POST(request: Request) {
     .filter(Boolean)
     .join("\n");
 
-  const lead = await insertForOrg(orgId, "crm_leads", {
+  const leadName = `${input.firstName} ${input.lastName}`.trim();
+  const stageId = await salesPipelineStageId(orgId, "New");
+  const mirror = crmLeadMirror({
     id: crmLeadId,
-    name: `${input.firstName} ${input.lastName}`.trim(),
+    name: leadName,
     company: input.company,
     phone: input.phone,
-    stage: "New",
+    email: input.email,
     notes,
+    source: "audit",
+    website: input.website,
+    industry: input.industry,
     ord: -Math.floor(Date.now() / 1000),
+    auditLeadId: String(data.id),
+    stageId,
   });
+  let lead = await insertForOrg(orgId, "crm_leads", mirror);
+  if (lead.error && /column|schema cache/i.test(lead.error.message)) {
+    const legacy = { ...mirror };
+    delete legacy.audit_lead_id;
+    delete legacy.stage_id;
+    lead = await insertForOrg(orgId, "crm_leads", legacy);
+  }
   if (lead.error) {
     // Audit row is saved; CRM mirror failure should not lose the lead.
     console.error("crm_leads mirror failed", lead.error.message);
+  } else if (orgId) {
+    const contact = await insertForOrg(
+      orgId,
+      "crm_contacts",
+      intakeContactRow({
+        name: leadName,
+        email: input.email,
+        phone: input.phone,
+        company: input.company,
+        leadId: crmLeadId,
+        source: "audit",
+      }),
+    );
+    if (contact.error && !/duplicate|unique/i.test(contact.error.message)) {
+      console.error("intake contact skipped", contact.error.message);
+    }
   }
 
   const enrolled = await enrollLead({

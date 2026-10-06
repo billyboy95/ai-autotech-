@@ -1,4 +1,5 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { AI_AUTOTECH_AGENCY_SLUG, AI_AUTOTECH_CLIENT_SLUG, choosePublicIntakeOrg } from "@/lib/aios/public-intake";
 import { authOnlyRealtime } from "@/lib/supabase/realtime";
 import { missingOrgColumn } from "@/lib/tenant/rows";
 
@@ -130,8 +131,44 @@ export async function ensureAuditShareToken(auditLeadId: string, token: string) 
 }
 
 export async function agencyOrgId() {
-  const found = await lookupRow("organizations", "slug", "ai-autotech", "id");
+  const found = await lookupRow("organizations", "slug", AI_AUTOTECH_AGENCY_SLUG, "id");
   if (!found.configured || found.error || !found.data) return null;
+  const id = (found.data as { id?: string }).id;
+  return id ? String(id) : null;
+}
+
+/**
+ * Audit and guide forms land on the provisioned AI AutoTech client when that
+ * workspace is marked. Until then they stay on the agency workspace.
+ */
+export async function publicIntakeOrgId() {
+  const client = serviceClient();
+  if (!client) return null;
+  const listed = await client
+    .from("organizations")
+    .select("id, slug, settings")
+    .in("slug", [AI_AUTOTECH_CLIENT_SLUG, AI_AUTOTECH_AGENCY_SLUG]);
+  if (listed.error || !listed.data?.length) return agencyOrgId();
+  const rows = (listed.data as { id?: string; slug?: string; settings?: unknown }[]).flatMap((row) => {
+    if (!row.id || !row.slug) return [];
+    return [{ id: String(row.id), slug: String(row.slug), settings: row.settings }];
+  });
+  return choosePublicIntakeOrg(rows);
+}
+
+/** First sales-pipeline stage for a public lead. Null when the template is not applied yet. */
+export async function salesPipelineStageId(orgId: string | null, stageName = "New") {
+  const client = serviceClient();
+  if (!client || !orgId) return null;
+  const found = await client
+    .from("pipeline_stages")
+    .select("id")
+    .eq("org_id", orgId)
+    .eq("name", stageName)
+    .order("position", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  if (found.error || !found.data) return null;
   const id = (found.data as { id?: string }).id;
   return id ? String(id) : null;
 }

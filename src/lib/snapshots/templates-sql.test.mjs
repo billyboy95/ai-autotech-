@@ -76,7 +76,7 @@ async function applyTemplates(db) {
     "20261021120000_phase3a_conversation_ai.sql",
     "20261022120000_phase3b_calendars.sql",
     "20261024120000_phase4a_bots.sql",
-    "20261112120000_phase5p_workspace_templates.sql",
+    "20261112120100_phase5p_workspace_templates.sql",
   ]) {
     await db.exec(migration(name));
   }

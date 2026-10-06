@@ -86,7 +86,7 @@ export async function duplicateWorkspace(_state: DuplicateState, formData: FormD
       created: false,
       mode,
       message: missingDuplicateMigration(error.message)
-        ? "Apply supabase/migrations/20261112120000_phase5p_workspace_templates.sql before a workspace is created. Nothing was written."
+        ? "Apply supabase/migrations/20261112120100_phase5p_workspace_templates.sql before a workspace is created. Nothing was written."
         : error.message,
       slug: "",
     };

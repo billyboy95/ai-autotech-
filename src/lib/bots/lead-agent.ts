@@ -23,6 +23,7 @@ const EXTRA_PHRASES: Record<string, string[]> = {
   "/command-centre/inbox": ["inbox", "messages"],
   "/command-centre/pipeline": ["pipeline", "deals"],
   "/command-centre/contacts": ["contacts"],
+  "/command-centre/approvals": ["approvals", "approval queue"],
   "/command-centre/calendars": ["calendars", "calendar"],
   "/command-centre/reviews": ["reviews"],
   "/command-centre/outbox": ["outbox"],

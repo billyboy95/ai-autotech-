@@ -5,6 +5,7 @@ import { loadCommandData } from "@/lib/automation/page-data";
 import { loadDocumentedOwnerAuth } from "@/server/workers/owner-auth-status";
 import {
   FIXTURE_OWNER_COPY,
+  FIXTURE_OWNER_SQL,
   SECRET_REFUSAL_COPY,
   buildOwnerBootstrap,
   formCarriesSecret,
@@ -55,6 +56,9 @@ export async function recordOwnerBootstrapNote(
     authUser: observed.authUser,
     membership: observed.membership,
   });
+  if (model.sqlText === FIXTURE_OWNER_SQL) {
+    return { stored: false, write: false, mode: "fixture", message: FIXTURE_OWNER_COPY };
+  }
   const supabase = await createSupabaseServerClient();
   const saved = await supabase.rpc("record_owner_bootstrap_note", {
     p_org: tenant.active.id,

@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { readFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
 import test from "node:test";
 import { NextResponse } from "next/server";
 import { decideAccess, requiresSession } from "@/lib/auth/gate";
@@ -220,6 +222,30 @@ test("the panel names the documented owner, shows the SQL, and does not claim st
     created_user: false,
     sending_enabled: true,
   }), false);
+});
+
+test("a missing owner-bootstrap.sql stays fixture and does not throw", () => {
+  const root = mkdtempSync(path.join(tmpdir(), "owner-sql-"));
+  try {
+    const loaded = loadOwnerSql(root);
+    assert.match(loaded.sqlText, /missing from this runtime/);
+    assert.match(loaded.sqlText, /SQL was not applied/);
+    assert.equal(loaded.sqlText.includes("insert into"), false);
+    const model = buildOwnerBootstrap({
+      root,
+      tenantMode: "member",
+      env: { OWNER_BOOTSTRAP_UI_ENABLED: "true" } as NodeJS.ProcessEnv,
+      authUser: "present",
+      membership: "agency_owner",
+    });
+    assert.equal(model.sqlText, loaded.sqlText);
+    assert.equal(model.checksum, loaded.checksum);
+    assert.equal(model.write, false);
+    assert.equal(model.mode, "fixture");
+    assert.match(model.sqlText, /An Auth user was not created/);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
 });
 
 test("owner bootstrap copy does not send, spend, create users, or turn flags on", () => {

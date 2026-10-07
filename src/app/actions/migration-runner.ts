@@ -6,6 +6,8 @@ import {
   CONNECTION_REQUIRED_COPY,
   dryRunAccepted,
   FIXTURE_RUNNER_COPY,
+  FIXTURE_STEP_CHECKSUM,
+  MISSING_CATALOG_COPY,
   formCarriesSecret,
   loadMigrationCatalog,
   missingMigrationRunner,
@@ -49,7 +51,11 @@ export async function recordMigrationDryRun(
     };
   }
 
-  const steps = loadMigrationCatalog().map((step) => ({
+  const catalog = loadMigrationCatalog();
+  if (catalog.some((step) => step.checksum === FIXTURE_STEP_CHECKSUM)) {
+    return { stored: false, write: false, mode: "fixture", message: MISSING_CATALOG_COPY };
+  }
+  const steps = catalog.map((step) => ({
     step: step.step,
     filename: step.file,
     checksum: step.checksum,

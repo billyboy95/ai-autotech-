@@ -23,6 +23,7 @@ export const AIOS_SECTIONS = [
     links: [
       ["/command-centre/contacts", "Contacts"],
       ["/command-centre/pipeline", "Pipeline"],
+      ["/command-centre/outreach", "Outreach funnel"],
       ["/command-centre/notifications", "Alerts"],
       ["/command-centre/approvals", "Approvals"],
       ["/command-centre/inbox", "Inbox"],

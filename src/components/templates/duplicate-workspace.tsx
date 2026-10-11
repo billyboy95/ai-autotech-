@@ -112,15 +112,15 @@ export function DuplicateWorkspaceForm({
         </div>
         <label className="grid gap-1 text-xs font-semibold text-slate-600">
           Logo URL
-          <input name="logo_url" defaultValue="https://example.com/second-joint-logo.png" className="h-11 rounded-md border border-slate-200 px-3 text-sm font-medium text-slate-900" />
+          <input name="logo_url" placeholder="https://your-logo.png" className="h-11 rounded-md border border-slate-200 px-3 text-sm font-medium text-slate-900" />
         </label>
         <label className="grid gap-1 text-xs font-semibold text-slate-600">
           Phone
-          <input name="phone" defaultValue="0100000002" className="h-11 rounded-md border border-slate-200 px-3 text-sm font-medium text-slate-900" />
+          <input name="phone" placeholder="011 000 0000" className="h-11 rounded-md border border-slate-200 px-3 text-sm font-medium text-slate-900" />
         </label>
         <label className="grid gap-1 text-xs font-semibold text-slate-600">
           Email
-          <input name="email" type="email" defaultValue="hello@second-joint.example" className="h-11 rounded-md border border-slate-200 px-3 text-sm font-medium text-slate-900" />
+          <input name="email" type="email" placeholder="hello@yourbusiness.co.za" className="h-11 rounded-md border border-slate-200 px-3 text-sm font-medium text-slate-900" />
         </label>
         <label className="grid gap-1 text-xs font-semibold text-slate-600">
           Address

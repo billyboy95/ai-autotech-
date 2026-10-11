@@ -9,7 +9,8 @@ import {
 } from "lucide-react";
 import { BrandLogo } from "@/components/brand-logo";
 import { LeadForm } from "@/components/lead-form";
-import { AGENCY_PROMISE, AGENCY_TAGLINE, OFFER_SERVICES, UPGRADE_PATH } from "@/lib/brand/catalog";
+import { AGENCY_PROMISE, AGENCY_TAGLINE, AGENCY_WHATSAPP_E164, OFFER_SERVICES, UPGRADE_PATH } from "@/lib/brand/catalog";
+import { RESULTS_CALL_FALLBACK } from "@/lib/funnel/booking-link";
 import {
   databaseTables,
   publicPages,
@@ -248,9 +249,14 @@ export default function Home() {
           <p className="mt-4 leading-7 text-slate-600">
             Capture a lead directly into Supabase and route it into the CRM pipeline.
           </p>
-          <div className="mt-6 rounded-md border border-dashed border-slate-300 bg-white p-4 text-sm text-slate-600">
-            Calendly placeholder: connect the team scheduling link here.
-          </div>
+          <a
+            href={RESULTS_CALL_FALLBACK}
+            className="mt-6 inline-flex items-center gap-2 rounded-md border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-[#0B1F3A] shadow-sm transition hover:border-[#0B1F3A]"
+          >
+            <CalendarDays size={16} />
+            Book on the calendar
+            <ExternalLink size={14} />
+          </a>
         </div>
         <div className="rounded-md border border-slate-200 bg-white p-6 shadow-sm">
           <LeadForm sourcePage="home" />
@@ -258,7 +264,7 @@ export default function Home() {
       </section>
 
       <a
-        href="https://wa.me/27000000000"
+        href={`https://wa.me/${AGENCY_WHATSAPP_E164}`}
         className="fixed bottom-5 right-5 z-40 flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500 text-white shadow-xl shadow-emerald-500/25 transition hover:bg-emerald-600"
         aria-label="Chat on WhatsApp"
       >

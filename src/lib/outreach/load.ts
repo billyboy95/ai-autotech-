@@ -2,6 +2,24 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { fixtureProspects } from "@/lib/outreach/fixture";
 import { prospectFromRow, summariseFunnel, type FunnelSummary, type OutreachProspect } from "@/lib/outreach/funnel";
 
+export type StaleMarketingRow = {
+  id: string;
+  toAddress: string;
+  subject: string;
+  createdAt: string;
+  purpose: string;
+  category: string;
+};
+
+export type StaleMarketingPreview = {
+  ready: boolean;
+  notice: string;
+  count: number;
+  rows: StaleMarketingRow[];
+};
+
+const OPENER_MIGRATION = "supabase/migrations/20261114120000_outreach_queue_opener.sql";
+
 export type OutreachDesk = {
   mode: "fixture" | "live";
   notice: string;
@@ -72,7 +90,7 @@ export async function loadOutreachDesk(input: {
     const prospects = (listed.data ?? []).map((row) => prospectFromRow(row as Record<string, unknown>));
     return {
       mode: "live",
-      notice: "Manual outreach log. Nothing is sent from this page. Do-not-contact prospects can never be moved to Sent.",
+      notice: "Queue opener writes a draft only. Nothing is sent from this page. Do-not-contact prospects can never be queued or moved to Sent.",
       campaign,
       campaigns: names,
       prospects,
@@ -80,5 +98,36 @@ export async function loadOutreachDesk(input: {
     };
   } catch (error) {
     return empty(`Could not load outreach: ${error instanceof Error ? error.message : "unknown error"}`);
+  }
+}
+
+/** Dry-run list of queued marketing outbox rows. Does not update them and does not send. */
+export async function loadStaleMarketingOutbox(orgId: string): Promise<StaleMarketingPreview> {
+  const missing = `Queue opener is not in the database yet. Apply ${OPENER_MIGRATION}.`;
+  const blank = (notice: string): StaleMarketingPreview => ({ ready: false, notice, count: 0, rows: [] });
+  try {
+    const supabase = await createSupabaseServerClient();
+    const listed = await supabase.rpc("preview_stale_marketing_outbox", { p_org: orgId });
+    if (listed.error) {
+      const unavailable = /preview_stale_marketing_outbox|schema cache|does not exist/i.test(listed.error.message);
+      return blank(unavailable ? missing : `Could not load the outbox: ${listed.error.message}`);
+    }
+    const payload = listed.data as { count?: number; rows?: Record<string, unknown>[] } | null;
+    const rows = Array.isArray(payload?.rows) ? payload.rows : [];
+    return {
+      ready: true,
+      notice: "",
+      count: Number(payload?.count ?? rows.length) || 0,
+      rows: rows.map((row) => ({
+        id: String(row.id || ""),
+        toAddress: String(row.to_address || ""),
+        subject: String(row.subject || ""),
+        createdAt: String(row.created_at || ""),
+        purpose: String(row.purpose || ""),
+        category: String(row.message_category || ""),
+      })),
+    };
+  } catch (error) {
+    return blank(`Could not load the outbox: ${error instanceof Error ? error.message : "unknown error"}`);
   }
 }

@@ -10,12 +10,24 @@ export const OUTREACH_STAGES = [
   "closed",
 ] as const;
 
-export type OutreachStage = (typeof OUTREACH_STAGES)[number] | "lost";
+export type OutreachStage = (typeof OUTREACH_STAGES)[number] | "outreach_queued" | "lost";
 
-export const ALL_OUTREACH_STAGES: readonly OutreachStage[] = [...OUTREACH_STAGES, "lost"];
+/** Dropdown order. outreach_queued sits before Sent and is not a delivery. */
+export const ALL_OUTREACH_STAGES: readonly OutreachStage[] = [
+  "not_contacted",
+  "outreach_queued",
+  "sent",
+  "replied",
+  "booked_call1",
+  "showed",
+  "call2",
+  "closed",
+  "lost",
+];
 
 export const STAGE_LABELS: Record<OutreachStage, string> = {
   not_contacted: "Not contacted",
+  outreach_queued: "Opener queued",
   sent: "Sent",
   replied: "Replied",
   booked_call1: "Booked call 1",
@@ -56,7 +68,7 @@ export function isOutreachStage(value: string): value is OutreachStage {
   return (ALL_OUTREACH_STAGES as readonly string[]).includes(value);
 }
 
-const STAMP: Record<Exclude<OutreachStage, "not_contacted" | "lost">, keyof OutreachProspect> = {
+const STAMP: Record<Exclude<OutreachStage, "not_contacted" | "outreach_queued" | "lost">, keyof OutreachProspect> = {
   sent: "sentAt",
   replied: "repliedAt",
   booked_call1: "bookedCall1At",
@@ -67,7 +79,10 @@ const STAMP: Record<Exclude<OutreachStage, "not_contacted" | "lost">, keyof Outr
 
 /** Index of the furthest funnel step a prospect reached (lost prospects keep the steps they passed). */
 export function furthestStep(p: OutreachProspect): number {
-  let best = p.stage === "lost" ? 0 : OUTREACH_STAGES.indexOf(p.stage as (typeof OUTREACH_STAGES)[number]);
+  const listed = p.stage === "lost" || p.stage === "outreach_queued"
+    ? -1
+    : OUTREACH_STAGES.indexOf(p.stage as (typeof OUTREACH_STAGES)[number]);
+  let best = listed < 0 ? 0 : listed;
   OUTREACH_STAGES.forEach((stage, index) => {
     if (stage === "not_contacted") return;
     if (p[STAMP[stage]]) best = Math.max(best, index);
@@ -92,6 +107,8 @@ export type FunnelSummary = {
   total: number;
   doNotContact: number;
   lost: number;
+  /** Draft openers saved. These prospects have not been sent. */
+  queued: number;
   steps: FunnelStep[];
   /** Calls needed per close at the current rates (sent per closed), or null. */
   sentPerClose: number | null;
@@ -106,11 +123,16 @@ export function summariseFunnel(prospects: OutreachProspect[]): FunnelSummary {
   const reached = OUTREACH_STAGES.map(() => 0);
   const current = OUTREACH_STAGES.map(() => 0);
   let lost = 0;
+  let queued = 0;
   for (const p of prospects) {
     const far = furthestStep(p);
     for (let i = 0; i <= far; i += 1) reached[i] += 1;
     if (p.stage === "lost") lost += 1;
-    else current[OUTREACH_STAGES.indexOf(p.stage)] += 1;
+    else if (p.stage === "outreach_queued") queued += 1;
+    else {
+      const idx = OUTREACH_STAGES.indexOf(p.stage as (typeof OUTREACH_STAGES)[number]);
+      if (idx >= 0) current[idx] += 1;
+    }
   }
   const sentIndex = OUTREACH_STAGES.indexOf("sent");
   const steps = OUTREACH_STAGES.map((stage, i) => ({
@@ -126,15 +148,16 @@ export function summariseFunnel(prospects: OutreachProspect[]): FunnelSummary {
     total: prospects.length,
     doNotContact: prospects.filter((p) => p.doNotContact).length,
     lost,
+    queued,
     steps,
     sentPerClose: closed > 0 ? Math.round((reached[sentIndex] / closed) * 10) / 10 : null,
   };
 }
 
-/** A do-not-contact prospect may never be (re)sent. Later stages are allowed (they replied to us). */
+/** A do-not-contact prospect may never be queued or (re)sent. Later stages are allowed (they replied to us). */
 export function canMoveTo(p: Pick<OutreachProspect, "doNotContact" | "stage">, next: OutreachStage) {
   if (!isOutreachStage(next)) return false;
-  if (p.doNotContact && next === "sent" && p.stage === "not_contacted") return false;
+  if (p.doNotContact && (next === "sent" || next === "outreach_queued") && p.stage === "not_contacted") return false;
   return true;
 }
 

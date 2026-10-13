@@ -48,7 +48,7 @@ Five older marketing rows are already `queued`. Turning sending on later could f
 4. Tap **Cancel these queued marketing rows** once.
 5. Pass: `Queued marketing rows were cancelled. Nothing was sent.` Those rows are `cancelled`. Draft openers stay `draft`.
 
-Unticked, the button does not change rows. The status is `Nothing was changed` only when the confirm box was missing. An empty list says `No queued marketing rows to cancel`.
+Unticked, the button does not change rows. The line is `Tick the confirm box before cancelling queued marketing rows. Nothing was changed.` An empty list says `No queued marketing rows to cancel. Nothing was sent.`
 
 ## Still required before any real delivery
 

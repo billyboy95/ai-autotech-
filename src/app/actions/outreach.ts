@@ -103,3 +103,71 @@ export async function importOutreachCsv(formData: FormData) {
   revalidatePath(PATH);
   back(campaign, "imported");
 }
+
+function idsFrom(formData: FormData) {
+  return [...new Set(formData.getAll("ids").map((value) => String(value).trim()))].filter((id) => UUID.test(id));
+}
+
+function asRecord(value: unknown) {
+  return value && typeof value === "object" ? (value as Record<string, unknown>) : {};
+}
+
+function count(value: unknown) {
+  const parsed = Number(value ?? 0);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+async function ownerContext(campaign: string) {
+  const ctx = await staffContext();
+  const tenant = await safeResolveWorkspace();
+  if (tenant.role !== "agency_owner") back(campaign, "owner-only");
+  return ctx;
+}
+
+function delivering(payload: Record<string, unknown>) {
+  if (payload.sent === true || count(payload.queued) > 0 || count(payload.approved) > 0) return true;
+  const results = Array.isArray(payload.results) ? payload.results : [];
+  return results.some((row) => {
+    const status = String(asRecord(row).status || "");
+    return status === "queued" || status === "approved" || status === "sent";
+  });
+}
+
+/** Owner only. Writes outbox drafts. Does not call a mail, WhatsApp, or SMS provider. */
+export async function queueOutreachOpeners(formData: FormData) {
+  const campaign = text(formData, "campaign");
+  const ids = idsFrom(formData);
+  if (ids.length === 0) back(campaign, "none-selected");
+  if (ids.length > 25) back(campaign, "too-many");
+  const { supabase, orgId } = await ownerContext(campaign);
+  const saved = await supabase.rpc("queue_outreach_openers", { p_org: orgId, p_ids: ids });
+  if (saved.error) {
+    const missing = /queue_outreach_openers|schema cache|does not exist/i.test(saved.error.message);
+    back(campaign, missing ? "opener-unavailable" : "save-failed");
+  }
+  const payload = asRecord(saved.data);
+  if (delivering(payload)) back(campaign, "refused");
+  if (payload.ok === false && payload.error === "too-many") back(campaign, "too-many");
+  revalidatePath(PATH);
+  const drafted = count(payload.drafted);
+  const blocked = count(payload.blocked);
+  if (drafted > 0 && blocked === 0) back(campaign, "opener-drafted");
+  if (drafted > 0) back(campaign, "opener-partial");
+  back(campaign, "opener-none");
+}
+
+/** Owner only. Dry-run unless the confirm box is ticked. Cancels queued marketing rows. Does not send. */
+export async function cancelStaleMarketingOutbox(formData: FormData) {
+  const campaign = text(formData, "campaign");
+  if (text(formData, "confirm") !== "yes") back(campaign, "confirm-required");
+  const { supabase, orgId } = await ownerContext(campaign);
+  const saved = await supabase.rpc("cancel_stale_marketing_outbox", { p_org: orgId, p_confirm: true });
+  if (saved.error) {
+    const missing = /cancel_stale_marketing_outbox|schema cache|does not exist/i.test(saved.error.message);
+    back(campaign, missing ? "opener-unavailable" : "save-failed");
+  }
+  const payload = asRecord(saved.data);
+  if (delivering(payload)) back(campaign, "refused");
+  revalidatePath(PATH);
+  back(campaign, count(payload.cancelled) > 0 ? "stale-cancelled" : "stale-none");
+}

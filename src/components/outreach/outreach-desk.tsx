@@ -1,12 +1,14 @@
 import Link from "next/link";
 import {
+  cancelStaleMarketingOutbox,
   importOutreachCsv,
+  queueOutreachOpeners,
   saveOutreachNote,
   setOutreachDoNotContact,
   setOutreachStage,
 } from "@/app/actions/outreach";
 import { ALL_OUTREACH_STAGES, STAGE_LABELS, type OutreachStage } from "@/lib/outreach/funnel";
-import type { OutreachDesk as Desk } from "@/lib/outreach/load";
+import type { OutreachDesk as Desk, StaleMarketingPreview } from "@/lib/outreach/load";
 
 const NOTICES: Record<string, string> = {
   saved: "Saved.",
@@ -21,6 +23,17 @@ const NOTICES: Record<string, string> = {
   "bad-campaign": "Campaign name: lowercase letters, numbers and dashes only.",
   "bad-file": "Choose a CSV file under 1 MB.",
   "empty-file": "No rows found. The CSV needs a Business column.",
+  "owner-only": "Only the agency owner can queue an opener or cancel queued marketing rows.",
+  "none-selected": "Tick at least one prospect. Nothing was sent.",
+  "too-many": "Queue at most 25 prospects at a time. Nothing was sent.",
+  "opener-unavailable": "Queue opener is not in the database yet. Apply supabase/migrations/20261114120000_outreach_queue_opener.sql.",
+  "opener-drafted": "Opener saved as a draft. Nothing was sent.",
+  "opener-partial": "Some openers were drafted. Others were blocked. Nothing was sent.",
+  "opener-none": "Nothing new was drafted. Do-not-contact, a missing email, or an existing draft blocked them. Nothing was sent.",
+  "confirm-required": "Tick the confirm box before cancelling queued marketing rows. Nothing was changed.",
+  "stale-cancelled": "Queued marketing rows were cancelled. Nothing was sent.",
+  "stale-none": "No queued marketing rows to cancel. Nothing was sent.",
+  refused: "Stopped. That result would have queued or sent a message.",
 };
 
 const BAR = ["bg-slate-300", "bg-[#2563EB]", "bg-[#3B82F6]", "bg-[#0EA5E9]", "bg-[#14B8A6]", "bg-[#10B981]", "bg-[#16A34A]"];
@@ -33,12 +46,17 @@ export function OutreachDesk({
   data,
   stageFilter,
   notice,
+  owner,
+  stale,
 }: {
   data: Desk;
   stageFilter: OutreachStage | "dnc" | null;
   notice: string | null;
+  owner: boolean;
+  stale: StaleMarketingPreview | null;
 }) {
   const fixture = data.mode === "fixture";
+  const canQueue = !fixture && owner;
   const sent = data.summary.steps.find((s) => s.stage === "sent")?.reached ?? 0;
   const max = Math.max(1, data.summary.total);
   const rows = data.prospects.filter((p) =>
@@ -91,6 +109,7 @@ export function OutreachDesk({
           </h2>
           <p className="text-xs text-slate-500">
             {data.summary.total} prospects · {data.summary.doNotContact} do-not-contact · {data.summary.lost} lost
+            {data.summary.queued > 0 ? ` · ${data.summary.queued} opener queued, not sent` : ""}
             {data.summary.sentPerClose !== null ? ` · ${data.summary.sentPerClose} sent per close` : ""}
           </p>
         </div>
@@ -133,6 +152,9 @@ export function OutreachDesk({
             <Link href={q("dnc")} className="rounded-full border border-rose-200 px-3 py-1 font-semibold text-rose-700">
               Do-not-contact
             </Link>
+            <Link href={q("outreach_queued")} className="rounded-full border border-slate-200 px-3 py-1 font-semibold">
+              Opener queued
+            </Link>
             <Link href={q("lost")} className="rounded-full border border-slate-200 px-3 py-1 font-semibold">
               Lost
             </Link>
@@ -142,6 +164,7 @@ export function OutreachDesk({
           <table className="w-full min-w-[900px] text-left text-sm" data-testid="outreach-table">
             <thead className="text-xs uppercase tracking-wide text-slate-500">
               <tr>
+                {canQueue ? <th className="py-2 pr-3">Queue</th> : null}
                 <th className="py-2 pr-3">Business</th>
                 <th className="py-2 pr-3">Contact</th>
                 <th className="py-2 pr-3">Stage</th>
@@ -152,13 +175,25 @@ export function OutreachDesk({
             <tbody>
               {rows.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="py-4 text-slate-500">
+                  <td colSpan={canQueue ? 6 : 5} className="py-4 text-slate-500">
                     No prospects here.
                   </td>
                 </tr>
               ) : null}
               {rows.map((p) => (
                 <tr key={p.id} className={`border-t border-slate-100 align-top ${p.doNotContact ? "bg-rose-50/60" : ""}`}>
+                  {canQueue ? (
+                    <td className="py-3 pr-3">
+                      <input
+                        type="checkbox"
+                        name="ids"
+                        value={p.id}
+                        form="queue-opener-form"
+                        aria-label={`Queue opener for ${p.business}`}
+                        disabled={p.doNotContact || (p.stage !== "not_contacted" && p.stage !== "outreach_queued")}
+                      />
+                    </td>
+                  ) : null}
                   <td className="py-3 pr-3">
                     <p className="font-semibold text-[#0B1F3A]">
                       <span className="mr-1 rounded bg-slate-100 px-1.5 text-[10px] font-bold text-slate-600">{p.priority}</span>
@@ -195,7 +230,11 @@ export function OutreachDesk({
                           className="h-9 rounded-md border border-slate-200 px-2 text-xs"
                         >
                           {ALL_OUTREACH_STAGES.map((s) => (
-                            <option key={s} value={s} disabled={p.doNotContact && s === "sent" && p.stage === "not_contacted"}>
+                            <option
+                              key={s}
+                              value={s}
+                              disabled={p.doNotContact && (s === "sent" || s === "outreach_queued") && p.stage === "not_contacted"}
+                            >
                               {STAGE_LABELS[s]}
                             </option>
                           ))}
@@ -252,6 +291,92 @@ export function OutreachDesk({
             </tbody>
           </table>
         </div>
+      </section>
+
+      <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm" aria-labelledby="queue-title" data-testid="queue-opener">
+        <h2 id="queue-title" className="font-display text-lg font-bold text-[#0B1F3A]">
+          Queue opener
+        </h2>
+        <p className="mt-1 text-sm leading-6 text-slate-600">
+          Saves a personal email draft for ticked prospects. The outbox status is <strong>draft</strong>. Drafts are not
+          delivered, including after a send switch is turned on. This does not email, WhatsApp, or text anyone.
+        </p>
+        <p className="mt-2 text-xs leading-5 text-slate-500">
+          Free reply audit. This is not insurance advice and does not recommend a policy, a product, or cover. Reply YES for
+          times. Reply STOP to opt out. A missing marketing opt-in stays a consent draft.
+        </p>
+        {fixture ? (
+          <button type="button" disabled className="mt-3 h-10 rounded-md bg-slate-200 px-3 text-sm font-semibold text-slate-500">
+            Queue opener
+          </button>
+        ) : canQueue ? (
+          <form id="queue-opener-form" action={queueOutreachOpeners} className="mt-3 flex flex-wrap items-center gap-2">
+            <input type="hidden" name="campaign" value={data.campaign} />
+            <button className="h-10 rounded-md bg-[#0B1F3A] px-3 text-sm font-semibold text-white" data-testid="queue-opener-submit">
+              Queue opener
+            </button>
+            <span className="text-xs text-slate-500">Tick prospects in the table first. At most 25.</span>
+          </form>
+        ) : (
+          <p className="mt-3 text-sm text-slate-600">Only the agency owner can queue an opener. Nothing is sent from this page.</p>
+        )}
+      </section>
+
+      <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm" aria-labelledby="stale-title" data-testid="cancel-stale-outbox">
+        <h2 id="stale-title" className="font-display text-lg font-bold text-[#0B1F3A]">
+          Hold queued marketing outbox
+        </h2>
+        <p className="mt-1 text-sm leading-6 text-slate-600">
+          Lists marketing rows already sitting at status <strong>queued</strong>. Those can flush if sending is turned on.
+          Cancelling moves them to <strong>cancelled</strong>. Draft openers are left alone. Nothing is sent.
+        </p>
+        {fixture ? (
+          <p className="mt-3 text-sm text-slate-500">Sample desk. This list does not run and does not send.</p>
+        ) : !owner ? (
+          <p className="mt-3 text-sm text-slate-600">Only the agency owner can cancel queued marketing rows.</p>
+        ) : stale && !stale.ready ? (
+          <p className="mt-3 text-sm text-slate-600">{stale.notice}</p>
+        ) : (
+          <>
+            <p className="mt-3 text-sm font-semibold text-[#0B1F3A]" data-testid="stale-count">
+              {stale?.count ?? 0} queued marketing {stale?.count === 1 ? "row" : "rows"}
+            </p>
+            {stale && stale.rows.length > 0 ? (
+              <ul className="mt-2 grid gap-2 text-xs text-slate-600">
+                {stale.rows.map((row) => (
+                  <li key={row.id} className="rounded-md border border-slate-100 px-3 py-2">
+                    <span className="font-semibold text-[#0B1F3A]">{row.toAddress || "No address"}</span>
+                    {row.subject ? ` · ${row.subject}` : ""}
+                    <span className="mt-1 block text-slate-400">
+                      {row.purpose || row.category} · {row.createdAt ? row.createdAt.slice(0, 16).replace("T", " ") : "queued"}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="mt-2 text-sm text-slate-500">No queued marketing rows.</p>
+            )}
+            <form action={cancelStaleMarketingOutbox} className="mt-3 grid gap-2">
+              <input type="hidden" name="campaign" value={data.campaign} />
+              <label className="flex items-start gap-2 text-sm text-slate-700">
+                <input type="checkbox" name="confirm" value="yes" className="mt-1" />
+                I understand this cancels the listed queued marketing rows and does not send anything.
+              </label>
+              <button
+                className="h-10 w-fit rounded-md border border-rose-200 bg-rose-50 px-3 text-sm font-semibold text-rose-800"
+                data-testid="cancel-stale-submit"
+                disabled={!stale || stale.count === 0}
+              >
+                Cancel these queued marketing rows
+              </button>
+            </form>
+          </>
+        )}
+        {fixture ? (
+          <button type="button" disabled className="mt-3 h-10 rounded-md bg-slate-200 px-3 text-sm font-semibold text-slate-500">
+            Cancel these queued marketing rows
+          </button>
+        ) : null}
       </section>
 
       {fixture ? null : (

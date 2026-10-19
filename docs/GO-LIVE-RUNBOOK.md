@@ -535,6 +535,12 @@ This step does not wait on steps 20 through 36. It is not one of those files. Th
 
 `sending_enabled` stays false. `AUTOMATION_SEND_ENABLED` stays unset, or stays the string `false`. There is no outreach flag. Do not set a Phase 5 flag. This page does not merge the pull request, does not paste the file, does not import, and does not spend.
 
+### 16. Phone-first: queue an opener without sending
+
+This step does not wait on steps 20 through 36. It is not one of those files. The phone checklist is [`docs/phone-outreach-queue-opener.md`](phone-outreach-queue-opener.md).
+
+Queue opener writes outbox status `draft`. Draft is not a send. Cancelling stale queued marketing rows does not send. Do not paste `supabase/migrations/20261114120000_outreach_queue_opener.sql` until Billy says yes. Do not turn `sending_enabled` on. Do not set `AUTOMATION_SEND_ENABLED`.
+
 ## 1. Apply SQL steps 20 through 36
 
 Run one file at a time, in this order:

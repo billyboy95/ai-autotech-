@@ -1,68 +1,135 @@
 -- Services catalogue, service quotes, AIOS membership, and PayFast payment records.
 -- Additive. No rows are deleted. sending_enabled is not turned on.
--- Service prices are placeholders until Billy confirms them. Membership prices match the live site and exclude VAT.
+-- Service prices are Billy's confirmed ZAR amounts, excluding VAT. From-prices are the quote starting amount.
+-- Membership prices match the live site and exclude VAT.
 -- This file does not call PayFast and does not send email or WhatsApp.
 -- Do not apply this file to production until Billy says yes.
 
 create table if not exists public.service_packages (
   code text primary key,
   name text not null,
-  kind text not null check (kind in ('website_build', 'app_build', 'marketing')),
+  kind text not null check (kind in ('website', 'app', 'marketing', 'addon')),
   summary text not null,
+  scope text not null check (cardinality(string_to_array(scope, E'\n')) = 4),
   price_cents integer not null check (price_cents > 0),
   currency text not null default 'ZAR' check (currency = 'ZAR'),
-  price_placeholder boolean not null default true check (price_placeholder),
-  placeholder_label text not null default 'PLACEHOLDER — Billy will confirm the real price.',
+  billing text not null check (billing in ('once_off', 'month')),
+  price_from boolean not null default false,
+  support_cents integer check (support_cents is null or support_cents > 0),
   active boolean not null default true,
   sort_order integer not null default 0,
   created_at timestamptz not null default now()
 );
 
-insert into public.service_packages (code, name, kind, summary, price_cents, sort_order, placeholder_label)
+insert into public.service_packages (
+  code, name, kind, summary, scope, price_cents, billing, price_from, support_cents, sort_order
+)
 values
   (
-    'website_build',
-    'Website build',
-    'website_build',
-    'A marketing website. This amount is a placeholder until Billy confirms the real price.',
-    1500000,
-    1,
-    'PLACEHOLDER — Billy will confirm the real price.'
+    'website_starter',
+    'Website Starter',
+    'website',
+    'Small brochure site. R4,500 once-off, excluding VAT.',
+    E'One-page or small brochure site\nMobile layout, contact form, and basic SEO\nHandover notes for hosting, domain, and SSL\nOne round of revisions',
+    450000,
+    'once_off',
+    false,
+    null,
+    1
   ),
   (
-    'app_build',
-    'App build',
-    'app_build',
-    'A custom app. This amount is a placeholder until Billy confirms the real price.',
-    4500000,
-    2,
-    'PLACEHOLDER — Billy will confirm the real price.'
+    'website_business',
+    'Website Business',
+    'website',
+    'Multi-page business site. R8,950 once-off, excluding VAT.',
+    E'Multi-page site for home, services, about, and contact\nLead form wired into the CRM\nMobile layout, basic SEO, and an analytics hookup\nTwo rounds of revisions',
+    895000,
+    'once_off',
+    false,
+    null,
+    2
   ),
   (
-    'marketing_launch',
-    'Marketing launch package',
+    'website_premium',
+    'Website Premium',
+    'website',
+    'Custom marketing site. Quote starts at R16,500 once-off, excluding VAT.',
+    E'Custom marketing site with landing pages\nCRM lead capture, WhatsApp, and booking links\nSEO structure, a speed pass, and analytics\nQuote starts at R16,500 and scales with pages and integrations',
+    1650000,
+    'once_off',
+    true,
+    null,
+    3
+  ),
+  (
+    'app_mvp',
+    'App MVP',
+    'app',
+    'First usable app. Build starts at R35,000, plus R750 per month support. Excluding VAT.',
+    E'One core workflow and a small set of screens\nSign-in, data storage, and a simple admin view\nStaging build and a handover walkthrough\nBuild starts at R35,000. Support is R750 per month',
+    3500000,
+    'once_off',
+    true,
+    75000,
+    4
+  ),
+  (
+    'app_full',
+    'App Full',
+    'app',
+    'Full app build. Build starts at R85,000, plus R1,500 per month support. Excluding VAT.',
+    E'Multi-role app with the agreed workflows\nAdmin, reporting, and the integrations in scope\nStaging, production handover, and training\nBuild starts at R85,000. Support is R1,500 per month',
+    8500000,
+    'once_off',
+    true,
+    150000,
+    5
+  ),
+  (
+    'marketing_starter',
+    'Marketing Starter',
     'marketing',
-    'A launch marketing package. This amount is a placeholder until Billy confirms the real price.',
-    800000,
-    3,
-    'PLACEHOLDER — Billy will confirm the real price.'
+    'Monthly marketing retainer. R3,950 per month, excluding VAT.',
+    E'Monthly content plan and a posting cadence\nOne campaign or offer each month\nBasic reporting on reach and enquiries\nRetainer billed monthly, excluding VAT',
+    395000,
+    'month',
+    false,
+    null,
+    6
   ),
   (
     'marketing_growth',
-    'Marketing growth package',
+    'Marketing Growth',
     'marketing',
-    'A growth marketing package. This amount is a placeholder until Billy confirms the real price.',
-    1800000,
-    4,
-    'PLACEHOLDER — Billy will confirm the real price.'
+    'Larger monthly marketing retainer. R7,500 per month, excluding VAT.',
+    E'Content, ads creative, and a monthly offer\nLanding page updates tied to the campaign\nLead follow-up copy and a monthly report\nRetainer billed monthly, excluding VAT',
+    750000,
+    'month',
+    false,
+    null,
+    7
+  ),
+  (
+    'addon_hosting',
+    'Hosting, domain and SSL',
+    'addon',
+    'Hosting, domain, and SSL add-on. R150 per month, excluding VAT.',
+    E'Site hosting on a managed plan\nDomain renewal coordination\nSSL certificate kept current\nBilled monthly, excluding VAT',
+    15000,
+    'month',
+    false,
+    null,
+    8
   )
 on conflict (code) do update set
   name = excluded.name,
   kind = excluded.kind,
   summary = excluded.summary,
+  scope = excluded.scope,
   price_cents = excluded.price_cents,
-  price_placeholder = true,
-  placeholder_label = excluded.placeholder_label,
+  billing = excluded.billing,
+  price_from = excluded.price_from,
+  support_cents = excluded.support_cents,
   sort_order = excluded.sort_order;
 
 create table if not exists public.aios_membership_tiers (
@@ -103,7 +170,7 @@ create table if not exists public.service_quotes (
   message text not null default '',
   amount_cents integer not null check (amount_cents > 0),
   currency text not null default 'ZAR' check (currency = 'ZAR'),
-  price_placeholder boolean not null default true check (price_placeholder),
+  price_placeholder boolean not null default false,
   status text not null default 'requested' check (status in ('requested', 'accepted', 'paid', 'cancelled')),
   accept_token text not null unique,
   sandbox boolean not null default true,
@@ -314,10 +381,7 @@ begin
   end if;
   select * into pack from public.service_packages where code = p_package and active = true;
   if pack.code is null then
-    return jsonb_build_object('ok', false, 'sent', false, 'error', 'Choose a website, app, or marketing package.');
-  end if;
-  if pack.price_placeholder is distinct from true then
-    return jsonb_build_object('ok', false, 'sent', false, 'error', 'Service prices must stay placeholders.');
+    return jsonb_build_object('ok', false, 'sent', false, 'error', 'Choose a website, app, marketing, or hosting package.');
   end if;
   if org is null then
     select id into org from public.organizations where slug = 'ai-autotech' limit 1;
@@ -345,7 +409,8 @@ begin
     concat_ws(E'\n',
       'Service quote request',
       'Package: ' || pack.name || ' (' || pack.code || ')',
-      pack.placeholder_label,
+      'Quote starts at ' || pack.price_cents || ' cents ZAR excluding VAT.',
+      pack.scope,
       'Email: ' || lower(btrim(p_email)),
       nullif(btrim(coalesce(p_message, '')), '')
     ),
@@ -369,7 +434,7 @@ begin
     btrim(coalesce(p_company, '')),
     left(btrim(coalesce(p_message, '')), 3000),
     pack.price_cents,
-    true,
+    false,
     'requested',
     p_token,
     true
@@ -383,7 +448,7 @@ begin
     'lead_id', p_lead_id,
     'token', p_token,
     'amount_cents', pack.price_cents,
-    'price_placeholder', true
+    'price_placeholder', false
   );
 end;
 $$;

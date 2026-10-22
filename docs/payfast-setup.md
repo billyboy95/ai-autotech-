@@ -12,7 +12,14 @@ This page does not apply SQL. This page does not charge a card. This page does n
 
 | Stream | Price on the page | What it is |
 | --- | --- | --- |
-| Website build, app build, marketing packages | Marked **PLACEHOLDER** | You confirm the real rand amounts later. The form still saves a lead and a quote. |
+| Website Starter | R4,500 once-off | Confirmed. VAT excluded. |
+| Website Business | R8,950 once-off | Confirmed. VAT excluded. |
+| Website Premium | From R16,500 once-off | The quote starts at this amount. VAT excluded. |
+| App MVP | From R35,000 build + R750/mo support | The quote starts at the build amount. VAT excluded. |
+| App Full | From R85,000 build + R1,500/mo support | The quote starts at the build amount. VAT excluded. |
+| Marketing Starter | R3,950/mo retainer | Confirmed. VAT excluded. |
+| Marketing Growth | R7,500/mo retainer | Confirmed. VAT excluded. |
+| Hosting, domain and SSL | R150/mo | Add-on. VAT excluded. |
 | AIOS platform | R299 per month | Live site price. VAT excluded. |
 | AIOS agents | From R699 per month | Starter is R699. Pro is R1,499. Always-On is R4,999. VAT excluded. |
 
@@ -72,7 +79,7 @@ A failed check does not mark a quote paid and does not activate a membership.
 Service quote:
 
 1. They open `/services` and request a quote.
-2. The CRM gets a lead and a quote. The price is still a placeholder.
+2. The CRM gets a lead and a quote at the confirmed starting price.
 3. They open the quote link and choose Accept and pay.
 4. The browser goes to PayFast once-off checkout.
 

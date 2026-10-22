@@ -4,7 +4,7 @@ import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 import { requestServiceQuote, type QuoteActionState } from "@/app/actions/services";
 import { BUSINESS_EMAIL } from "@/lib/brand/contact";
-import { formatPackageZar, PRICE_PLACEHOLDER_LABEL, SERVICE_PACKAGES } from "@/lib/services/catalog";
+import { packagePriceLabel, SERVICE_PACKAGES } from "@/lib/services/catalog";
 
 const initial: QuoteActionState = { ok: false, message: "" };
 
@@ -25,13 +25,13 @@ export function ServiceEnquiryForm() {
   const [state, action] = useActionState(requestServiceQuote, initial);
   return (
     <form action={action} className="grid gap-4">
-      <p className="rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-950">{PRICE_PLACEHOLDER_LABEL} Nothing is charged on this form.</p>
+      <p className="rounded-md bg-slate-50 px-3 py-2 text-sm text-slate-700">Prices exclude VAT. Nothing is charged on this form.</p>
       <label className="grid gap-2 text-sm font-medium text-slate-700">
         Package
-        <select name="package_code" required className="h-11 rounded-md border border-slate-200 bg-white px-3" defaultValue="website_build">
+        <select name="package_code" required className="h-11 rounded-md border border-slate-200 bg-white px-3" defaultValue="website_starter">
           {SERVICE_PACKAGES.map((item) => (
             <option key={item.code} value={item.code}>
-              {item.name} · {formatPackageZar(item.priceCents)} placeholder
+              {item.name} · {packagePriceLabel(item)}
             </option>
           ))}
         </select>

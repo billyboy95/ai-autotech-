@@ -1,5 +1,5 @@
 import { crmLeadMirror, splitPersonName } from "@/lib/aios/public-intake";
-import { PRICE_PLACEHOLDER_LABEL, servicePackage, type ServicePackageCode } from "@/lib/services/catalog";
+import { packagePriceLabel, servicePackage, type ServicePackageCode } from "@/lib/services/catalog";
 
 export type ServiceEnquiryInput = {
   leadId: string;
@@ -16,7 +16,7 @@ export type ServiceEnquiryInput = {
 
 export function buildServiceEnquiry(input: ServiceEnquiryInput) {
   const pack = servicePackage(input.packageCode);
-  if (!pack) return { ok: false as const, error: "Choose a website, app, or marketing package." };
+  if (!pack) return { ok: false as const, error: "Choose a website, app, marketing, or hosting package." };
   const name = input.name.trim();
   const email = input.email.trim().toLowerCase();
   if (!name) return { ok: false as const, error: "Please enter your name." };
@@ -25,8 +25,8 @@ export function buildServiceEnquiry(input: ServiceEnquiryInput) {
   const notes = [
     "Service quote request",
     `Package: ${pack.name} (${pack.code})`,
-    `Placeholder amount: ${(pack.priceCents / 100).toFixed(2)} ZAR excluding VAT`,
-    PRICE_PLACEHOLDER_LABEL,
+    `Price: ${packagePriceLabel(pack)}. Prices exclude VAT.`,
+    ...pack.scope,
     `Email: ${email}`,
     input.message.trim() ? `Message: ${input.message.trim().slice(0, 1500)}` : "",
   ]
@@ -62,7 +62,7 @@ export function buildServiceEnquiry(input: ServiceEnquiryInput) {
       message: input.message.trim().slice(0, 3000),
       amount_cents: pack.priceCents,
       currency: "ZAR",
-      price_placeholder: true,
+      price_placeholder: false,
       status: "requested",
       accept_token: input.acceptToken,
       sandbox: true,

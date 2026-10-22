@@ -62,7 +62,7 @@ export async function requestServiceQuote(_state: QuoteActionState, formData: Fo
   }
   return {
     ok: true,
-    message: `Quote request saved. The ${built.package.name} price is still a placeholder. Nothing was charged.`,
+    message: `Quote request saved for ${built.package.name}. The quote starts at the confirmed price. Nothing was charged.`,
     acceptPath: `/quotes/${acceptToken}`,
   };
 }

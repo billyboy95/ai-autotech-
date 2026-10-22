@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BUSINESS_EMAIL } from "@/lib/brand/contact";
-import { formatPackageZar, PRICE_PLACEHOLDER_LABEL, servicePackage } from "@/lib/services/catalog";
+import { formatPackageZar, packagePriceLabel, servicePackage } from "@/lib/services/catalog";
 import { readQuoteByToken } from "@/server/services/quotes";
 
 export const dynamic = "force-dynamic";
@@ -38,7 +38,18 @@ export default async function QuoteAcceptPage({ params }: { params: Promise<{ to
           {loaded.quote.company ? ` · ${loaded.quote.company}` : ""}
         </p>
         <p className="mt-4 font-display text-3xl font-bold text-[#0B1F3A]">{formatPackageZar(loaded.quote.amountCents)}</p>
-        <p className="mt-2 text-sm text-amber-900">{PRICE_PLACEHOLDER_LABEL} VAT is excluded.</p>
+        <p className="mt-2 text-sm text-slate-700">
+          {pack ? packagePriceLabel(pack) : "Quote starting amount"}. Prices exclude VAT.
+          {pack?.supportCents ? " Monthly support is separate from this once-off payment." : ""}
+          {pack?.billing === "month" ? " This checkout collects the monthly amount once. It is not a PayFast subscription." : ""}
+        </p>
+        {pack ? (
+          <ul className="mt-3 list-disc pl-5 text-sm leading-6 text-slate-700">
+            {pack.scope.map((line) => (
+              <li key={line}>{line}</li>
+            ))}
+          </ul>
+        ) : null}
         {paid ? (
           <p className="mt-4 text-sm text-emerald-800">This quote is already marked paid. A membership upsell draft is in the CRM. Nothing else will be charged from this page.</p>
         ) : (

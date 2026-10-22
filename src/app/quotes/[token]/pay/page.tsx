@@ -5,7 +5,7 @@ import { PayfastRedirect } from "@/components/payfast/redirect-form";
 import { splitPersonName } from "@/lib/aios/public-intake";
 import { BUSINESS_EMAIL } from "@/lib/brand/contact";
 import { onceOffCheckout } from "@/lib/payfast/checkout";
-import { servicePackage } from "@/lib/services/catalog";
+import { packagePriceLabel, servicePackage } from "@/lib/services/catalog";
 import { markQuoteAccepted, readQuoteByToken } from "@/server/services/quotes";
 
 export const dynamic = "force-dynamic";
@@ -40,7 +40,9 @@ export default async function QuotePayPage({ params }: { params: Promise<{ token
     paymentId: `svc_${loaded.quote.id}`,
     amountCents: loaded.quote.amountCents,
     itemName: pack?.name || "Service",
-    itemDescription: "Once-off service quote. Placeholder price until Billy confirms it. VAT excluded.",
+    itemDescription: pack
+      ? `${packagePriceLabel(pack)}. Prices exclude VAT.`
+      : "Service quote. Prices exclude VAT.",
     firstName: person.firstName,
     lastName: person.lastName,
     email: loaded.quote.email,

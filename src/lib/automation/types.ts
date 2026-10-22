@@ -7,6 +7,7 @@ export const PIPELINE_STAGES = [
   "Won",
   "Lost",
   "Onboarding/Handover",
+  "membership upsell",
 ] as const;
 
 export type PipelineStage = (typeof PIPELINE_STAGES)[number];

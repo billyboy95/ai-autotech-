@@ -72,6 +72,7 @@ const MARKETING_PATHS = new Set([
   "/ai-agents",
   "/automation",
   "/case-studies",
+  "/membership",
 ]);
 
 export function isMarketingPath(pathname: string) {

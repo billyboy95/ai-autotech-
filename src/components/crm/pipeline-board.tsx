@@ -30,6 +30,7 @@ const tone: Record<PipelineStage, string> = {
   Won: "border-emerald-500",
   Lost: "border-rose-400",
   "Onboarding/Handover": "border-amber-500",
+  "membership upsell": "border-orange-500",
 };
 
 export function PipelineBoard({ leads }: { leads: PipelineCard[] }) {

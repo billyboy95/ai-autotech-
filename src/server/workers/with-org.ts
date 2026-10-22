@@ -92,6 +92,9 @@ export async function callServiceRpc(fn: string, args: Record<string, unknown>) 
     "bill_usage_period",
     "start_free_trial",
     "expire_free_trials",
+    "create_service_enquiry",
+    "apply_income_payment",
+    "start_aios_membership",
   ]);
   if (!allowed.has(fn)) throw new Error("That billing call is not allowed.");
   const client = serviceClient();

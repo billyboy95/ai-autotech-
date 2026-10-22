@@ -173,6 +173,7 @@ export const config = {
     "/",
     "/about",
     "/services",
+    "/membership",
     "/contact",
     "/blog",
     "/software-development",

@@ -232,7 +232,7 @@ export function queueDueFollowUps(state: AutomationState, now: Date): Automation
     const current = () => next.leads.find((lead) => lead.id === original.id);
     const lead = current();
     if (!lead?.enrolled || lead.repliedAt) continue;
-    if (lead.stage === "Lost" || lead.stage === "Won" || lead.stage === "Onboarding/Handover") continue;
+    if (lead.stage === "Lost" || lead.stage === "Won" || lead.stage === "Onboarding/Handover" || lead.stage === "membership upsell") continue;
 
     const ageHours = (now.getTime() - new Date(lead.createdAt).getTime()) / 36e5;
     if ((lead.stage === "New" || lead.stage === "Contacted") && !lead.bookedAt) {

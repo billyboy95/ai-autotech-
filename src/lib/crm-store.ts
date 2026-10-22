@@ -17,6 +17,7 @@ export type Lead = {
     | "Won"
     | "Lost"
     | "Onboarding/Handover"
+    | "membership upsell"
     | "Talking"
     | "Quoted";
   notes: string;

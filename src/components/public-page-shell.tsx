@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { BrandLogo } from "@/components/brand-logo";
@@ -11,11 +12,13 @@ export function PublicPageShell({
   description,
   items,
   sourcePage,
+  children,
 }: {
   title: string;
   description: string;
   items: PublicItem[];
   sourcePage: string;
+  children?: ReactNode;
 }) {
   return (
     <main className="min-h-screen bg-[#F3F4F6]">
@@ -76,6 +79,7 @@ export function PublicPageShell({
           </div>
         </aside>
       </section>
+      {children}
     </main>
   );
 }

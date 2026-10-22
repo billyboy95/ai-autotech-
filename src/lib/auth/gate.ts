@@ -26,6 +26,7 @@ const MARKETING = new Set([
   "/ai-agents",
   "/automation",
   "/case-studies",
+  "/membership",
 ]);
 
 export function isCrmDataApi(pathname: string) {
@@ -47,6 +48,8 @@ export function isPublicPath(pathname: string) {
   if (pathname === "/book" || pathname.startsWith("/book/")) return true;
   if (pathname === "/r" || pathname.startsWith("/r/")) return true;
   if (pathname === "/team" || pathname.startsWith("/team/")) return true;
+  if (pathname === "/membership" || pathname.startsWith("/membership/")) return true;
+  if (pathname === "/quotes" || pathname.startsWith("/quotes/")) return true;
   if (pathname.startsWith("/intake/") || pathname === "/intake") return true;
   if (pathname.startsWith("/invite/") || pathname === "/invite") return true;
   if (pathname === "/unsubscribe" || pathname.startsWith("/unsubscribe/")) return true;

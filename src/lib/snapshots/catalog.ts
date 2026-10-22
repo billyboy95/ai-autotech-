@@ -41,6 +41,7 @@ const AGENCY_STAGE_KEYS: Record<(typeof PIPELINE_STAGES)[number], string> = {
   Won: "stage:sales:won",
   Lost: "stage:sales:lost",
   "Onboarding/Handover": "stage:sales:handover",
+  "membership upsell": "stage:sales:membership-upsell",
 };
 
 function agencyPipeline(): SnapshotPipeline {

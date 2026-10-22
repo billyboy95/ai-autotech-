@@ -7,7 +7,8 @@ export function payfastEncode(value: string) {
     .replace(/%20/g, "+");
 }
 
-export function payfastSignature(fields: Record<string, string>, order: string[], passphrase = "") {
+/** Parameter string PayFast hashes. Empty fields are left out. The passphrase is not a field PayFast posts back. */
+export function payfastParamString(fields: Record<string, string>, order: string[], passphrase = "") {
   const parts: string[] = [];
   for (const key of order) {
     if (key === "signature") continue;
@@ -19,7 +20,11 @@ export function payfastSignature(fields: Record<string, string>, order: string[]
   if (passphrase.trim()) {
     query += `&passphrase=${payfastEncode(passphrase.trim())}`;
   }
-  return createHash("md5").update(query).digest("hex");
+  return query;
+}
+
+export function payfastSignature(fields: Record<string, string>, order: string[], passphrase = "") {
+  return createHash("md5").update(payfastParamString(fields, order, passphrase)).digest("hex");
 }
 
 export function parsePayfastBody(raw: string) {

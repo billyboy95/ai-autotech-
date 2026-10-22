@@ -6,7 +6,7 @@ import { payfastParamString, payfastSignature } from "@/lib/billing/signature";
 import { onceOffCheckout, subscriptionCheckout } from "@/lib/payfast/checkout";
 import { payfastMode, payfastProcessUrl, payfastValidateUrl } from "@/lib/payfast/config";
 import { isPayfastSourceIp, signatureMatches, validateIncomeItn } from "@/lib/payfast/itn";
-import { receiveIncomeItn } from "@/server/payfast/income-itn";
+import { receiveIncomeItn } from "@/server/webhooks/income-itn";
 
 const PASSPHRASE = "salt";
 const ORDER = ["merchant_id", "amount", "item_name"];

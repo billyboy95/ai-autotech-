@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { parsePayfastBody } from "@/lib/billing/signature";
-import { receiveIncomeItn } from "@/server/payfast/income-itn";
+import { receiveIncomeItn } from "@/server/webhooks/income-itn";
 import { receivePayfastItn } from "@/server/webhooks/payfast";
 
 export const runtime = "nodejs";

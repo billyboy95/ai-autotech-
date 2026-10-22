@@ -4,7 +4,7 @@ import { PwaRegister } from "@/components/pwa/register";
 import { requireCrmSession } from "@/lib/auth/session";
 import { clientPlatformDecision } from "@/lib/membership/access";
 import { safeResolveWorkspace } from "@/lib/tenant/context";
-import { readOrgMembershipStatus } from "@/server/membership/status";
+import { readOrgMembershipStatus } from "@/server/workers/membership-status";
 
 export const dynamic = "force-dynamic";
 

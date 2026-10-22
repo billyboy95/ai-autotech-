@@ -2,9 +2,8 @@ import { parsePayfastBody } from "@/lib/billing/signature";
 import type { EnvLike } from "@/lib/automation/channels";
 import { payfastMode } from "@/lib/payfast/config";
 import { requestSourceIp, randsToCents, validateIncomeItn } from "@/lib/payfast/itn";
+import { openServiceDatabase } from "@/server/workers/service-db";
 import { callServiceRpc } from "@/server/workers/with-org";
-import { createClient } from "@supabase/supabase-js";
-import { authOnlyRealtime } from "@/lib/supabase/realtime";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -16,25 +15,12 @@ export type IncomeItnDeps = {
   fetchImpl?: typeof fetch;
 };
 
-function service() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !key) return null;
-  return createClient(url, key, {
-    auth: { autoRefreshToken: false, persistSession: false },
-    realtime: authOnlyRealtime,
-  });
-}
-
 async function loadExpected(kind: Expected["kind"], id: string): Promise<Expected | null | "unconfigured"> {
-  const client = service();
+  const client = openServiceDatabase();
   if (!client) return "unconfigured";
   const table = kind === "service" ? "service_quotes" : "aios_memberships";
   const found = await client.from(table).select("amount_cents").eq("id", id).maybeSingle();
-  if (found.error) {
-    if (/does not exist|schema cache/i.test(found.error.message)) return null;
-    return null;
-  }
+  if (found.error) return null;
   if (!found.data) return null;
   const amount = Number((found.data as { amount_cents?: number }).amount_cents);
   if (!Number.isFinite(amount)) return null;

@@ -6,7 +6,7 @@ import { splitPersonName } from "@/lib/aios/public-intake";
 import { BUSINESS_EMAIL } from "@/lib/brand/contact";
 import { onceOffCheckout } from "@/lib/payfast/checkout";
 import { packagePriceLabel, servicePackage } from "@/lib/services/catalog";
-import { markQuoteAccepted, readQuoteByToken } from "@/server/services/quotes";
+import { markQuoteAccepted, readQuoteByToken } from "@/server/workers/income-quotes";
 
 export const dynamic = "force-dynamic";
 

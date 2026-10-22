@@ -1,20 +1,13 @@
-import { createClient } from "@supabase/supabase-js";
 import { isMembershipStatus, type MembershipStatus } from "@/lib/membership/access";
-import { authOnlyRealtime } from "@/lib/supabase/realtime";
+import { openServiceDatabase } from "@/server/workers/service-db";
 
-function client() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !key) return null;
-  return createClient(url, key, {
-    auth: { autoRefreshToken: false, persistSession: false },
-    realtime: authOnlyRealtime,
-  });
-}
-
-/** Null when no membership is on file, or when the table is not applied yet. */
+/**
+ * Latest membership for an organisation. Client users are not on the
+ * authenticated read policy, so the platform gate reads through the worker client.
+ * Null when no membership is on file, or when the table is not available.
+ */
 export async function readOrgMembershipStatus(orgId: string): Promise<MembershipStatus | null> {
-  const supabase = client();
+  const supabase = openServiceDatabase();
   if (!supabase || !orgId) return null;
   const found = await supabase
     .from("aios_memberships")

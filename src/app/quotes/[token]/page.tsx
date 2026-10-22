@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BUSINESS_EMAIL } from "@/lib/brand/contact";
 import { formatPackageZar, packagePriceLabel, servicePackage } from "@/lib/services/catalog";
-import { readQuoteByToken } from "@/server/services/quotes";
+import { readQuoteByToken } from "@/server/workers/income-quotes";
 
 export const dynamic = "force-dynamic";
 

@@ -1,5 +1,4 @@
-import { createClient } from "@supabase/supabase-js";
-import { authOnlyRealtime } from "@/lib/supabase/realtime";
+import { openServiceDatabase } from "@/server/workers/service-db";
 
 const TOKEN = /^[a-f0-9]{64}$/;
 
@@ -15,16 +14,6 @@ export type StoredQuote = {
   status: string;
   acceptToken: string;
 };
-
-function client() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !key) return null;
-  return createClient(url, key, {
-    auth: { autoRefreshToken: false, persistSession: false },
-    realtime: authOnlyRealtime,
-  });
-}
 
 function mapQuote(row: Record<string, unknown>): StoredQuote | null {
   if (typeof row.id !== "string" || typeof row.accept_token !== "string") return null;
@@ -42,9 +31,13 @@ function mapQuote(row: Record<string, unknown>): StoredQuote | null {
   };
 }
 
+/**
+ * Public quote links have no session. Anon has no grant, and authenticated
+ * reads are limited to agency staff on an organisation. The accept token is the scope.
+ */
 export async function readQuoteByToken(token: string) {
   if (!TOKEN.test(token)) return { configured: true as const, quote: null };
-  const supabase = client();
+  const supabase = openServiceDatabase();
   if (!supabase) return { configured: false as const, quote: null };
   const found = await supabase
     .from("service_quotes")
@@ -57,7 +50,7 @@ export async function readQuoteByToken(token: string) {
 
 export async function markQuoteAccepted(token: string) {
   if (!TOKEN.test(token)) return false;
-  const supabase = client();
+  const supabase = openServiceDatabase();
   if (!supabase) return false;
   const saved = await supabase
     .from("service_quotes")

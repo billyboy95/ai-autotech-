@@ -1,11 +1,13 @@
 import Link from "next/link";
 import { runInstalledBot, updateInstalledBot } from "@/app/actions/bots";
+import { createBotTryLinkAction, revokeBotTryLinkAction } from "@/app/actions/try-chat";
 import { Advanced } from "@/components/ui/advanced";
 import { formatWhen, formatZar } from "@/lib/automation/ids";
 import type { BotDetailData } from "@/lib/bots/preview";
 import { formatComputerUsage } from "@/lib/computers/meter";
+import type { TryLinkSummary } from "@/server/workers/try-chat";
 
-export function BotDetailView({ data }: { data: BotDetailData }) {
+export function BotDetailView({ data, tryLinks = [] }: { data: BotDetailData; tryLinks?: TryLinkSummary[] }) {
   const back = `/command-centre/bots/${data.slug}`;
   return (
     <div data-testid="bot-detail" className="grid gap-4">
@@ -37,6 +39,29 @@ export function BotDetailView({ data }: { data: BotDetailData }) {
               <input type="hidden" name="return_to" value={back} />
               <button className="inline-flex h-11 items-center rounded-md bg-[#2563EB] px-4 text-sm font-semibold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0B1F3A]">Run a draft</button>
             </form>
+            <form action={createBotTryLinkAction} className="mt-3">
+              <input type="hidden" name="slug" value={data.orgSlug} />
+              <input type="hidden" name="bot" value={data.slug} />
+              <input type="hidden" name="return_to" value={back} />
+              <button className="inline-flex h-11 items-center rounded-md border border-[#075E54] px-4 text-sm font-semibold text-[#075E54] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0B1F3A]">Create test link</button>
+              <p className="mt-2 text-sm text-slate-700">Opens a sandbox chat for this agent. The link stores a hash only. No real messages or payments.</p>
+            </form>
+            {tryLinks.length > 0 ? (
+              <ul className="mt-3 grid gap-2">
+                {tryLinks.map((link) => (
+                  <li key={link.id} className="rounded-md bg-slate-50 px-3 py-2 text-sm text-slate-700">
+                    <p>Active until {formatWhen(link.expiresAt)}. {link.usedMessages} of {link.maxMessages} messages.</p>
+                    <form action={revokeBotTryLinkAction} className="mt-2">
+                      <input type="hidden" name="slug" value={data.orgSlug} />
+                      <input type="hidden" name="bot" value={data.slug} />
+                      <input type="hidden" name="link" value={link.id} />
+                      <input type="hidden" name="return_to" value={back} />
+                      <button className="inline-flex h-11 items-center rounded-md border border-slate-300 px-3 text-sm font-semibold text-slate-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0B1F3A]">Revoke</button>
+                    </form>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
             {data.canViewComputer ? (
               <div className="mt-3">
                 <Link href={`/command-centre/bots/${data.slug}/computer`} data-testid="view-computer" className="inline-flex h-11 items-center rounded-md border border-[#2563EB] px-4 text-sm font-semibold text-[#2563EB] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0B1F3A]">View computer</Link>

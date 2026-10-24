@@ -1,5 +1,10 @@
 import type { MessageTemplate } from "@/lib/automation/types";
 
+/**
+ * {{company}} is the business name, or "your business" when the stored value is
+ * blank, null, "None", or "N/A". See companyTemplateLabel. Bodies are rendered
+ * when a message is queued. Existing outbox rows keep the body they already have.
+ */
 export const DEFAULT_TEMPLATES: MessageTemplate[] = [
   {
     key: "ack_whatsapp",

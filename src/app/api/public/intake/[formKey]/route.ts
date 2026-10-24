@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { normalizeCompany } from "@/lib/automation/company";
 import { nid } from "@/lib/crm-store";
 import { marketingConsentText, serviceConsentText } from "@/lib/compliance/consent-copy";
 import { recordConsent } from "@/server/webhooks/compliance";
@@ -133,13 +134,14 @@ export async function POST(request: Request, context: { params: Promise<{ formKe
   }
 
   const crmLeadId = nid();
+  const company = normalizeCompany(parsed.data.company);
   const saved = await insertForOrg(org.id, "crm_contact_leads", {
     status: "new",
     source: `intake:${org.formKey}`,
     name: parsed.data.name,
     email: parsed.data.email || "",
     phone: parsed.data.phone,
-    company: parsed.data.company,
+    company,
     message: parsed.data.message,
     page: `/intake/${org.formKey}`,
     crm_lead_id: crmLeadId,
@@ -151,7 +153,7 @@ export async function POST(request: Request, context: { params: Promise<{ formKe
   await insertForOrg(org.id, "crm_leads", {
     id: crmLeadId,
     name: parsed.data.name,
-    company: parsed.data.company,
+    company,
     phone: parsed.data.phone,
     stage: "New",
     notes: [`Workspace intake ${org.formKey}`, parsed.data.email, parsed.data.message].filter(Boolean).join("\n"),

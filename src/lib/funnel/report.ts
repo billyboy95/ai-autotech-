@@ -1,3 +1,5 @@
+import { normalizeCompany } from "@/lib/automation/company";
+
 export type ReportSection = {
   id: "gaps" | "team" | "impact";
   heading: string;
@@ -135,7 +137,7 @@ export function sourceFacts(draft: Pick<AuditReportDraft, "narrative" | "section
 
 /** Draft from the prospect's own answers and score. Hours and revenue are copied, not estimated. */
 export function buildAuditReport(source: AuditSource): AuditReportDraft {
-  const company = clip(source.company, 120);
+  const company = clip(normalizeCompany(source.company), 120);
   const industry = clip(source.industry, 80);
   const website = clip(source.website, 200);
   const scores = scoreLines(source.score);

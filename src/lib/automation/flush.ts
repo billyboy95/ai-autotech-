@@ -10,6 +10,11 @@ export async function flushOutbox(
   env: EnvLike = process.env,
   deliver: typeof deliverMessage = deliverMessage,
 ): Promise<AutomationState> {
+  // Audit thank-yous (ack_whatsapp and ack_email) are queued by captureLead.
+  // Dispatch happens only in the branch below, and only when AUTOMATION_SEND_ENABLED
+  // is exactly "true". That variable is unset until Billy approves. organizations.sending_enabled
+  // stays false as well. This return does not call a provider and does not change
+  // status or body, so rows already queued stay queued.
   if (!isSendEnabled(env)) {
     return {
       ...state,

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { marketingConsentText, serviceConsentText } from "@/lib/compliance/consent-copy";
+import { normalizeCompany } from "@/lib/automation/company";
 import { enrollLead } from "@/lib/automation/service";
 import { recordConsent } from "@/server/webhooks/compliance";
 import { nid } from "@/lib/crm-store";
@@ -182,7 +183,7 @@ export async function POST(request: Request) {
     return json({ ok: false, error: "Lead storage is not configured." }, 500, origin);
   }
 
-  const company = input.company || input.business;
+  const company = normalizeCompany(input.company || input.business);
   const test = isTestSubmission(input.name, input.email);
   const crmLeadId = test ? null : nid();
 

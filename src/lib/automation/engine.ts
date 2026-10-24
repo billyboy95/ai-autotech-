@@ -1,6 +1,7 @@
 import { assignOwner } from "@/lib/automation/assign";
 import { ensureProspectInPipeline, queueDueCampaignSteps } from "@/lib/automation/campaigns";
 import { buildSmsLink, buildWaLink, isSendEnabled, renderTemplate, type EnvLike } from "@/lib/automation/channels";
+import { companyTemplateLabel, normalizeCompany } from "@/lib/automation/company";
 import { addSuppression, ensureMarketingFooter, isOptOutText, messageCategory, normalizeAddress, optOutAddresses } from "@/lib/automation/compliance";
 import { optOutAck } from "@/lib/compliance/stop";
 import { firstName, formatWhen, newId } from "@/lib/automation/ids";
@@ -85,7 +86,7 @@ export function captureLead(
     ...(existing ?? { id: input.id, name: input.name.trim() || "Unnamed", createdAt }),
     id: input.id,
     name: (input.name || existing?.name || "Unnamed").trim() || "Unnamed",
-    company: input.company ?? existing?.company ?? "",
+    company: normalizeCompany(input.company ?? existing?.company ?? ""),
     phone: input.phone ?? existing?.phone ?? "",
     email: input.email ?? existing?.email ?? "",
     whatsapp: (input.phone || existing?.whatsapp || existing?.phone || "").trim(),
@@ -349,7 +350,8 @@ export function markWon(
   const lead = state.leads.find((item) => item.id === leadId);
   if (!lead) return state;
   const valueZar = extra?.valueZar ?? lead.valueZar ?? 0;
-  const whatSold = extra?.whatSold?.trim() || `AI automation for ${lead.company || lead.name}`;
+  const namedBusiness = normalizeCompany(lead.company);
+  const whatSold = extra?.whatSold?.trim() || `AI automation for ${namedBusiness || lead.name}`;
   const deliveredBy = extra?.deliveredBy?.trim() || lead.ownerName || state.settings.defaultOwner || "Billy";
   const existing = state.handovers.find((handover) => handover.leadId === leadId);
 
@@ -498,7 +500,7 @@ export function templateVars(lead: LeadRecord, settings: AutomationSettings, whe
   return {
     name: lead.name,
     firstName: firstName(lead.name),
-    company: lead.company || "your business",
+    company: companyTemplateLabel(lead.company),
     owner: lead.ownerName || settings.defaultOwner || "Billy",
     bookingUrl,
     when,

@@ -1,4 +1,5 @@
 import { buildSmsLink, buildWaLink, renderTemplate } from "@/lib/automation/channels";
+import { companyTemplateLabel } from "@/lib/automation/company";
 import { ensureMarketingFooter, messageCategory } from "@/lib/automation/compliance";
 import { firstName, newId } from "@/lib/automation/ids";
 import { assignOwner } from "@/lib/automation/assign";
@@ -371,8 +372,8 @@ function prospectVars(state: AutomationState, prospect: Prospect) {
   return {
     name: prospect.name,
     firstName: firstName(prospect.name),
-    business: prospect.business || "your business",
-    company: prospect.business || "your business",
+    business: companyTemplateLabel(prospect.business),
+    company: companyTemplateLabel(prospect.business),
     niche: prospect.niche || "your",
     website: prospect.website,
     opening: prospect.openingLine,

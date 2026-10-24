@@ -192,6 +192,11 @@ test("a report copies submitted figures and does not invent statistics", () => {
   assert.equal(facts.includes("@"), false);
   assert.equal(facts.includes("lesego"), false);
 
+  const unnamed = buildAuditReport({ ...auditInput.audit, company: "N/A" });
+  assert.equal(unnamed.title, "Audit report");
+  assert.match(unnamed.narrative, /This business in clinic completed/);
+  assert.equal(unnamed.title.includes("N/A"), false);
+
   const empty = buildAuditReport({
     company: "Quiet Co",
     industry: "",

@@ -7,6 +7,7 @@ import {
   RESULT_PLACEHOLDER,
   channelSnapshots,
   decideDraft,
+  followUpCopy,
   planAuditFollowUp,
   planBookingReminders,
   planDailySummary,
@@ -62,6 +63,19 @@ test("the sales agent flag is off unless it is exactly true", async () => {
   assert.equal(cron.stored, 0);
   assert.equal(cron.sent, false);
   assert.equal(cron.skipped, true);
+});
+
+test("a blank audit business name is not spoken as None", () => {
+  const copy = followUpCopy({
+    step: "day0",
+    name: "Sam Example",
+    company: "None",
+    reportPath: "",
+    bookingUrl: "https://aiautotech.co.za/book/",
+  });
+  assert.match(copy.body, /your business/);
+  assert.equal(copy.body.includes("None"), false);
+  assert.equal(copy.subject.includes("None"), false);
 });
 
 test("an audit lead gets a consent-checked draft sequence and never a send", () => {

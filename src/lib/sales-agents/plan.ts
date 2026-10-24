@@ -1,3 +1,4 @@
+import { companyTemplateLabel, normalizeCompany } from "@/lib/automation/company";
 import { evaluateSend, type ConsentStatus } from "@/lib/compliance/send-gate";
 import { firstName, johannesburgDateKey } from "@/lib/automation/ids";
 import { RESULTS_CALL_FALLBACK } from "@/lib/funnel/booking-link";
@@ -249,7 +250,7 @@ function draftFor(input: {
 
 function who(name: string, company: string) {
   const person = clip(name, 80) || "New lead";
-  const business = clip(company, 80);
+  const business = clip(normalizeCompany(company), 80);
   return business ? `${person} (${business})` : person;
 }
 
@@ -274,7 +275,7 @@ export function followUpCopy(input: {
   bookingUrl: string;
 }) {
   const first = firstName(input.name);
-  const company = clip(input.company, 80) || "your business";
+  const company = clip(companyTemplateLabel(input.company), 80);
   const booking = input.bookingUrl.trim() || RESULTS_CALL_FALLBACK;
   const report = input.reportPath.trim();
   if (input.step === "day0") {
@@ -416,7 +417,7 @@ export function planBookingReminders(input: {
     { step: "reminder_1h", hours: 1, label: "in 1 hour" },
   ];
   const first = firstName(input.name);
-  const company = clip(input.company, 80);
+  const company = clip(normalizeCompany(input.company), 80);
   const about = company ? ` for ${company}` : "";
   for (const slot of slots) {
     const when = minusHours(starts, slot.hours);
@@ -570,7 +571,7 @@ export function planOnboarding(input: {
     items,
   };
   const first = firstName(input.name);
-  const company = clip(input.company, 80) || "your business";
+  const company = clip(companyTemplateLabel(input.company), 80);
   const booking = input.bookingUrl.trim() || RESULTS_CALL_FALLBACK;
   const body = `Hi ${first}, it's Billy from AI AutoTech. Welcome. ${company} can start onboarding now.\n\n${LEAD_ONBOARDING_INTRO}\n\nKickoff booking: ${booking}\n\n${RESULT_PLACEHOLDER}`;
   const existing = new Set(input.existingKeys || []);

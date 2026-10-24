@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { normalizeCompany } from "@/lib/automation/company";
 import { enrollLead } from "@/lib/automation/service";
 import { newShareToken } from "@/lib/bots/share-token";
 import { nid } from "@/lib/crm-store";
@@ -91,7 +92,7 @@ const recommendation = z
 const schema = z.object({
   firstName: z.string().trim().min(1).max(60),
   lastName: z.string().trim().min(1).max(60),
-  company: z.string().trim().min(1).max(120),
+  company: z.union([z.string().trim().max(120), z.null()]).optional(),
   email: z.string().trim().toLowerCase().max(160).pipe(z.email()),
   phone: z
     .string()
@@ -184,6 +185,7 @@ export async function POST(request: Request) {
     );
   }
   const input = parsed.data;
+  const company = normalizeCompany(input.company);
 
   // Bots: honeypot filled or impossibly fast. Pretend success, store nothing.
   if ((input.hp && input.hp.trim()) || input.elapsedMs < MIN_FILL_MS) {
@@ -205,7 +207,7 @@ export async function POST(request: Request) {
     reference,
     first_name: input.firstName,
     last_name: input.lastName,
-    company: input.company,
+    company,
     email: input.email,
     phone: input.phone,
     whatsapp: input.phone,
@@ -266,7 +268,7 @@ export async function POST(request: Request) {
   const mirror = crmLeadMirror({
     id: crmLeadId,
     name: leadName,
-    company: input.company,
+    company,
     phone: input.phone,
     email: input.email,
     notes,
@@ -295,7 +297,7 @@ export async function POST(request: Request) {
         name: leadName,
         email: input.email,
         phone: input.phone,
-        company: input.company,
+        company,
         leadId: crmLeadId,
         source: "audit",
       }),
@@ -308,7 +310,7 @@ export async function POST(request: Request) {
   const enrolled = await enrollLead({
     id: crmLeadId,
     name: `${input.firstName} ${input.lastName}`.trim(),
-    company: input.company,
+    company,
     phone: input.phone,
     email: input.email,
     notes,
@@ -336,7 +338,7 @@ export async function POST(request: Request) {
     sourceId: String(data.id),
     leadId: crmLeadId,
     name: `${input.firstName} ${input.lastName}`.trim(),
-    company: input.company,
+    company,
     phone: input.phone,
     leadEmail: input.email,
     detail: reference,
@@ -344,7 +346,7 @@ export async function POST(request: Request) {
     consentAccepted: true,
     consentText: input.consentText,
     audit: {
-      company: input.company,
+      company,
       industry: input.industry,
       website: input.website,
       answers: input.answers,

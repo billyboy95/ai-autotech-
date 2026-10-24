@@ -20,6 +20,8 @@ const publicPaths = [
   "/api/public/audit",
   "/api/public/leads",
   "/book/ai-autotech-audit",
+  "/try/eastc",
+  "/api/public/try/eastc",
   "/r/summer",
   "/team/billy",
   "/auth/callback",

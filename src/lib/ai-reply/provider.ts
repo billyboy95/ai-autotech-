@@ -22,11 +22,20 @@ export function replyProviderConfig(env: NodeJS.ProcessEnv) {
   };
 }
 
+export type OpenAiProviderOptions = {
+  maxTokens?: number;
+  unconfiguredMessage?: string;
+};
+
 export function createOpenAiCompatibleProvider(
   env: NodeJS.ProcessEnv,
   fetchImpl: typeof fetch = fetch,
+  options: OpenAiProviderOptions = {},
 ): ReplyProvider {
   const config = replyProviderConfig(env);
+  const unconfigured = options.unconfiguredMessage
+    || "AI_REPLY_API_KEY is not set. The draft was saved as provider_unconfigured. Nothing was sent.";
+  const maxTokens = Number(options.maxTokens);
   return {
     model: config.model,
     configured: () => Boolean(config.apiKey),
@@ -35,21 +44,25 @@ export function createOpenAiCompatibleProvider(
         return {
           ok: false,
           failure: "provider_unconfigured",
-          message: "AI_REPLY_API_KEY is not set. The draft was saved as provider_unconfigured. Nothing was sent.",
+          message: unconfigured,
         };
       }
       try {
+        const body: Record<string, unknown> = {
+          model: config.model,
+          temperature: 0.4,
+          messages,
+        };
+        if (Number.isFinite(maxTokens) && maxTokens > 0) {
+          body.max_tokens = Math.min(800, Math.trunc(maxTokens));
+        }
         const response = await fetchImpl(`${config.baseUrl}/chat/completions`, {
           method: "POST",
           headers: {
             Authorization: `Bearer ${config.apiKey}`,
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({
-            model: config.model,
-            temperature: 0.4,
-            messages,
-          }),
+          body: JSON.stringify(body),
           signal: AbortSignal.timeout(20_000),
         });
         if (!response.ok) {

@@ -46,6 +46,7 @@ export function isPublicPath(pathname: string) {
   if (pathname === "/auth" || pathname.startsWith("/auth/")) return true;
   if (pathname.startsWith("/api/public/")) return true;
   if (pathname === "/book" || pathname.startsWith("/book/")) return true;
+  if (pathname === "/try" || pathname.startsWith("/try/")) return true;
   if (pathname === "/r" || pathname.startsWith("/r/")) return true;
   if (pathname === "/team" || pathname.startsWith("/team/")) return true;
   if (pathname === "/membership" || pathname.startsWith("/membership/")) return true;

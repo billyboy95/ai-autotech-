@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { normalizeCompany } from "@/lib/automation/company";
 import { nid } from "@/lib/crm-store";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { saveCampaign } from "@/lib/automation/campaigns";
@@ -44,7 +45,7 @@ export async function addPipelineLead(formData: FormData) {
   const input = {
     id: nid(),
     name: String(formData.get("name") || "").trim() || "Unnamed",
-    company: String(formData.get("company") || "").trim(),
+    company: normalizeCompany(formData.get("company")),
     phone: String(formData.get("phone") || "").trim(),
     email: String(formData.get("email") || "").trim(),
     notes: String(formData.get("notes") || "").trim(),

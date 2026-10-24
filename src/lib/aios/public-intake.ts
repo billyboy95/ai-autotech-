@@ -1,4 +1,5 @@
 import { toE164 } from "@/lib/automation/channels";
+import { normalizeCompany } from "@/lib/automation/company";
 
 /** Client workspace the provisioning script creates from the agency template. */
 export const AI_AUTOTECH_CLIENT_SLUG = "aiautotech";
@@ -88,7 +89,7 @@ export function crmLeadMirror(input: {
   const row: CrmLeadMirror = {
     id: input.id,
     name: input.name.trim(),
-    company: input.company.trim(),
+    company: normalizeCompany(input.company),
     phone: input.phone.trim(),
     email: input.email.trim().toLowerCase(),
     stage: "New",
@@ -122,7 +123,7 @@ export function intakeContactRow(input: {
     email: input.email.trim().toLowerCase(),
     phone_e164: phone,
     whatsapp_e164: phone,
-    company: input.company.trim(),
+    company: normalizeCompany(input.company),
     lead_id: input.leadId,
     tags: [] as string[],
     custom: { source: input.source },

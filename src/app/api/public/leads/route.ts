@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { normalizeCompany } from "@/lib/automation/company";
 import { enrollLead } from "@/lib/automation/service";
 import { createPublicLead } from "@/lib/crm-store";
 
@@ -59,7 +60,7 @@ export async function POST(request: Request) {
   const name = String(body.name ?? "").trim();
   const email = String(body.email ?? "").trim();
   const phone = String(body.phone ?? "").trim();
-  const company = String(body.company ?? "").trim();
+  const company = normalizeCompany(body.company);
   const message = String(body.message ?? "").trim();
 
   if (!name && !phone && !message) {

@@ -1,4 +1,5 @@
 import { type JobKind } from "@/lib/brand/catalog";
+import { normalizeCompany } from "@/lib/automation/company";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { missingOrgColumn, missingTenantTable } from "@/lib/tenant/rows";
 import { AGENCY_SLUG } from "@/lib/tenant/types";
@@ -333,7 +334,7 @@ export async function createPublicLead(
   const row = {
     id,
     name: input.name || "Website lead",
-    company: input.company,
+    company: normalizeCompany(input.company),
     phone: input.phone,
     stage: "New" as const,
     notes,

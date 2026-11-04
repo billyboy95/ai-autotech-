@@ -1,5 +1,6 @@
 import { inboxBulkActionsEnabled } from "@/lib/inbox/bulk";
 import { inboxContactPanelEnabled } from "@/lib/inbox/contact-panel";
+import { inboxInternalNotesEnabled } from "@/lib/inbox/internal-notes";
 import { inboxMultiNumberEnabled, matchesInboxNumber, parseInboxNumber, resolveInboxNumber, whatsappNumberParts } from "@/lib/inbox/numbers";
 import { matchesInboxList, parseInboxChannel, parseInboxFilter, windowExpiry } from "@/lib/inbox/rules";
 import { buildInboxTeamStats, inboxTeamStatsEnabled, type TeamStatsMessage } from "@/lib/inbox/team-stats";
@@ -74,7 +75,12 @@ const threads: Record<string, InboxThread> = {
         createdAt: now.toISOString(),
       },
     ],
-    notes: [{ id: "preview-note", body: "Asked for the prospectus. Not sent to the contact.", createdAt: now.toISOString() }],
+    notes: [{
+      id: "preview-note",
+      body: "Asked for the prospectus. Not sent to the contact.",
+      createdAt: now.toISOString(),
+      authorUserId: PREVIEW_USER,
+    }],
     consents: [
       { channel: "whatsapp", purpose: "service", status: "opted_in" },
       { channel: "whatsapp", purpose: "marketing", status: "opted_out" },
@@ -202,6 +208,8 @@ export function previewInbox(query: {
   bulkActions?: boolean;
   /** Explicit override. Omit to follow INBOX_CONTACT_PANEL_ENABLED. */
   contactPanel?: boolean;
+  /** Explicit override. Omit to follow INBOX_INTERNAL_NOTES_ENABLED. */
+  internalNotes?: boolean;
   /** Explicit override. Omit to follow INBOX_WA_METERING_ENABLED. */
   waMetering?: boolean;
   notice?: string | null;
@@ -215,6 +223,7 @@ export function previewInbox(query: {
   const quickUx = query.quickUx ?? inboxQuickUxEnabled();
   const bulkActions = query.bulkActions ?? inboxBulkActionsEnabled();
   const contactPanel = query.contactPanel ?? inboxContactPanelEnabled();
+  const internalNotes = query.internalNotes ?? inboxInternalNotesEnabled();
   const waMeteringEnabled = query.waMetering ?? inboxWaMeteringEnabled();
   const whatsappNumbers = multiNumber ? previewNumbers : [];
   const number = multiNumber
@@ -270,7 +279,7 @@ export function previewInbox(query: {
       contactName: item.name,
       preview: item.preview,
     })),
-    thread: selected ? threads[selected] : null,
+    thread: threadForPreview(selected, internalNotes),
     templates: [
       {
         id: "preview-template",
@@ -302,6 +311,7 @@ export function previewInbox(query: {
     quickUx,
     bulkActions,
     contactPanel,
+    internalNotes,
     quickReplies: quickUx ? quickRepliesForWorkspace(null) : [],
     presence: quickUx ? previewInboxPresence(OPEN_WA, EXPIRED_WA) : [],
     loadedAt: now.toISOString(),
@@ -323,6 +333,14 @@ export function previewInbox(query: {
         }
       : null,
   };
+}
+
+function threadForPreview(id: string | undefined, internalNotes: boolean): InboxThread | null {
+  if (!id) return null;
+  const thread = threads[id];
+  if (!thread) return null;
+  if (internalNotes) return thread;
+  return { ...thread, notes: [] };
 }
 
 function previewWaMetering(

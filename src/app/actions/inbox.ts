@@ -11,6 +11,7 @@ import {
   planStageUpdate,
   sameTags,
 } from "@/lib/inbox/contact-panel";
+import { inboxInternalNotesEnabled, planInternalNoteSave } from "@/lib/inbox/internal-notes";
 import {
   bulkAssignNotice,
   bulkIdsInWorkspace,
@@ -183,18 +184,55 @@ export async function sendInboxReply(formData: FormData) {
 }
 
 export async function addInboxNote(formData: FormData) {
+  if (!inboxInternalNotesEnabled()) back(formData, { error: "Internal notes are off." });
   const id = text(formData, "id");
-  const body = text(formData, "note");
-  if (!id || !body) back(formData, { error: "Write a note before saving it." });
+  if (!id) back(formData, { error: "Choose a conversation first." });
   const supabase = await createSupabaseServerClient();
   const user = await supabase.auth.getUser();
   if (!user.data.user) redirect("/login?next=/command-centre/inbox");
-  const conversation = await supabase.from("conversations").select("id, org_id").eq("id", id).maybeSingle();
-  if (!conversation.data) back(formData, { error: "That conversation is not in this workspace." });
+  const tenant = await safeResolveWorkspace(text(formData, "org"));
+  if (!tenant.scoped || !tenant.role || tenant.active.id.startsWith("preview-")) {
+    back(formData, { error: "Choose a workspace before saving a note." });
+  }
+  const blocked = await workspaceWriteBlock(tenant.active.id);
+  if (blocked) back(formData, { error: blocked });
+  const conversation = await supabase
+    .from("conversations")
+    .select("id, org_id, assigned_user_id")
+    .eq("id", id)
+    .eq("org_id", tenant.active.id)
+    .maybeSingle();
+  if (conversation.error || !conversation.data) {
+    back(formData, { error: conversation.error?.message || "That conversation is not in this workspace." });
+  }
+  const current = conversation.data;
+  if (!current) back(formData, { error: "That conversation is not in this workspace." });
+  const membership = await supabase
+    .from("memberships")
+    .select("user_id, role, assigned_only")
+    .eq("user_id", user.data.user.id)
+    .eq("org_id", tenant.active.id)
+    .maybeSingle();
+  const assignedOnly = membershipAssignedOnly(
+    [{
+      userId: user.data.user.id,
+      role: String(membership.data?.role || ""),
+      assignedOnly: Boolean(membership.data?.assigned_only),
+    }],
+    user.data.user.id,
+  );
+  const planned = planInternalNoteSave({
+    enabled: true,
+    body: text(formData, "note"),
+    assignedOnly,
+    assignedUserId: current.assigned_user_id ? String(current.assigned_user_id) : null,
+    userId: user.data.user.id,
+  });
+  if (!planned.ok) back(formData, { error: planned.message });
   const saved = await supabase.from("conversation_notes").insert({
-    org_id: conversation.data.org_id,
+    org_id: current.org_id,
     conversation_id: id,
-    body,
+    body: planned.body,
     author_user_id: user.data.user.id,
   });
   if (saved.error) back(formData, { error: saved.error.message });

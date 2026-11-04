@@ -41,7 +41,7 @@ If any check is false, stop.
 
 ## Review the draft on the phone
 
-1. Open GitHub for `billyboy95/ai-autotech-`. Find the draft pull request for team seat billing. It targets `main`.
+1. Open the draft pull request: https://github.com/billyboy95/ai-autotech-/pull/101 . It targets `main`.
 2. Read the title and the description. It must say draft, flag off, PayFast sandbox, and placeholder prices.
 3. Open the changed files. You should see `TEAM_SEAT_BILLING_ENABLED`, `docs/phone-team-seat-billing.md`, and `supabase/migrations/20261117120000_team_seat_billing.sql`.
 4. In `.env.example`, `TEAM_SEAT_BILLING_ENABLED` is blank. Blank is off. `TRUE`, `1`, and `true ` with a space are also off. Only the exact string `true` turns the panel on.

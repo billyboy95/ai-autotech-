@@ -1,6 +1,7 @@
 import { inboxMultiNumberEnabled, matchesInboxNumber, parseInboxNumber, resolveInboxNumber, whatsappNumberParts } from "@/lib/inbox/numbers";
 import { matchesInboxList, parseInboxChannel, parseInboxFilter, windowExpiry } from "@/lib/inbox/rules";
 import { buildInboxTeamStats, inboxTeamStatsEnabled, type TeamStatsMessage } from "@/lib/inbox/team-stats";
+import { inboxWaWindowEnabled } from "@/lib/inbox/wa-window";
 import type { InboxData, InboxTeamStats, InboxThread, InboxWhatsappNumber } from "@/lib/inbox/types";
 
 const PREVIEW_ORG = "00000000-0000-4000-8000-0000000000aa";
@@ -181,6 +182,8 @@ export function previewInbox(query: {
   multiNumber?: boolean;
   /** Explicit override. Omit to follow INBOX_TEAM_STATS_ENABLED. */
   teamStats?: boolean;
+  /** Explicit override. Omit to follow INBOX_WA_WINDOW_ENABLED. */
+  waWindow?: boolean;
   notice?: string | null;
   brandSlug?: string | null;
 }): InboxData {
@@ -188,6 +191,7 @@ export function previewInbox(query: {
   const channel = parseInboxChannel(query.channel);
   const multiNumber = query.multiNumber ?? inboxMultiNumberEnabled();
   const teamStatsOn = query.teamStats ?? inboxTeamStatsEnabled();
+  const waWindowEnabled = query.waWindow ?? inboxWaWindowEnabled();
   const whatsappNumbers = multiNumber ? previewNumbers : [];
   const number = multiNumber
     ? resolveInboxNumber(parseInboxNumber(query.number), whatsappNumbers.map((item) => item.id))
@@ -266,6 +270,8 @@ export function previewInbox(query: {
     connections: [{ id: PREVIEW_WA, channel: "whatsapp", label: "Preview WhatsApp · 1000 free from 1 Oct 2026" }],
     members: [{ userId: PREVIEW_USER, role: "client_admin" }],
     teamStats: teamStatsOn ? previewTeamStats(list) : null,
+    waWindowEnabled,
+    loadedAt: now.toISOString(),
     serviceUsed: 12,
     notice: query.notice ?? "Preview inbox. Connect Supabase to load this workspace. Nothing here is delivered.",
     aiEnabled: false,

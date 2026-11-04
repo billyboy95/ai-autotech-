@@ -3,9 +3,20 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
+import { InboxCollisionBanner, InboxQuickFrame, InboxQuickReplies } from "@/components/inbox/inbox-quick-ux";
 import { InboxTeamStatsPanel } from "@/components/inbox/inbox-team-stats";
 import { InboxWaReplyFields, InboxWaWindow } from "@/components/inbox/inbox-wa-window";
 import { previewInbox } from "@/lib/inbox/preview";
+import {
+  collisionBanner,
+  inboxQuickClasses,
+  inboxQuickUxEnabled,
+  insertQuickReply,
+  parseQuickReplies,
+  peersFromPresence,
+  presencePayload,
+  quickRepliesForWorkspace,
+} from "@/lib/inbox/quick-ux";
 import {
   displayPhoneFromConfig,
   inboxHref,
@@ -429,6 +440,7 @@ function threadByName(data: InboxData, name: string) {
     id: listed.id,
     waWindow: data.waWindowEnabled,
     teamStats: Boolean(data.teamStats),
+    quickUx: data.quickUx,
     multiNumber: data.multiNumber,
     number: data.number,
     filter: data.filter,
@@ -483,6 +495,9 @@ test("the WhatsApp care window stays off unless the flag is the string true", ()
   assert.equal(today.waWindowEnabled, false);
   assert.equal(today.teamStats, null);
   assert.equal(today.multiNumber, false);
+  assert.equal(today.quickUx, false);
+  assert.deepEqual(today.quickReplies, []);
+  assert.deepEqual(today.presence, []);
 });
 
 test("an open preview WhatsApp thread shows the 24-hour countdown and keeps free-form queued", () => {
@@ -638,6 +653,202 @@ test("the care window UI is wired to the flag and does not send or call Meta", (
   assert.equal(rules.includes(".from("), false);
   assert.match(rules, /direction !== "in"/);
   assert.match(rules, /channel !== "whatsapp"/);
+});
+
+test("quick inbox UX stays off unless the flag is the string true", () => {
+  assert.equal(inboxQuickUxEnabled({} as NodeJS.ProcessEnv), false);
+  assert.equal(inboxQuickUxEnabled({ INBOX_QUICK_UX_ENABLED: "" } as NodeJS.ProcessEnv), false);
+  assert.equal(inboxQuickUxEnabled({ INBOX_QUICK_UX_ENABLED: "false" } as NodeJS.ProcessEnv), false);
+  assert.equal(inboxQuickUxEnabled({ INBOX_QUICK_UX_ENABLED: "yes" } as NodeJS.ProcessEnv), false);
+  assert.equal(inboxQuickUxEnabled({ INBOX_QUICK_UX_ENABLED: "1" } as NodeJS.ProcessEnv), false);
+  assert.equal(inboxQuickUxEnabled({ INBOX_QUICK_UX_ENABLED: " true " } as NodeJS.ProcessEnv), true);
+  const off = previewInbox({ quickUx: false, waWindow: true, teamStats: true, multiNumber: true });
+  assert.equal(off.quickUx, false);
+  assert.equal(off.sendingEnabled, false);
+  assert.equal(off.waWindowEnabled, true);
+  assert.ok(off.teamStats);
+  assert.equal(off.multiNumber, true);
+  assert.deepEqual(off.quickReplies, []);
+  assert.deepEqual(off.presence, []);
+  assert.equal(JSON.stringify(off).includes("Naledi Khumalo"), false);
+  assert.equal(JSON.stringify(off).includes("inbox_quick_replies"), false);
+  const frame = renderToStaticMarkup(createElement(InboxQuickFrame, { enabled: false }, "thread"));
+  const replies = renderToStaticMarkup(createElement(InboxQuickReplies, {
+    replies: [],
+    onInsert: () => undefined,
+  }));
+  const banner = renderToStaticMarkup(createElement(InboxCollisionBanner, { label: "" }));
+  assert.equal(frame.includes("inbox-quick-layout"), false);
+  assert.equal(frame.includes("data-stack"), false);
+  assert.equal(frame.includes("max-lg:grid-cols-1"), false);
+  assert.match(frame, /lg:grid-cols-\[280px_minmax\(0,1fr\)_280px\]/);
+  assert.equal(replies, "");
+  assert.equal(banner, "");
+  assert.equal(inboxQuickClasses(false).shell, "grid gap-4");
+  assert.equal(inboxQuickClasses(false).columns, "grid items-start gap-4 lg:grid-cols-[280px_minmax(0,1fr)_280px]");
+  assert.equal(inboxQuickClasses(false).filters, "flex flex-wrap gap-2");
+  assert.equal(inboxQuickClasses(false).chip, "inline-flex h-9 items-center rounded-full px-3 text-sm font-semibold");
+  const view = readFileSync(new URL("../../components/inbox/inbox-view.tsx", import.meta.url), "utf8");
+  assert.match(view, /data\.quickUx \? \(/);
+  assert.match(view, /<InboxQuickFrame enabled=\{data\.quickUx\}>/);
+  assert.equal(view.includes("requestSubmit"), false);
+  assert.equal(view.includes("sendInboxReply()"), false);
+});
+
+test("quick replies fill the composer and do not send", () => {
+  const hours = "We are open Monday to Friday, 8am to 5pm. This reply is queued only and is not sent.";
+  assert.equal(insertQuickReply("", hours), hours);
+  assert.equal(insertQuickReply("   ", hours), hours);
+  assert.equal(insertQuickReply("Thanks Lerato.", hours), `Thanks Lerato.\n${hours}`);
+  assert.equal(insertQuickReply(hours, hours), hours);
+  assert.equal(insertQuickReply(`Thanks\n${hours}`, hours), `Thanks\n${hours}`);
+  assert.equal(insertQuickReply("Keep this", "  "), "Keep this");
+  const custom = parseQuickReplies({
+    inbox_quick_replies: [
+      { id: "bad id", label: "Skip", body: "no" },
+      { label: "Parts", body: "The part is in. This note is queued only." },
+      { id: "eta", label: "ETA", body: "We will confirm a time. Nothing is sent yet." },
+    ],
+  });
+  assert.deepEqual(custom.map((item) => item.label), ["Parts", "ETA"]);
+  assert.equal(custom[0]?.id, "reply-1");
+  assert.equal(quickRepliesForWorkspace({ inbox_quick_replies: [] }).some((item) => item.id === "hours"), true);
+  assert.equal(quickRepliesForWorkspace({ inbox_quick_replies: custom }).length, 2);
+  const on = previewInbox({ quickUx: true });
+  assert.equal(on.sendingEnabled, false);
+  assert.equal(on.quickReplies.some((item) => item.label === "Hours" && item.body === hours), true);
+  let inserted = "";
+  const html = renderToStaticMarkup(createElement(InboxQuickReplies, {
+    replies: on.quickReplies,
+    onInsert: (body) => {
+      inserted = insertQuickReply(inserted, body);
+    },
+  }));
+  assert.match(html, /data-testid="inbox-quick-replies"/);
+  assert.match(html, /data-reply="hours"/);
+  assert.match(html, /data-reply="callback"/);
+  assert.match(html, /data-reply="booked"/);
+  assert.match(html, /type="button"/);
+  assert.equal(html.includes("type=\"submit\""), false);
+  assert.match(html, /Nothing is sent/);
+  assert.equal(/graph\.facebook|api\.whatsapp/i.test(html), false);
+  const hoursReply = on.quickReplies.find((item) => item.id === "hours");
+  assert.ok(hoursReply);
+  inserted = insertQuickReply("", hoursReply.body);
+  assert.equal(inserted, hours);
+  assert.equal(inserted.includes("sent from WhatsApp"), false);
+  const component = readFileSync(new URL("../../components/inbox/inbox-quick-ux.tsx", import.meta.url), "utf8");
+  assert.match(component, /type="button"/);
+  assert.match(component, /onInsert\(reply\.body\)/);
+  assert.equal(component.includes("sendInboxReply"), false);
+  const view = readFileSync(new URL("../../components/inbox/inbox-view.tsx", import.meta.url), "utf8");
+  assert.match(view, /insertQuickReply\(current, reply\)/);
+  assert.match(view, /action=\{sendInboxReply\}/);
+});
+
+test("a preview collision banner names who is viewing or typing", () => {
+  const listed = previewInbox({ quickUx: true, waWindow: true, teamStats: true, multiNumber: true });
+  assert.equal(listed.sendingEnabled, false);
+  assert.equal(listed.waWindowEnabled, true);
+  assert.ok(listed.teamStats);
+  assert.equal(listed.multiNumber, true);
+  const typingThread = threadByName(listed, "Lerato Mokoena");
+  const typing = collisionBanner(typingThread.presence, typingThread.userId, typingThread.thread?.id ?? "");
+  assert.equal(typing, "Naledi Khumalo is typing");
+  const typingHtml = renderToStaticMarkup(createElement(InboxCollisionBanner, { label: typing }));
+  assert.match(typingHtml, /data-testid="inbox-collision"/);
+  assert.match(typingHtml, /Naledi Khumalo is typing/);
+  const viewingThread = threadByName(listed, "Amina Patel");
+  const viewing = collisionBanner(viewingThread.presence, viewingThread.userId, viewingThread.thread?.id ?? "");
+  assert.equal(viewing, "Sam Okonkwo is viewing");
+  const viewingHtml = renderToStaticMarkup(createElement(InboxCollisionBanner, { label: viewing }));
+  assert.match(viewingHtml, /Sam Okonkwo is viewing/);
+  const quiet = threadByName(listed, "Thabo Ndlovu");
+  assert.equal(collisionBanner(quiet.presence, quiet.userId, quiet.thread?.id ?? ""), "");
+  assert.equal(collisionBanner(listed.presence, listed.userId, "missing"), "");
+  assert.equal(collisionBanner(listed.presence, "00000000-0000-4000-8000-0000000000cc", listed.thread?.id ?? ""), "");
+  const self = "user-1";
+  const live = peersFromPresence({
+    [self]: [{ userId: self, name: "Spoofed", state: "typing", conversationId: "conv-1" }],
+    outsider: [{ userId: "stranger", name: "Stranger", state: "viewing", conversationId: "conv-1" }],
+    other: [{ userId: "user-2", name: "Fake name", state: "viewing", conversationId: "conv-2" }],
+    teammate: [
+      { userId: "user-2", name: "Fake name", state: "viewing", conversationId: "conv-1" },
+      { userId: "user-2", name: "Fake name", state: "typing", conversationId: "conv-1" },
+    ],
+  }, self, "conv-1", [
+    { userId: self, role: "client_admin" },
+    { userId: "user-2", role: "client_user" },
+  ]);
+  assert.deepEqual(live, [{ userId: "user-2", name: "Client User", state: "typing", conversationId: "conv-1" }]);
+  assert.equal(collisionBanner(live, self, "conv-1"), "Client User is typing");
+  const payload = presencePayload({ userId: self, name: "Client Admin", conversationId: "conv-1", typing: true });
+  assert.deepEqual(payload, { userId: self, name: "Client Admin", conversationId: "conv-1", state: "typing" });
+  assert.equal(payload && "body" in payload, false);
+  assert.equal(presencePayload({ userId: null, name: "Client Admin", conversationId: "conv-1", typing: false }), null);
+  const sameStats = previewInbox({ teamStats: true, quickUx: false, multiNumber: false });
+  assert.deepEqual(sameStats.teamStats, previewInbox({ teamStats: true, quickUx: true, multiNumber: false }).teamStats);
+});
+
+test("the narrow inbox layout stacks under the flag and keeps the desktop columns", () => {
+  const off = inboxQuickClasses(false);
+  const on = inboxQuickClasses(true);
+  assert.equal(off.columns.includes("max-lg:grid-cols-1"), false);
+  assert.match(on.columns, /max-lg:grid-cols-1/);
+  assert.match(on.columns, /lg:grid-cols-\[280px_minmax\(0,1fr\)_280px\]/);
+  assert.match(on.shell, /max-lg:overflow-x-hidden/);
+  assert.match(on.filters, /max-lg:overflow-x-auto/);
+  assert.match(on.filters, /max-lg:flex-nowrap/);
+  assert.match(on.filters, /flex-wrap/);
+  assert.match(on.chip, /max-lg:h-11/);
+  assert.match(on.chip, /max-lg:min-h-11/);
+  assert.match(on.field, /min-w-0/);
+  assert.match(on.field, /max-lg:w-full/);
+  assert.match(on.field, /lg:min-w-40/);
+  assert.match(on.bubble, /break-words/);
+  assert.match(on.bubble, /max-lg:max-w-full/);
+  const narrow = renderToStaticMarkup(createElement(InboxQuickFrame, { enabled: true }, "List and thread"));
+  assert.match(narrow, /data-testid="inbox-quick-layout"/);
+  assert.match(narrow, /data-stack="narrow"/);
+  assert.match(narrow, /data-desktop="three-column"/);
+  assert.match(narrow, /max-lg:grid-cols-1/);
+  assert.match(narrow, /lg:grid-cols-\[280px_minmax\(0,1fr\)_280px\]/);
+  assert.match(narrow, /List and thread/);
+  const wide = renderToStaticMarkup(createElement(InboxQuickFrame, { enabled: false }, "List and thread"));
+  assert.equal(wide.includes("inbox-quick-layout"), false);
+  assert.equal(wide.includes("max-lg:"), false);
+  const view = readFileSync(new URL("../../components/inbox/inbox-view.tsx", import.meta.url), "utf8");
+  const quick = readFileSync(new URL("./quick-ux.ts", import.meta.url), "utf8");
+  const load = readFileSync(new URL("./load.ts", import.meta.url), "utf8");
+  assert.match(view, /inboxQuickClasses\(data\.quickUx\)/);
+  assert.match(view, /className=\{layout\.filters\}/);
+  assert.match(view, /className=\{layout\.shell\}/);
+  const gate = load.indexOf("if (inboxQuickUxEnabled())");
+  const call = load.indexOf("loadQuickReplies(");
+  assert.ok(gate > 0);
+  assert.ok(call > gate);
+  assert.equal(load.slice(0, gate).includes("loadQuickReplies"), false);
+  const fn = load.slice(load.indexOf("async function loadQuickReplies"));
+  assert.match(fn, /\.from\("organizations"\)/);
+  assert.match(fn, /settings/);
+  assert.equal(fn.includes(".insert("), false);
+  assert.equal(fn.includes(".update("), false);
+  assert.match(view, /channel\(`inbox-\$\{data\.orgId\}`\)/);
+  assert.match(view, /presence", \{ event: "sync" \}/);
+  assert.match(view, /channelName\.track\(payload\)/);
+  assert.equal(quick.includes(".from("), false);
+  const files = [
+    "src/lib/inbox/quick-ux.ts",
+    "src/components/inbox/inbox-quick-ux.tsx",
+    "src/components/inbox/inbox-view.tsx",
+    "src/lib/inbox/preview.ts",
+    "src/lib/inbox/load.ts",
+  ];
+  for (const file of files) {
+    const text = readFileSync(new URL(`../../../${file}`, import.meta.url), "utf8");
+    assert.equal(/sending_enabled\s*=\s*true/i.test(text), false, file);
+    assert.equal(/graph\.facebook|api\.whatsapp/i.test(text), false, file);
+  }
 });
 
 test("a branded eastc host keeps the preview inbox inside EASTC", () => {

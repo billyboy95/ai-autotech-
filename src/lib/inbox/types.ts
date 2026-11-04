@@ -104,6 +104,19 @@ export type InboxTeamStatsBreach = {
   ageMs: number;
 };
 
+export type InboxQuickReply = {
+  id: string;
+  label: string;
+  body: string;
+};
+
+export type InboxPresencePeer = {
+  userId: string;
+  name: string;
+  state: "viewing" | "typing";
+  conversationId: string;
+};
+
 /** Null when INBOX_TEAM_STATS_ENABLED is not the string true. */
 export type InboxTeamStats = {
   slaHours: number;
@@ -140,6 +153,15 @@ export type InboxData = {
   teamStats: InboxTeamStats | null;
   /** True only when INBOX_WA_WINDOW_ENABLED is the string true. */
   waWindowEnabled: boolean;
+  /** True only when INBOX_QUICK_UX_ENABLED is the string true. */
+  quickUx: boolean;
+  /** Empty unless INBOX_QUICK_UX_ENABLED is the string true. */
+  quickReplies: InboxQuickReply[];
+  /**
+   * Other people on open threads. Empty unless INBOX_QUICK_UX_ENABLED is the string true.
+   * Preview simulates peers. A signed-in inbox starts empty and fills from the existing inbox channel.
+   */
+  presence: InboxPresencePeer[];
   /** Server clock for the WhatsApp window. Preview uses the fixture time. */
   loadedAt: string;
   serviceUsed: number;

@@ -10,7 +10,7 @@
 - Collision warning. If another teammate is on the open conversation, the thread shows "{Name} is viewing" or "{Name} is typing".
 - Narrow layout. Below the large breakpoint the list stacks above the thread, filters scroll inside the page with a larger tap target, and the inbox does not widen the page. At the large breakpoint the three columns stay.
 
-`INBOX_MULTI_NUMBER_ENABLED`, `INBOX_TEAM_STATS_ENABLED`, and `INBOX_WA_WINDOW_ENABLED` are separate. Leave each unset unless that flag is already meant to be on.
+`INBOX_MULTI_NUMBER_ENABLED`, `INBOX_TEAM_STATS_ENABLED`, `INBOX_WA_WINDOW_ENABLED`, and `INBOX_WA_METERING_ENABLED` are separate. Leave each unset unless that flag is already meant to be on.
 
 ## Storage
 

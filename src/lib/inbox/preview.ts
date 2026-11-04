@@ -1,6 +1,7 @@
 import { inboxMultiNumberEnabled, matchesInboxNumber, parseInboxNumber, resolveInboxNumber, whatsappNumberParts } from "@/lib/inbox/numbers";
 import { matchesInboxList, parseInboxChannel, parseInboxFilter, windowExpiry } from "@/lib/inbox/rules";
-import type { InboxData, InboxThread, InboxWhatsappNumber } from "@/lib/inbox/types";
+import { buildInboxTeamStats, inboxTeamStatsEnabled, type TeamStatsMessage } from "@/lib/inbox/team-stats";
+import type { InboxData, InboxTeamStats, InboxThread, InboxWhatsappNumber } from "@/lib/inbox/types";
 
 const PREVIEW_ORG = "00000000-0000-4000-8000-0000000000aa";
 const PREVIEW_USER = "00000000-0000-4000-8000-0000000000bb";
@@ -178,12 +179,15 @@ export function previewInbox(query: {
   id?: string;
   number?: string;
   multiNumber?: boolean;
+  /** Explicit override. Omit to follow INBOX_TEAM_STATS_ENABLED. */
+  teamStats?: boolean;
   notice?: string | null;
   brandSlug?: string | null;
 }): InboxData {
   const filter = parseInboxFilter(query.filter);
   const channel = parseInboxChannel(query.channel);
   const multiNumber = query.multiNumber ?? inboxMultiNumberEnabled();
+  const teamStatsOn = query.teamStats ?? inboxTeamStatsEnabled();
   const whatsappNumbers = multiNumber ? previewNumbers : [];
   const number = multiNumber
     ? resolveInboxNumber(parseInboxNumber(query.number), whatsappNumbers.map((item) => item.id))
@@ -261,6 +265,7 @@ export function previewInbox(query: {
     ],
     connections: [{ id: PREVIEW_WA, channel: "whatsapp", label: "Preview WhatsApp · 1000 free from 1 Oct 2026" }],
     members: [{ userId: PREVIEW_USER, role: "client_admin" }],
+    teamStats: teamStatsOn ? previewTeamStats(list) : null,
     serviceUsed: 12,
     notice: query.notice ?? "Preview inbox. Connect Supabase to load this workspace. Nothing here is delivered.",
     aiEnabled: false,
@@ -279,4 +284,36 @@ export function previewInbox(query: {
         }
       : null,
   };
+}
+
+function previewTeamStats(list: { id: string; status: string; assignedUserId: string | null; name: string }[]): InboxTeamStats {
+  const messages: TeamStatsMessage[] = [];
+  for (const item of list) {
+    const thread = threads[item.id];
+    if (!thread) continue;
+    for (const message of thread.messages) {
+      messages.push({
+        conversationId: item.id,
+        direction: message.direction,
+        createdAt: message.createdAt,
+        status: message.status,
+        sentByUserId: message.id === "preview-out" ? PREVIEW_USER : null,
+      });
+    }
+  }
+  return buildInboxTeamStats({
+    now,
+    conversations: list.map((item) => ({
+      id: item.id,
+      status: item.status,
+      assignedUserId: item.assignedUserId,
+      contactName: item.name,
+      lastMessageAt: now.toISOString(),
+    })),
+    messages,
+    members: [{ userId: PREVIEW_USER, role: "client_admin" }],
+    userId: PREVIEW_USER,
+    messagesLoaded: true,
+    truncated: false,
+  });
 }

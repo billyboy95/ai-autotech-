@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { InboxTeamStatsPanel } from "@/components/inbox/inbox-team-stats";
 import { previewInbox } from "@/lib/inbox/preview";
 import {
   displayPhoneFromConfig,
@@ -11,6 +14,7 @@ import {
   resolveInboxNumber,
   whatsappNumberParts,
 } from "@/lib/inbox/numbers";
+import { buildInboxTeamStats, inboxTeamStatsEnabled } from "@/lib/inbox/team-stats";
 import {
   acceptRealtimeRow,
   formatInboxCost,
@@ -261,6 +265,147 @@ test("the multi-number filter does not turn sending on or call Meta", () => {
     "src/components/inbox/inbox-view.tsx",
     "src/app/actions/inbox.ts",
   ];
+  for (const file of files) {
+    const text = readFileSync(new URL(`../../../${file}`, import.meta.url), "utf8");
+    assert.equal(/sending_enabled\s*=\s*true/i.test(text), false, file);
+    assert.equal(/graph\.facebook|api\.whatsapp/i.test(text), false, file);
+  }
+});
+
+test("team stats stay off unless the flag is the string true", () => {
+  assert.equal(inboxTeamStatsEnabled({} as NodeJS.ProcessEnv), false);
+  assert.equal(inboxTeamStatsEnabled({ INBOX_TEAM_STATS_ENABLED: "" } as NodeJS.ProcessEnv), false);
+  assert.equal(inboxTeamStatsEnabled({ INBOX_TEAM_STATS_ENABLED: "false" } as NodeJS.ProcessEnv), false);
+  assert.equal(inboxTeamStatsEnabled({ INBOX_TEAM_STATS_ENABLED: "yes" } as NodeJS.ProcessEnv), false);
+  assert.equal(inboxTeamStatsEnabled({ INBOX_TEAM_STATS_ENABLED: "1" } as NodeJS.ProcessEnv), false);
+  assert.equal(inboxTeamStatsEnabled({ INBOX_TEAM_STATS_ENABLED: " true " } as NodeJS.ProcessEnv), true);
+  const off = previewInbox({ teamStats: false, multiNumber: false, number: "preview-wa-desk" });
+  const on = previewInbox({ teamStats: true, multiNumber: false, number: "preview-wa-desk" });
+  assert.equal(off.teamStats, null);
+  assert.equal(off.sendingEnabled, false);
+  assert.equal(on.sendingEnabled, false);
+  assert.equal(on.multiNumber, false);
+  assert.equal(on.number, "");
+  assert.deepEqual(on.conversations, off.conversations);
+  assert.deepEqual(on.conversations.map((item) => item.contactName), [
+    "Lerato Mokoena",
+    "Thabo Ndlovu",
+    "Amina Patel",
+  ]);
+  const hidden = renderToStaticMarkup(createElement(InboxTeamStatsPanel, { stats: null }));
+  assert.equal(hidden.includes("inbox-team-stats"), false);
+  assert.equal(hidden.includes("Team stats"), false);
+});
+
+test("team stats render from the preview fixtures when the flag is on", () => {
+  const data = previewInbox({ teamStats: true });
+  const stats = data.teamStats;
+  assert.ok(stats);
+  assert.equal(data.sendingEnabled, false);
+  assert.equal(stats.medianFirstResponseMs, 0);
+  assert.equal(stats.repliedCount, 1);
+  assert.equal(stats.awaitingFirstReply, 2);
+  assert.equal(stats.openCount, 3);
+  assert.deepEqual(stats.slaBreaches.map((item) => item.contactName), ["Amina Patel"]);
+  assert.equal(stats.slaBreaches[0]?.ageMs, 26 * 60 * 60 * 1000);
+  assert.deepEqual(stats.agents.map((agent) => ({ label: agent.label, assigned: agent.assigned, replies: agent.replies })), [
+    { label: "You · client_admin", assigned: 1, replies: 1 },
+    { label: "Unassigned", assigned: 2, replies: 0 },
+  ]);
+  const html = renderToStaticMarkup(createElement(InboxTeamStatsPanel, { stats }));
+  assert.match(html, /data-testid="inbox-team-stats"/);
+  assert.match(html, /inbox-first-response/);
+  assert.match(html, />0m</);
+  assert.match(html, /Amina Patel · open 26h 0m/);
+  assert.match(html, /1 over 24h/);
+  assert.match(html, /You · client_admin/);
+  assert.match(html, /Unassigned/);
+  assert.match(html, /Nothing is sent/);
+  assert.equal(/graph\.facebook|api\.whatsapp/i.test(html), false);
+
+  const desk = previewInbox({ teamStats: true, multiNumber: true, number: "preview-wa-desk" });
+  assert.deepEqual(desk.conversations.map((item) => item.contactName), ["Sipho Dlamini"]);
+  assert.equal(desk.teamStats?.medianFirstResponseMs, null);
+  assert.equal(desk.teamStats?.awaitingFirstReply, 1);
+  assert.deepEqual(desk.teamStats?.slaBreaches, []);
+  assert.equal(desk.teamStats?.agents.some((agent) => agent.label === "Unassigned" && agent.assigned === 1), true);
+
+  const mine = previewInbox({ teamStats: true, filter: "mine" });
+  assert.deepEqual(mine.conversations.map((item) => item.contactName), ["Lerato Mokoena"]);
+  assert.equal(mine.teamStats?.slaBreaches.length, 0);
+  assert.equal(mine.teamStats?.awaitingFirstReply, 0);
+});
+
+test("first response ignores failed replies and SLA uses a 24 hour open age", () => {
+  const start = new Date("2026-10-15T10:00:00.000Z");
+  const now = new Date(start.getTime() + 40 * 60 * 1000);
+  const stats = buildInboxTeamStats({
+    now,
+    conversations: [
+      { id: "a", status: "open", assignedUserId: "user-1", contactName: "A", lastMessageAt: start.toISOString() },
+      { id: "b", status: "open", assignedUserId: "user-2", contactName: "B", lastMessageAt: start.toISOString() },
+      { id: "c", status: "open", assignedUserId: null, contactName: "C", lastMessageAt: new Date(start.getTime() - 25 * 3_600_000).toISOString() },
+      { id: "closed", status: "closed", assignedUserId: "user-1", contactName: "Closed", lastMessageAt: start.toISOString() },
+    ],
+    messages: [
+      { conversationId: "a", direction: "in", createdAt: start.toISOString(), status: "received", sentByUserId: null },
+      { conversationId: "a", direction: "out", createdAt: new Date(start.getTime() + 5 * 60_000).toISOString(), status: "failed", sentByUserId: "user-9" },
+      { conversationId: "a", direction: "out", createdAt: new Date(start.getTime() + 10 * 60_000).toISOString(), status: "held", sentByUserId: "user-1" },
+      { conversationId: "b", direction: "out", createdAt: new Date(start.getTime() - 60_000).toISOString(), status: "sent", sentByUserId: "user-2" },
+      { conversationId: "b", direction: "in", createdAt: start.toISOString(), status: "received", sentByUserId: null },
+      { conversationId: "b", direction: "out", createdAt: new Date(start.getTime() + 30 * 60_000).toISOString(), status: "queued", sentByUserId: "user-2" },
+      { conversationId: "c", direction: "in", createdAt: new Date(start.getTime() - 25 * 3_600_000).toISOString(), status: "received", sentByUserId: null },
+      { conversationId: "c", direction: "out", createdAt: new Date(start.getTime() - 24 * 3_600_000).toISOString(), status: "cancelled", sentByUserId: "user-1" },
+      { conversationId: "closed", direction: "out", createdAt: start.toISOString(), status: "sent", sentByUserId: "user-1" },
+    ],
+    members: [
+      { userId: "user-1", role: "client_admin" },
+      { userId: "user-2", role: "client_user" },
+    ],
+    userId: "user-1",
+  });
+  assert.equal(stats.medianFirstResponseMs, 20 * 60_000);
+  assert.equal(stats.repliedCount, 2);
+  assert.equal(stats.awaitingFirstReply, 1);
+  assert.deepEqual(stats.slaBreaches.map((item) => item.contactName), ["C"]);
+  assert.equal(stats.openCount, 3);
+  assert.deepEqual(stats.agents.map((agent) => ({ label: agent.label, assigned: agent.assigned, replies: agent.replies })), [
+    { label: "client_user · user-2", assigned: 1, replies: 2 },
+    { label: "You · client_admin", assigned: 1, replies: 1 },
+    { label: "Unassigned", assigned: 1, replies: 0 },
+  ]);
+
+  const young = buildInboxTeamStats({
+    now: new Date(start.getTime() + 23 * 3_600_000),
+    conversations: [{ id: "c", status: "open", assignedUserId: null, contactName: "New", lastMessageAt: start.toISOString() }],
+    messages: [{ conversationId: "c", direction: "in", createdAt: start.toISOString(), status: "received", sentByUserId: null }],
+    members: [],
+    userId: null,
+  });
+  assert.equal(young.slaBreaches.length, 0);
+  const due = buildInboxTeamStats({
+    now: new Date(start.getTime() + 24 * 3_600_000),
+    conversations: [{ id: "c", status: "open", assignedUserId: null, contactName: "New", lastMessageAt: start.toISOString() }],
+    messages: [{ conversationId: "c", direction: "in", createdAt: start.toISOString(), status: "received", sentByUserId: null }],
+    members: [],
+    userId: null,
+  });
+  assert.equal(due.slaBreaches.length, 1);
+});
+
+test("the stats message query runs only when the team stats flag is on", () => {
+  const load = readFileSync(new URL("./load.ts", import.meta.url), "utf8");
+  const view = readFileSync(new URL("../../components/inbox/inbox-view.tsx", import.meta.url), "utf8");
+  const gate = load.indexOf("if (inboxTeamStatsEnabled())");
+  const call = load.indexOf("loadInboxTeamStats(");
+  assert.ok(gate > 0);
+  assert.ok(call > gate);
+  assert.equal(load.slice(0, gate).includes("loadInboxTeamStats"), false);
+  const fn = load.slice(load.indexOf("async function loadInboxTeamStats"));
+  assert.match(fn, /\.from\("messages"\)/);
+  assert.match(fn, /sent_by_user_id/);
+  assert.match(view, /\{data\.teamStats \? <InboxTeamStatsPanel/);
+  const files = ["src/lib/inbox/team-stats.ts", "src/lib/inbox/load.ts", "src/components/inbox/inbox-team-stats.tsx", "src/components/inbox/inbox-view.tsx"];
   for (const file of files) {
     const text = readFileSync(new URL(`../../../${file}`, import.meta.url), "utf8");
     assert.equal(/sending_enabled\s*=\s*true/i.test(text), false, file);

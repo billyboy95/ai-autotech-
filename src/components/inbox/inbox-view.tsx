@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { addInboxNote, assignInboxConversation, markInboxRead, sendInboxReply, setInboxStatus } from "@/app/actions/inbox";
 import { AiDraftPanel } from "@/components/inbox/ai-draft-panel";
+import { InboxTeamStatsPanel } from "@/components/inbox/inbox-team-stats";
 import { inboxHref } from "@/lib/inbox/numbers";
 import { formatInboxCost, inboxCost, realtimeOrgFilter, acceptRealtimeRow, serviceAllowanceLabel, whatsappComposeGate, windowCountdown, type InboxChannel } from "@/lib/inbox/rules";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
@@ -81,6 +82,9 @@ export function InboxView({ data, banner, bannerTone }: { data: InboxData; banne
           <p className="text-sm text-slate-500">
             {unread} unread in this view. Replies stay in the outbox until sending is switched on.
           </p>
+          {data.teamStats ? (
+            <a href="#inbox-team-stats" className="text-sm font-semibold text-[#2563EB]">Team stats</a>
+          ) : null}
         </div>
         {data.assignedOnly ? (
           <p className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">You only see conversations assigned to you.</p>
@@ -154,6 +158,7 @@ export function InboxView({ data, banner, bannerTone }: { data: InboxData; banne
           )}
         </form>
       ) : null}
+      {data.teamStats ? <InboxTeamStatsPanel stats={data.teamStats} /> : null}
       <div className="grid items-start gap-4 lg:grid-cols-[280px_minmax(0,1fr)_280px]">
         <section className="grid gap-2">
           {data.conversations.length === 0 ? (

@@ -8,7 +8,7 @@ Bulk actions update conversation rows only: assignee, open or closed, and unread
 
 ## What you are reviewing
 
-Draft pull request for branch `cursor/inbox-bulk-actions-707e`. It stacks on draft [#98](https://github.com/billyboy95/ai-autotech-/pull/98) (`cursor/inbox-wa-metering-bd44`). The Files tab is only the bulk-action change. It is not the whole inbox stack.
+Draft [#99](https://github.com/billyboy95/ai-autotech-/pull/99). Branch `cursor/inbox-bulk-actions-707e`. It stacks on draft [#98](https://github.com/billyboy95/ai-autotech-/pull/98) (`cursor/inbox-wa-metering-bd44`). The Files tab on #99 is only the bulk-action change. It is not the whole inbox stack.
 
 When the flag is the string `true`:
 
@@ -22,7 +22,7 @@ When the flag is the string `true`:
 On the phone:
 
 1. Open GitHub and sign in as the account that can see `billyboy95/ai-autotech-`.
-2. Open the draft whose head branch is `cursor/inbox-bulk-actions-707e`.
+2. Open https://github.com/billyboy95/ai-autotech-/pull/99 . The branch is `cursor/inbox-bulk-actions-707e`.
 3. Read the title and the base branch. The base is `cursor/inbox-wa-metering-bd44` (draft #98). If the base is `main`, stop. Do not merge it into main from here.
 4. Open Files changed. Pass when the diff is the bulk flag, the inbox checkboxes and toolbar, tests, and this note. Fail and stop if the diff turns `sending_enabled` on, calls Meta, or sends WhatsApp, email, or SMS.
 5. Leave the draft as a draft. Do not tap Merge on this visit unless Billy says yes to the whole stack below, in that order.
@@ -36,7 +36,7 @@ Merge one pull request at a time, from the bottom of the stack. Wait until the n
 3. [#96](https://github.com/billyboy95/ai-autotech-/pull/96) — 24-hour WhatsApp care window. After #95 is on main.
 4. [#97](https://github.com/billyboy95/ai-autotech-/pull/97) — quick replies, collision warning, and the narrow layout. After #96 is on main.
 5. [#98](https://github.com/billyboy95/ai-autotech-/pull/98) — WhatsApp category, cost, and the free service counter. After #97 is on main.
-6. This draft (`cursor/inbox-bulk-actions-707e`) — select several threads, then assign, close, or mark read. After #98 is on main.
+6. [#99](https://github.com/billyboy95/ai-autotech-/pull/99) — select several threads, then assign, close, or mark read (`cursor/inbox-bulk-actions-707e`). After #98 is on main.
 
 A yes to one pull request is not a yes to the next. A yes to merge is not a yes to the flag, and it is not a yes to send.
 

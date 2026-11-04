@@ -4,6 +4,9 @@ import { BOT_CATALOG, BOT_BUNDLES } from "@/lib/bots/catalog";
 import {
   AGENT_TIERS,
   CRM_PLANS,
+  EXTRA_TEAM_SEAT_CENTS,
+  EXTRA_WHATSAPP_NUMBER_CENTS,
+  SEAT_ADDON_LINES,
   PLATFORM_FEE_CENTS,
   PLATFORM_INCLUDED_HOURS,
   PREMIUM_MODEL_MULTIPLIER,
@@ -38,6 +41,10 @@ test("discount tiers and the monthly total come from the price sheet", () => {
   assert.equal(PRICES_EXCLUDE_VAT, true);
   assert.equal(SETUP_LINES.quick_start.cents, 250_000);
   assert.equal(SETUP_LINES.team_setup.cents, 499_900);
+  assert.equal(EXTRA_TEAM_SEAT_CENTS, 14_900);
+  assert.equal(EXTRA_WHATSAPP_NUMBER_CENTS, 9_900);
+  assert.deepEqual(SEAT_ADDON_LINES.map((line) => line.code), ["extra_team_seat", "extra_whatsapp_number"]);
+  assert.equal(CRM_PLANS.some((plan) => plan.code.startsWith("extra_")), false);
   assert.equal(CRM_PLANS[0]?.code, "platform");
   assert.equal(CRM_PLANS[0]?.priceCents, PLATFORM_FEE_CENTS);
   assert.deepEqual(CRM_PLANS.map((plan) => plan.priceCents), [29_900, 69_900, 149_900, 499_900]);

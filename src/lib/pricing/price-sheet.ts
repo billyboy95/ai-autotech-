@@ -74,6 +74,32 @@ export const SETUP_LINES = {
 export const DEFAULT_SETUP_FEE_CENTS = 0;
 export const SETUP_FEE_BY_TEMPLATE: Record<string, number> = {};
 
+/**
+ * Extra team seat and extra WhatsApp number.
+ * Placeholder ZAR until Billy approves a catalogue. Not a client quote. Excludes VAT.
+ * These stay out of CRM_PLANS so the billing screen hides them unless TEAM_SEAT_BILLING_ENABLED is the string true.
+ * The unapplied seed is supabase/migrations/20261117120000_team_seat_billing.sql. Amounts must match that file.
+ */
+export const EXTRA_TEAM_SEAT_CENTS = 14_900;
+export const EXTRA_WHATSAPP_NUMBER_CENTS = 9_900;
+
+export const SEAT_ADDON_LINES = [
+  {
+    code: "extra_team_seat",
+    name: "Extra team seat (placeholder)",
+    priceCents: EXTRA_TEAM_SEAT_CENTS,
+    interval: "month" as const,
+    note: "Placeholder monthly price for one extra workspace member. Not a client quote. Excludes VAT.",
+  },
+  {
+    code: "extra_whatsapp_number",
+    name: "Extra WhatsApp number (placeholder)",
+    priceCents: EXTRA_WHATSAPP_NUMBER_CENTS,
+    interval: "month" as const,
+    note: "Placeholder monthly price for one extra connected WhatsApp number. Not a client quote. Excludes VAT.",
+  },
+] as const;
+
 /** Plans the billing screen and the plans table share. Legacy starter/growth/scale stay out. */
 export const CRM_PLANS = [
   {

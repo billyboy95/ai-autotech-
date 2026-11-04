@@ -1,5 +1,6 @@
 import { isBillingSandboxEnabled, mockItnAllowed } from "@/lib/billing/flag";
 import { billingBanner } from "@/lib/billing/guard";
+import { applySeatBilling, isTeamSeatBillingEnabled, type SeatBillingView } from "@/lib/billing/seats";
 import { CRM_PLANS, isLegacyPlanCode } from "@/lib/pricing/price-sheet";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { isAgencyRole, type MembershipRole } from "@/lib/tenant/types";
@@ -33,6 +34,7 @@ export type BillingPageModel = {
   usageTotalCents: number;
   readOnly: boolean;
   notice: string | null;
+  seatBilling: SeatBillingView | null;
 };
 
 function missingRelation(error: { message?: string } | null) {
@@ -95,8 +97,9 @@ export async function loadBillingPage(input: {
     usageTotalCents: 0,
     readOnly: false,
     notice: input.preview ? "Preview only. Billing saves after the phase 2f migration is applied." : null,
+    seatBilling: null,
   };
-  if (!input.orgId || input.preview) return base;
+  if (!input.orgId || input.preview) return finishBillingPage(base, input);
 
   const supabase = await createSupabaseServerClient();
   const [plans, subscription] = await Promise.all([
@@ -104,7 +107,10 @@ export async function loadBillingPage(input: {
     supabase.from("org_subscriptions").select("status, plan_code, provider, past_due_at, current_period_end").eq("org_id", input.orgId).maybeSingle(),
   ]);
   if (plans.error && missingRelation(plans.error)) {
-    return { ...base, notice: "Billing tables are not in this database yet. Apply step 13 in supabase/APPLY-ORDER.md. No charge was sent." };
+    return finishBillingPage(
+      { ...base, notice: "Billing tables are not in this database yet. Apply step 13 in supabase/APPLY-ORDER.md. No charge was sent." },
+      input,
+    );
   }
   if (!plans.error) {
     const current = (plans.data ?? []).flatMap((row) => {
@@ -147,5 +153,39 @@ export async function loadBillingPage(input: {
       base.usageTotalCents = base.usageLines.reduce((sum, line) => sum + line.amountCents, 0);
     }
   }
-  return base;
+  return finishBillingPage(base, input);
+}
+
+async function finishBillingPage(
+  model: BillingPageModel,
+  input: { orgId: string | null; preview?: boolean },
+): Promise<BillingPageModel> {
+  const enabled = isTeamSeatBillingEnabled();
+  if (!enabled || !input.orgId || input.preview) {
+    return applySeatBilling(model, { preview: Boolean(input.preview) || !input.orgId, env: process.env });
+  }
+  try {
+    const counts = await readSeatCounts(input.orgId);
+    return applySeatBilling(model, { ...counts, env: process.env });
+  } catch {
+    return applySeatBilling(model, {
+      membershipMissing: true,
+      connectionMissing: true,
+      env: process.env,
+    });
+  }
+}
+
+async function readSeatCounts(orgId: string) {
+  const supabase = await createSupabaseServerClient();
+  const [members, connections] = await Promise.all([
+    supabase.from("memberships").select("user_id").eq("org_id", orgId),
+    supabase.from("channel_connections").select("channel, status, identifier").eq("org_id", orgId),
+  ]);
+  return {
+    membershipRows: members.error ? null : members.data,
+    connectionRows: connections.error ? null : connections.data,
+    membershipMissing: Boolean(members.error),
+    connectionMissing: Boolean(connections.error),
+  };
 }

@@ -117,6 +117,10 @@ test("inbox, conversation AI, calendars, reviews, referrals, and public pages re
     assert.doesNotMatch(inboxHtml, /Select Lerato Mokoena/);
     assert.doesNotMatch(inboxHtml, /inbox-contact-panel/);
     assert.doesNotMatch(inboxHtml, /data-contact-panel="on"/);
+    assert.doesNotMatch(inboxHtml, /inbox-internal-notes/);
+    assert.doesNotMatch(inboxHtml, /data-internal-notes="on"/);
+    assert.doesNotMatch(inboxHtml, /Asked for the prospectus/);
+    assert.doesNotMatch(inboxHtml, /Save note/);
 
     const settings = await fetch(`http://127.0.0.1:${port}/command-centre/ai-replies`, { redirect: "manual" });
     assert.equal(settings.status, 200);

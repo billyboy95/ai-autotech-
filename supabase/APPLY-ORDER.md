@@ -246,6 +246,10 @@ Do not apply by filename sort.
 
 Filename sort also places `20260926180000_zentrix_shopify.sql` before `outbound_channels` and `agency_tenancy`. Zentrix needs `organizations`, so it stays at step 5.
 
+## Inbox internal notes
+
+`INBOX_INTERNAL_NOTES_ENABLED` does not add a migration. Staff notes use `conversation_notes` from step 12 (`supabase/migrations/20261018120000_phase2e_inbox.sql`). That step is already live. Do not paste it again. Leave the flag unset until Billy says yes. The phone checklist is `docs/phone-inbox-internal-notes.md`. This flag does not turn `sending_enabled` on and it does not send.
+
 ## Not part of this apply
 
 `supabase/owner-bootstrap.sql` is not a migration. Run it only after steps 20 through 36 have succeeded, and only after the agency owner exists in Supabase Auth. Steps 1 through 19 are already live and are not a reason to paste this file. The phone checklist is `docs/phone-owner-auth-bootstrap.md` (Phone-first unblock, step 4 in `docs/GO-LIVE-RUNBOOK.md`). Do not paste `supabase/owner-bootstrap.sql` on that visit. Do not paste it until both of those gates are true. `supabase/schema.sql` is the classic Command Centre baseline, not one of the unapplied files. Do not turn sending on while applying steps 20 through 36.

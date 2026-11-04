@@ -3,6 +3,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { safeResolveWorkspace } from "@/lib/tenant/context";
 import { inboxBulkActionsEnabled } from "@/lib/inbox/bulk";
 import { inboxContactPanelEnabled } from "@/lib/inbox/contact-panel";
+import { inboxInternalNotesEnabled } from "@/lib/inbox/internal-notes";
 import { displayPhoneFromConfig, inboxMultiNumberEnabled, parseInboxNumber, resolveInboxNumber, whatsappNumberParts } from "@/lib/inbox/numbers";
 import { INBOX_TEAM_STATS_MESSAGE_CAP, buildInboxTeamStats, inboxTeamStatsEnabled, type TeamStatsMessage } from "@/lib/inbox/team-stats";
 import { inboxQuickUxEnabled, quickRepliesForWorkspace } from "@/lib/inbox/quick-ux";
@@ -95,6 +96,7 @@ export async function loadInbox(query: {
     quickUx: false,
     bulkActions: inboxBulkActionsEnabled(),
     contactPanel: inboxContactPanelEnabled(),
+    internalNotes: inboxInternalNotesEnabled(),
     quickReplies: [],
     presence: [],
     loadedAt,
@@ -188,7 +190,7 @@ export async function loadInbox(query: {
   });
 
   const selected = query.id && base.conversations.some((item) => item.id === query.id) ? query.id : base.conversations[0]?.id;
-  if (selected) base.thread = await loadThread(supabase, tenant.active.id, selected, base.contactPanel);
+  if (selected) base.thread = await loadThread(supabase, tenant.active.id, selected, base.contactPanel, base.internalNotes);
 
   const [templates, members] = await Promise.all([
     supabase.from("message_templates").select("id, name, channel, subject, body, wa_category, wa_status, active").eq("org_id", tenant.active.id).eq("active", true),
@@ -414,7 +416,13 @@ async function loadInboxTeamStats(
   });
 }
 
-async function loadThread(supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>, orgId: string, id: string, contactPanel = false): Promise<InboxThread | null> {
+async function loadThread(
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  orgId: string,
+  id: string,
+  contactPanel = false,
+  internalNotes = false,
+): Promise<InboxThread | null> {
   const conversation = await supabase
     .from("conversations")
     .select("id, channel, status, assigned_user_id, channel_connection_id, wa_window_expires_at, contact_id, crm_contacts(id, first_name, last_name, email, phone_e164, whatsapp_e164, company, tags, lead_id)")
@@ -463,7 +471,9 @@ async function loadThread(supabase: Awaited<ReturnType<typeof createSupabaseServ
 
   const [messages, notes, consents] = await Promise.all([
     supabase.from("messages").select("id, direction, body, status, channel, wa_category, cost_cents, provider_message_id, created_at").eq("conversation_id", id).order("created_at", { ascending: true }),
-    supabase.from("conversation_notes").select("id, body, created_at").eq("conversation_id", id).order("created_at", { ascending: true }),
+    internalNotes
+      ? supabase.from("conversation_notes").select("id, body, created_at, author_user_id").eq("conversation_id", id).eq("org_id", orgId).order("created_at", { ascending: true })
+      : Promise.resolve({ data: [], error: null }),
     contact ? supabase.from("contact_consents").select("channel, purpose, status, captured_at").eq("contact_id", contact.id).order("captured_at", { ascending: false }) : Promise.resolve({ data: [], error: null }),
   ]);
 
@@ -496,7 +506,12 @@ function mapMessage(row: Record<string, unknown>): InboxMessage {
 }
 
 function mapNote(row: Record<string, unknown>): InboxNote {
-  return { id: String(row.id), body: String(row.body || ""), createdAt: String(row.created_at || "") };
+  return {
+    id: String(row.id),
+    body: String(row.body || ""),
+    createdAt: String(row.created_at || ""),
+    authorUserId: row.author_user_id ? String(row.author_user_id) : null,
+  };
 }
 
 function consentRows(data: unknown): InboxConsent[] {

@@ -31,6 +31,7 @@ test("inbox, conversation AI, calendars, reviews, referrals, and public pages re
       OWNER_BOOTSTRAP_UI_ENABLED: "",
       OPS_SECRETS_READY_ENABLED: "",
       GOLIVE_CHECKLIST_ENABLED: "",
+      INBOX_MULTI_NUMBER_ENABLED: "",
       RESEND_API_KEY: "",
       SMTP_HOST: "",
       SMTP_PASS: "",
@@ -88,6 +89,8 @@ test("inbox, conversation AI, calendars, reviews, referrals, and public pages re
     const inboxHtml = await inbox.text();
     assert.match(inboxHtml, /Inbox/);
     assert.match(inboxHtml, /Draft with AI/);
+    assert.doesNotMatch(inboxHtml, /inbox-number-filter/);
+    assert.doesNotMatch(inboxHtml, /All numbers/);
 
     const settings = await fetch(`http://127.0.0.1:${port}/command-centre/ai-replies`, { redirect: "manual" });
     assert.equal(settings.status, 200);

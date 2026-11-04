@@ -6,6 +6,7 @@ export type InboxListItem = {
   channel: string;
   status: string;
   assignedUserId: string | null;
+  connectionId: string | null;
   unread: number;
   lastMessageAt: string | null;
   windowExpiresAt: string | null;
@@ -78,6 +79,13 @@ export type InboxConnectionOption = {
   label: string;
 };
 
+export type InboxWhatsappNumber = {
+  id: string;
+  displayName: string;
+  last4: string;
+  label: string;
+};
+
 export type InboxMemberOption = {
   userId: string;
   role: string;
@@ -92,6 +100,11 @@ export type InboxData = {
   sendingEnabled: boolean;
   filter: InboxFilter;
   channel: string;
+  /** True only when INBOX_MULTI_NUMBER_ENABLED is the string true. */
+  multiNumber: boolean;
+  /** Selected WhatsApp channel_connections id. Empty means all numbers. */
+  number: string;
+  whatsappNumbers: InboxWhatsappNumber[];
   conversations: InboxListItem[];
   thread: InboxThread | null;
   templates: InboxTemplateOption[];

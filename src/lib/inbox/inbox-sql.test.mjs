@@ -193,6 +193,46 @@ test("free-form WhatsApp outside the window is rejected and an approved template
   assert.deepEqual(kept.rows.map((row) => row.provider_message_id), ["outbox:msg_template", "outbox:msg_window"]);
 });
 
+test("two WhatsApp numbers in one org filter apart and do not cross workspaces", async () => {
+  const db = new PGlite();
+  await applyInbox(db);
+  await db.exec(`
+    insert into channel_connections (id, org_id, channel, provider, identifier, display_name, status, public_config)
+    values
+      ('cccccccc-cccc-4ccc-8ccc-ccccccccccc1', '${EASTC_ORG}', 'whatsapp', 'meta_cloud', '155500000101', 'Admissions', 'connected', '{"displayPhone":"+27115550101"}'),
+      ('cccccccc-cccc-4ccc-8ccc-ccccccccccc3', '${EASTC_ORG}', 'whatsapp', 'meta_cloud', '155500000199', 'Front desk', 'connected', '{"displayPhone":"+27825550199"}'),
+      ('cccccccc-cccc-4ccc-8ccc-ccccccccccc2', '${AGENCY_ORG}', 'whatsapp', 'meta_cloud', '155500000088', 'Agency line', 'connected', '{}');
+    insert into conversations (id, org_id, channel, channel_connection_id, status)
+    values
+      ('dddddddd-dddd-4ddd-8ddd-ddddddddddd1', '${EASTC_ORG}', 'whatsapp', 'cccccccc-cccc-4ccc-8ccc-ccccccccccc1', 'open'),
+      ('dddddddd-dddd-4ddd-8ddd-ddddddddddd2', '${EASTC_ORG}', 'whatsapp', 'cccccccc-cccc-4ccc-8ccc-ccccccccccc3', 'open'),
+      ('dddddddd-dddd-4ddd-8ddd-ddddddddddd3', '${AGENCY_ORG}', 'whatsapp', 'cccccccc-cccc-4ccc-8ccc-ccccccccccc2', 'open');
+  `);
+  const desk = await db.query(
+    `select id from conversations
+     where org_id = '${EASTC_ORG}' and channel = 'whatsapp'
+       and channel_connection_id = 'cccccccc-cccc-4ccc-8ccc-ccccccccccc3'`,
+  );
+  assert.deepEqual(desk.rows.map((row) => row.id), ["dddddddd-dddd-4ddd-8ddd-ddddddddddd2"]);
+  const crossed = await db.query(
+    `select id from conversations
+     where org_id = '${EASTC_ORG}' and channel_connection_id = 'cccccccc-cccc-4ccc-8ccc-ccccccccccc2'`,
+  );
+  assert.equal(crossed.rows.length, 0);
+  const labels = await db.query(
+    `select display_name, public_config->>'displayPhone' as phone
+     from channel_connections
+     where org_id = '${EASTC_ORG}' and channel = 'whatsapp'
+     order by display_name`,
+  );
+  assert.deepEqual(labels.rows, [
+    { display_name: "Admissions", phone: "+27115550101" },
+    { display_name: "Front desk", phone: "+27825550199" },
+  ]);
+  const sending = await db.query("select sending_enabled from organizations where slug = 'eastc'");
+  assert.equal(sending.rows[0].sending_enabled, false);
+});
+
 test("message.inbound feeds one workflow run and the service counter ignores other numbers", async () => {
   const db = new PGlite();
   await applyInbox(db);

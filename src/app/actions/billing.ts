@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createPayfastProvider } from "@/lib/billing/payfast";
 import { emptyBook } from "@/lib/billing/book";
 import { isBillingSandboxEnabled, mockItnAllowed } from "@/lib/billing/flag";
+import { resolveCheckoutPlan, seatCheckoutRefusal } from "@/lib/billing/seats";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { resolveWorkspace } from "@/lib/tenant/context";
 import { isAgencyRole } from "@/lib/tenant/types";
@@ -51,20 +52,18 @@ export async function preparePayfastCheckout(
     return { ok: false, message: "Billing sandbox is off. Set BILLING_SANDBOX=true. No charge was sent." };
   }
   const planCode = String(formData.get("plan_code") ?? "");
+  const blocked = seatCheckoutRefusal(planCode, process.env);
+  if (blocked) return { ok: false, message: blocked };
   const supabase = await createSupabaseServerClient();
   const plan = await supabase.from("plans").select("code, name, price_cents, interval").eq("code", planCode).maybeSingle();
-  if (plan.error || !plan.data) return { ok: false, message: "That plan is not available. No charge was sent." };
+  if (plan.error) return { ok: false, message: "That plan is not available. No charge was sent." };
+  const resolved = resolveCheckoutPlan(planCode, plan.data, process.env);
+  if (!resolved.ok) return { ok: false, message: resolved.message };
   const email = String(formData.get("email") ?? "").trim();
   const provider = createPayfastProvider(emptyBook(), process.env);
   const checkout = provider.createCheckout(
     { id: workspace.active.id, name: workspace.active.name, email: email || undefined, slug },
-    {
-      code: String(plan.data.code),
-      name: String(plan.data.name),
-      priceCents: Number(plan.data.price_cents),
-      interval: String(plan.data.interval) === "year" ? "year" : "month",
-      currency: "ZAR",
-    },
+    resolved.plan,
   );
   if (!checkout.actionUrl || !checkout.fields) return { ok: false, message: checkout.message };
   return {
@@ -85,6 +84,8 @@ export async function recordSandboxItn(
     return { ok: false, message: "Mock ITN is off. No charge was sent and the subscription was not changed." };
   }
   const planCode = String(formData.get("plan_code") ?? "starter");
+  const blocked = seatCheckoutRefusal(planCode, process.env);
+  if (blocked) return { ok: false, message: blocked };
   const supabase = await createSupabaseServerClient();
   const plan = await supabase.from("plans").select("price_cents").eq("code", planCode).maybeSingle();
   if (plan.error || !plan.data) return { ok: false, message: "That plan is not available. No charge was sent." };

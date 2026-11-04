@@ -8,6 +8,7 @@ import {
   type BillingActionState,
 } from "@/app/actions/billing";
 import type { BillingPageModel } from "@/lib/billing/load";
+import { SeatBillingPanel } from "@/components/seat-billing-panel";
 
 const initial: BillingActionState = { ok: false, message: "" };
 
@@ -81,6 +82,8 @@ export function WorkspaceBillingPanel({ billing }: { billing: BillingPageModel }
           </ul>
         )}
       </div>
+
+      {billing.seatBilling ? <SeatBillingPanel seat={billing.seatBilling} /> : null}
 
       {billing.canManage ? (
         <form action={prepareCheckout} className="grid gap-3 border-t border-slate-200 pt-4">

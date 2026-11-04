@@ -8,7 +8,7 @@ The panel reads the contact already on the thread. Save contact writes the lead 
 
 ## What you are reviewing
 
-Draft on branch `cursor/inbox-contact-panel-85fc`. It stacks on draft [#99](https://github.com/billyboy95/ai-autotech-/pull/99) (`cursor/inbox-bulk-actions-707e`). The Files tab is only the contact panel. It is not the whole inbox stack.
+Draft [#100](https://github.com/billyboy95/ai-autotech-/pull/100). Branch `cursor/inbox-contact-panel-85fc`. It stacks on draft [#99](https://github.com/billyboy95/ai-autotech-/pull/99) (`cursor/inbox-bulk-actions-707e`). The Files tab on #100 is only the contact panel. It is not the whole inbox stack.
 
 When the flag is the string `true`:
 
@@ -23,7 +23,7 @@ When the flag is the string `true`:
 On the phone:
 
 1. Open GitHub and sign in as the account that can see `billyboy95/ai-autotech-`.
-2. Open the pull request whose branch is `cursor/inbox-contact-panel-85fc`.
+2. Open https://github.com/billyboy95/ai-autotech-/pull/100 . The branch is `cursor/inbox-contact-panel-85fc`.
 3. Read the title and the base branch. The base is `cursor/inbox-bulk-actions-707e` (draft #99). If the base is `main`, stop. Do not merge it into main from here.
 4. Open Files changed. Pass when the diff is the contact-panel flag, the side panel, tests, and this note. Fail and stop if the diff turns `sending_enabled` on, calls Meta, changes consent, or sends WhatsApp, email, or SMS.
 5. Leave the draft as a draft. Do not tap Merge on this visit unless Billy says yes to the whole stack below, in that order.
@@ -38,7 +38,7 @@ Merge one pull request at a time, from the bottom of the stack. Wait until the n
 4. [#97](https://github.com/billyboy95/ai-autotech-/pull/97) — quick replies, collision warning, and the narrow layout. After #96 is on main.
 5. [#98](https://github.com/billyboy95/ai-autotech-/pull/98) — WhatsApp category, cost, and the free service counter. After #97 is on main.
 6. [#99](https://github.com/billyboy95/ai-autotech-/pull/99) — select several threads, then assign, close, or mark read. After #98 is on main.
-7. This draft — contact side panel (`cursor/inbox-contact-panel-85fc`). After #99 is on main.
+7. [#100](https://github.com/billyboy95/ai-autotech-/pull/100) — contact side panel (`cursor/inbox-contact-panel-85fc`). After #99 is on main.
 
 A yes to one pull request is not a yes to the next. A yes to merge is not a yes to the flag, and it is not a yes to send.
 

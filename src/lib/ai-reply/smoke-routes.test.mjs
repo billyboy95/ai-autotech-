@@ -35,6 +35,7 @@ test("inbox, conversation AI, calendars, reviews, referrals, and public pages re
       INBOX_TEAM_STATS_ENABLED: "",
       INBOX_WA_WINDOW_ENABLED: "",
       INBOX_QUICK_UX_ENABLED: "",
+      INBOX_BULK_ACTIONS_ENABLED: "",
       RESEND_API_KEY: "",
       SMTP_HOST: "",
       SMTP_PASS: "",
@@ -109,6 +110,10 @@ test("inbox, conversation AI, calendars, reviews, referrals, and public pages re
     assert.doesNotMatch(inboxHtml, /Naledi Khumalo/);
     assert.doesNotMatch(inboxHtml, /is typing/);
     assert.doesNotMatch(inboxHtml, /Quick replies/);
+    assert.doesNotMatch(inboxHtml, /inbox-bulk-toolbar/);
+    assert.doesNotMatch(inboxHtml, /inbox-bulk-select/);
+    assert.doesNotMatch(inboxHtml, /inbox-bulk-row/);
+    assert.doesNotMatch(inboxHtml, /Select Lerato Mokoena/);
 
     const settings = await fetch(`http://127.0.0.1:${port}/command-centre/ai-replies`, { redirect: "manual" });
     assert.equal(settings.status, 200);

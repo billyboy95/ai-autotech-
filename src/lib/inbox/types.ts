@@ -91,6 +91,32 @@ export type InboxMemberOption = {
   role: string;
 };
 
+export type InboxTeamStatsAgent = {
+  key: string;
+  label: string;
+  assigned: number;
+  replies: number;
+};
+
+export type InboxTeamStatsBreach = {
+  conversationId: string;
+  contactName: string;
+  ageMs: number;
+};
+
+/** Null when INBOX_TEAM_STATS_ENABLED is not the string true. */
+export type InboxTeamStats = {
+  slaHours: number;
+  medianFirstResponseMs: number | null;
+  repliedCount: number;
+  awaitingFirstReply: number;
+  openCount: number;
+  slaBreaches: InboxTeamStatsBreach[];
+  agents: InboxTeamStatsAgent[];
+  messagesLoaded: boolean;
+  truncated: boolean;
+};
+
 export type InboxData = {
   preview: boolean;
   orgId: string;
@@ -110,6 +136,8 @@ export type InboxData = {
   templates: InboxTemplateOption[];
   connections: InboxConnectionOption[];
   members: InboxMemberOption[];
+  /** Null unless INBOX_TEAM_STATS_ENABLED is the string true. */
+  teamStats: InboxTeamStats | null;
   serviceUsed: number;
   notice: string | null;
   aiEnabled: boolean;

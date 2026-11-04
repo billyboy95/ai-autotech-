@@ -2,6 +2,7 @@ import { missingAiTable, parseAiDraft, parseAiReplySettings } from "@/lib/ai-rep
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { safeResolveWorkspace } from "@/lib/tenant/context";
 import { displayPhoneFromConfig, inboxMultiNumberEnabled, parseInboxNumber, resolveInboxNumber, whatsappNumberParts } from "@/lib/inbox/numbers";
+import { INBOX_TEAM_STATS_MESSAGE_CAP, buildInboxTeamStats, inboxTeamStatsEnabled, type TeamStatsMessage } from "@/lib/inbox/team-stats";
 import { contactLookup, parseInboxChannel, parseInboxFilter } from "@/lib/inbox/rules";
 import { previewInbox } from "@/lib/inbox/preview";
 import type { InboxConsent, InboxContact, InboxData, InboxListItem, InboxMessage, InboxNote, InboxThread } from "@/lib/inbox/types";
@@ -69,6 +70,7 @@ export async function loadInbox(query: {
     templates: [],
     connections: [],
     members: [],
+    teamStats: null,
     serviceUsed: 0,
     notice: query.notice ?? null,
     aiEnabled: false,
@@ -203,7 +205,52 @@ export async function loadInbox(query: {
   } catch {
     // A missing Conversation AI migration must not take down the inbox.
   }
+  if (inboxTeamStatsEnabled()) {
+    base.teamStats = await loadInboxTeamStats(supabase, tenant.active.id, base);
+  }
   return base;
+}
+
+async function loadInboxTeamStats(
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  orgId: string,
+  data: InboxData,
+) {
+  const ids = data.conversations.map((item) => item.id);
+  let messages: TeamStatsMessage[] = [];
+  let messagesLoaded = true;
+  let truncated = false;
+  if (ids.length > 0) {
+    const listed = await supabase
+      .from("messages")
+      .select("conversation_id, direction, status, created_at, sent_by_user_id")
+      .eq("org_id", orgId)
+      .in("conversation_id", ids)
+      .order("created_at", { ascending: true })
+      .limit(INBOX_TEAM_STATS_MESSAGE_CAP);
+    if (listed.error) {
+      messagesLoaded = false;
+    } else {
+      const rows = listed.data ?? [];
+      truncated = rows.length >= INBOX_TEAM_STATS_MESSAGE_CAP;
+      messages = rows.map((row) => ({
+        conversationId: String(row.conversation_id),
+        direction: row.direction === "out" ? "out" : "in",
+        createdAt: String(row.created_at || ""),
+        status: String(row.status || ""),
+        sentByUserId: row.sent_by_user_id ? String(row.sent_by_user_id) : null,
+      }));
+    }
+  }
+  return buildInboxTeamStats({
+    now: new Date(),
+    conversations: data.conversations,
+    messages,
+    members: data.members,
+    userId: data.userId,
+    messagesLoaded,
+    truncated,
+  });
 }
 
 async function loadThread(supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>, orgId: string, id: string): Promise<InboxThread | null> {

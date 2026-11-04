@@ -171,6 +171,8 @@ export type InboxData = {
   waMeters: InboxWaServiceMeter[];
   /** True only when INBOX_QUICK_UX_ENABLED is the string true. */
   quickUx: boolean;
+  /** True only when INBOX_BULK_ACTIONS_ENABLED is the string true. */
+  bulkActions: boolean;
   /** Empty unless INBOX_QUICK_UX_ENABLED is the string true. */
   quickReplies: InboxQuickReply[];
   /**

@@ -3,6 +3,24 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
+import { InboxBulkChrome } from "@/components/inbox/inbox-bulk";
+import {
+  bulkAssignNotice,
+  bulkIdsInWorkspace,
+  bulkReadNotice,
+  bulkScopeKey,
+  bulkStatusFor,
+  bulkStatusLabel,
+  bulkStatusNotice,
+  inboxBulkActionsEnabled,
+  membershipAssignedOnly,
+  parseBulkConversationIds,
+  planBulkAssign,
+  selectableConversationIds,
+  selectionForScope,
+  toggleBulkId,
+  BULK_CONVERSATION_LIMIT,
+} from "@/lib/inbox/bulk";
 import { InboxCollisionBanner, InboxQuickFrame, InboxQuickReplies } from "@/components/inbox/inbox-quick-ux";
 import { InboxTeamStatsPanel } from "@/components/inbox/inbox-team-stats";
 import { InboxWaMessageMeter, InboxWaMetering } from "@/components/inbox/inbox-wa-metering";
@@ -454,6 +472,7 @@ function threadByName(data: InboxData, name: string) {
     waMetering: data.waMeteringEnabled,
     teamStats: Boolean(data.teamStats),
     quickUx: data.quickUx,
+    bulkActions: data.bulkActions,
     multiNumber: data.multiNumber,
     number: data.number,
     filter: data.filter,
@@ -1101,6 +1120,166 @@ test("metering UI is flag gated and does not send or call Meta", () => {
     "src/lib/inbox/wa-metering.ts",
     "src/components/inbox/inbox-wa-metering.tsx",
     "src/components/inbox/inbox-view.tsx",
+    "src/lib/inbox/preview.ts",
+    "src/lib/inbox/load.ts",
+  ];
+  for (const file of files) {
+    const text = readFileSync(new URL(`../../../${file}`, import.meta.url), "utf8");
+    assert.equal(/sending_enabled\s*=\s*true/i.test(text), false, file);
+    assert.equal(/graph\.facebook|api\.whatsapp/i.test(text), false, file);
+  }
+});
+
+test("bulk actions stay off unless the flag is the string true", () => {
+  assert.equal(inboxBulkActionsEnabled({} as NodeJS.ProcessEnv), false);
+  assert.equal(inboxBulkActionsEnabled({ INBOX_BULK_ACTIONS_ENABLED: "" } as NodeJS.ProcessEnv), false);
+  assert.equal(inboxBulkActionsEnabled({ INBOX_BULK_ACTIONS_ENABLED: "false" } as NodeJS.ProcessEnv), false);
+  assert.equal(inboxBulkActionsEnabled({ INBOX_BULK_ACTIONS_ENABLED: "yes" } as NodeJS.ProcessEnv), false);
+  assert.equal(inboxBulkActionsEnabled({ INBOX_BULK_ACTIONS_ENABLED: "1" } as NodeJS.ProcessEnv), false);
+  assert.equal(inboxBulkActionsEnabled({ INBOX_BULK_ACTIONS_ENABLED: " true " } as NodeJS.ProcessEnv), true);
+  const off = previewInbox({ bulkActions: false });
+  const on = previewInbox({ bulkActions: true });
+  assert.equal(off.bulkActions, false);
+  assert.equal(on.bulkActions, true);
+  assert.equal(off.sendingEnabled, false);
+  assert.equal(on.sendingEnabled, false);
+  assert.deepEqual(on.conversations, off.conversations);
+  const props = {
+    filter: on.filter,
+    channel: on.channel,
+    number: "",
+    conversations: on.conversations,
+    members: on.members,
+    userId: on.userId,
+    orgSlug: on.orgSlug,
+    threadId: on.thread?.id ?? "",
+    children: (item: { id: string; contactName: string }) => createElement("a", { href: `/thread/${item.id}` }, item.contactName),
+  };
+  const hidden = renderToStaticMarkup(createElement(InboxBulkChrome, { ...props, enabled: false }));
+  assert.equal(hidden.includes("inbox-bulk"), false);
+  assert.equal(hidden.includes("checkbox"), false);
+  assert.equal(hidden.includes("Select "), false);
+  const idle = renderToStaticMarkup(createElement(InboxBulkChrome, { ...props, enabled: true }));
+  assert.equal(idle.match(/data-testid="inbox-bulk-select"/g)?.length, on.conversations.length);
+  assert.equal(idle.includes("inbox-bulk-toolbar"), false);
+  assert.equal(idle.includes("inbox-bulk-assign"), false);
+  const ids = on.conversations.slice(0, 2).map((item) => item.id);
+  const html = renderToStaticMarkup(createElement(InboxBulkChrome, { ...props, enabled: true, initialSelected: ids }));
+  assert.match(html, /data-testid="inbox-bulk-toolbar"/);
+  assert.match(html, /data-testid="inbox-bulk-assign"/);
+  assert.match(html, /Assign selected/);
+  assert.match(html, /data-testid="inbox-bulk-status"[^>]*data-status="closed"/);
+  assert.match(html, />Close</);
+  assert.match(html, /data-testid="inbox-bulk-read"/);
+  assert.match(html, />Mark read</);
+  assert.match(html, /Nothing is sent/);
+  assert.equal(html.includes("Unassigned"), true);
+  for (const id of ids) assert.match(html, new RegExp(`name="ids" value="${id}"`));
+  const skipped = on.conversations[2]?.id ?? "";
+  assert.equal(html.includes(`name="ids" value="${skipped}"`), false);
+  assert.match(html, new RegExp(`Select ${on.conversations[0]?.contactName}`));
+  const closedId = "00000000-0000-4000-8000-000000000099";
+  const mixed = renderToStaticMarkup(createElement(InboxBulkChrome, {
+    ...props,
+    enabled: true,
+    conversations: [
+      on.conversations[0],
+      { ...on.conversations[1], id: closedId, status: "closed", contactName: "Closed thread" },
+    ],
+    initialSelected: [on.conversations[0].id, closedId],
+  }));
+  assert.equal(mixed.includes("Select Closed thread"), false);
+  assert.equal(mixed.includes(`name="ids" value="${closedId}"`), false);
+  assert.match(mixed, />Close</);
+});
+
+test("bulk selection clears on filter changes and updates only workspace ids", () => {
+  const open = bulkScopeKey({ filter: "open", channel: "", number: "" });
+  const mine = bulkScopeKey({ filter: "mine", channel: "", number: "" });
+  const channel = bulkScopeKey({ filter: "open", channel: "whatsapp", number: "" });
+  const number = bulkScopeKey({ filter: "open", channel: "whatsapp", number: "preview-wa" });
+  const selected = ["00000000-0000-4000-8000-000000000001"];
+  assert.deepEqual(selectionForScope({ previousScope: open, nextScope: open, selected }), selected);
+  assert.deepEqual(selectionForScope({ previousScope: open, nextScope: mine, selected }), []);
+  assert.deepEqual(selectionForScope({ previousScope: open, nextScope: channel, selected }), []);
+  assert.deepEqual(selectionForScope({ previousScope: channel, nextScope: number, selected }), []);
+  const visible = [
+    { id: "00000000-0000-4000-8000-000000000001", status: "open" },
+    { id: "00000000-0000-4000-8000-000000000002", status: "pending" },
+  ];
+  const foreign = "00000000-0000-4000-8000-0000000000ee";
+  const kept = bulkIdsInWorkspace([foreign, visible[1].id, visible[0].id, "not-an-id"], visible);
+  assert.deepEqual(kept.ids, [visible[1].id, visible[0].id]);
+  assert.deepEqual(kept.statuses, ["pending", "open"]);
+  assert.deepEqual(selectableConversationIds([...visible, { id: foreign, status: "closed" }]), [visible[0].id, visible[1].id]);
+  assert.equal(bulkStatusFor(["open", "pending"]), "closed");
+  assert.equal(bulkStatusFor(["closed", "open"]), "closed");
+  assert.equal(bulkStatusFor(["closed", "closed"]), "open");
+  assert.equal(bulkStatusLabel("closed"), "Close");
+  assert.equal(bulkStatusLabel("open"), "Reopen");
+  const parsed = parseBulkConversationIds([`${visible[0].id}, ${visible[0].id}`, visible[1].id, "nope"]);
+  assert.equal(parsed.ok, true);
+  if (parsed.ok) assert.deepEqual(parsed.ids, [visible[0].id, visible[1].id]);
+  assert.equal(parseBulkConversationIds(["nope"]).ok, false);
+  const many = Array.from({ length: BULK_CONVERSATION_LIMIT + 1 }, (_, index) => (
+    `00000000-0000-4000-8000-${String(index + 1).padStart(12, "0")}`
+  ));
+  assert.equal(parseBulkConversationIds(many).ok, false);
+  const self = "00000000-0000-4000-8000-0000000000bb";
+  const other = "00000000-0000-4000-8000-0000000000cc";
+  assert.equal(membershipAssignedOnly([{ userId: self, role: "client_admin", assignedOnly: true }], self), false);
+  assert.equal(membershipAssignedOnly([{ userId: self, role: "client_user", assignedOnly: true }], self), true);
+  assert.deepEqual(planBulkAssign({ assignee: "", memberIds: [other], assignedOnly: false, userId: self }), { ok: true, assignee: null });
+  assert.equal(planBulkAssign({ assignee: "", memberIds: [other], assignedOnly: true, userId: self }).ok, false);
+  assert.deepEqual(planBulkAssign({ assignee: self, memberIds: [], assignedOnly: true, userId: self }), { ok: true, assignee: self });
+  assert.equal(planBulkAssign({ assignee: other, memberIds: [other], assignedOnly: true, userId: self }).ok, false);
+  assert.deepEqual(planBulkAssign({ assignee: other, memberIds: [other], assignedOnly: false, userId: self }), { ok: true, assignee: other });
+  assert.equal(planBulkAssign({ assignee: foreign, memberIds: [other], assignedOnly: false, userId: self }).ok, false);
+  assert.equal(bulkAssignNotice(2, other), "Assigned 2 conversations.");
+  assert.equal(bulkAssignNotice(1, null), "Unassigned 1 conversation.");
+  assert.equal(bulkAssignNotice(0, null), "No conversations in this workspace were updated.");
+  assert.equal(bulkStatusNotice(2, "closed"), "Closed 2 conversations.");
+  assert.equal(bulkStatusNotice(1, "open"), "Reopened 1 conversation.");
+  assert.equal(bulkReadNotice(0), "Those conversations were already read.");
+  assert.equal(bulkReadNotice(3), "Marked 3 conversations read.");
+  assert.deepEqual(toggleBulkId([visible[0].id], visible[0].id, [visible[0].id, visible[1].id]), []);
+  assert.deepEqual(toggleBulkId([], foreign, [visible[0].id]), []);
+  const capped = toggleBulkId(many.slice(0, BULK_CONVERSATION_LIMIT), many[BULK_CONVERSATION_LIMIT], many);
+  assert.equal(capped.length, BULK_CONVERSATION_LIMIT);
+});
+
+test("bulk inbox wiring reuses conversation updates and does not send", () => {
+  const view = readFileSync(new URL("../../components/inbox/inbox-view.tsx", import.meta.url), "utf8");
+  const load = readFileSync(new URL("./load.ts", import.meta.url), "utf8");
+  const actions = readFileSync(new URL("../../app/actions/inbox.ts", import.meta.url), "utf8");
+  assert.match(view, /data\.bulkActions \? \(/);
+  assert.match(view, /assignAction=\{bulkAssignInbox\}/);
+  assert.match(view, /statusAction=\{bulkSetInboxStatus\}/);
+  assert.match(view, /readAction=\{bulkMarkInboxRead\}/);
+  assert.match(view, /<InboxConversationCard key=\{item\.id\}/);
+  assert.equal(view.includes("inbox-bulk-toolbar"), false);
+  assert.match(load, /bulkActions: inboxBulkActionsEnabled\(\)/);
+  const assign = actions.slice(actions.indexOf("export async function assignInboxConversation"), actions.indexOf("export async function setInboxStatus"));
+  const status = actions.slice(actions.indexOf("export async function setInboxStatus"), actions.indexOf("export async function markInboxRead"));
+  const read = actions.slice(actions.indexOf("export async function markInboxRead"), actions.indexOf("export async function bulkAssignInbox"));
+  assert.match(assign, /conversationsUpdate\(/);
+  assert.match(status, /conversationsUpdate\(/);
+  assert.match(read, /conversationsUpdate\(/);
+  const bulk = actions.slice(actions.indexOf("export async function bulkAssignInbox"), actions.indexOf("async function openChannelThread"));
+  assert.match(bulk, /conversationsUpdate\(/);
+  assert.match(bulk, /eq\("org_id", tenant\.active\.id\)/);
+  const gate = bulk.indexOf("if (!inboxBulkActionsEnabled())");
+  const client = bulk.indexOf("await createSupabaseServerClient()");
+  assert.ok(gate >= 0 && client > gate);
+  assert.equal(bulk.includes("crm_outbox"), false);
+  assert.equal(bulk.includes("from(\"messages\")"), false);
+  assert.equal(bulk.includes(".insert("), false);
+  assert.equal(bulk.includes("sending_enabled"), false);
+  const files = [
+    "src/lib/inbox/bulk.ts",
+    "src/components/inbox/inbox-bulk.tsx",
+    "src/components/inbox/inbox-view.tsx",
+    "src/app/actions/inbox.ts",
     "src/lib/inbox/preview.ts",
     "src/lib/inbox/load.ts",
   ];

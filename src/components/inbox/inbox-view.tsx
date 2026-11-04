@@ -3,8 +3,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { addInboxNote, assignInboxConversation, markInboxRead, sendInboxReply, setInboxStatus } from "@/app/actions/inbox";
+import { addInboxNote, assignInboxConversation, bulkAssignInbox, bulkMarkInboxRead, bulkSetInboxStatus, markInboxRead, sendInboxReply, setInboxStatus } from "@/app/actions/inbox";
 import { AiDraftPanel } from "@/components/inbox/ai-draft-panel";
+import { InboxBulkChrome } from "@/components/inbox/inbox-bulk";
 import { InboxCollisionBanner, InboxQuickFrame, InboxQuickReplies } from "@/components/inbox/inbox-quick-ux";
 import { InboxTeamStatsPanel } from "@/components/inbox/inbox-team-stats";
 import { InboxWaMessageMeter, InboxWaMetering } from "@/components/inbox/inbox-wa-metering";
@@ -21,7 +22,7 @@ import {
 import { formatInboxCost, inboxCost, realtimeOrgFilter, acceptRealtimeRow, serviceAllowanceLabel, type InboxChannel } from "@/lib/inbox/rules";
 import { waCareState } from "@/lib/inbox/wa-window";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
-import type { InboxData, InboxPresencePeer } from "@/lib/inbox/types";
+import type { InboxData, InboxListItem, InboxPresencePeer } from "@/lib/inbox/types";
 
 const CHANNELS: InboxChannel[] = ["whatsapp", "sms", "email", "facebook", "instagram"];
 
@@ -255,22 +256,25 @@ export function InboxView({ data, banner, bannerTone }: { data: InboxData; banne
           {data.conversations.length === 0 ? (
             <p className="rounded-xl border border-dashed border-slate-300 bg-white p-4 text-sm text-slate-500">No conversations in this filter.</p>
           ) : null}
-          {data.conversations.map((item) => (
-            <Link
-              key={item.id}
-              href={inboxHref({ ...data, id: item.id })}
-              className={`rounded-xl border bg-white p-3 shadow-sm ${thread?.id === item.id ? "border-[#2563EB]" : "border-slate-200"}`}
+          {data.bulkActions ? (
+            <InboxBulkChrome
+              enabled
+              filter={data.filter}
+              channel={data.channel}
+              number={data.multiNumber ? data.number : ""}
+              conversations={data.conversations}
+              members={data.members}
+              userId={data.userId}
+              orgSlug={data.orgSlug}
+              threadId={thread?.id ?? ""}
+              assignAction={bulkAssignInbox}
+              statusAction={bulkSetInboxStatus}
+              readAction={bulkMarkInboxRead}
             >
-              <span className="flex items-center justify-between gap-2">
-                <span className="text-sm font-semibold text-[#0B1F3A]">{item.contactName}</span>
-                {item.unread > 0 ? <span className="rounded-full bg-[#2563EB] px-2 py-0.5 text-xs font-semibold text-white">{item.unread}</span> : null}
-              </span>
-              <span className="mt-1 block text-xs uppercase tracking-wide text-slate-500">{item.channel} · {item.status}</span>
-              {data.multiNumber && item.channel === "whatsapp" ? (
-                <span className="mt-1 block text-xs text-slate-500">{whatsappNumberLabel(data, item.connectionId) || "No number"}</span>
-              ) : null}
-              <span className="mt-1 block truncate text-sm text-slate-600">{item.preview || "Open the thread"}</span>
-            </Link>
+              {(item) => <InboxConversationCard data={data} item={item} active={thread?.id === item.id} />}
+            </InboxBulkChrome>
+          ) : data.conversations.map((item) => (
+            <InboxConversationCard key={item.id} data={data} item={item} active={thread?.id === item.id} />
           ))}
         </section>
         <section className={layout.thread}>
@@ -438,6 +442,25 @@ export function InboxView({ data, banner, bannerTone }: { data: InboxData; banne
         </aside>
       </InboxQuickFrame>
     </div>
+  );
+}
+
+function InboxConversationCard({ data, item, active }: { data: InboxData; item: InboxListItem; active: boolean }) {
+  return (
+    <Link
+      href={inboxHref({ ...data, id: item.id })}
+      className={`rounded-xl border bg-white p-3 shadow-sm ${active ? "border-[#2563EB]" : "border-slate-200"}`}
+    >
+      <span className="flex items-center justify-between gap-2">
+        <span className="text-sm font-semibold text-[#0B1F3A]">{item.contactName}</span>
+        {item.unread > 0 ? <span className="rounded-full bg-[#2563EB] px-2 py-0.5 text-xs font-semibold text-white">{item.unread}</span> : null}
+      </span>
+      <span className="mt-1 block text-xs uppercase tracking-wide text-slate-500">{item.channel} · {item.status}</span>
+      {data.multiNumber && item.channel === "whatsapp" ? (
+        <span className="mt-1 block text-xs text-slate-500">{whatsappNumberLabel(data, item.connectionId) || "No number"}</span>
+      ) : null}
+      <span className="mt-1 block truncate text-sm text-slate-600">{item.preview || "Open the thread"}</span>
+    </Link>
   );
 }
 

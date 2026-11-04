@@ -1,3 +1,4 @@
+import { inboxBulkActionsEnabled } from "@/lib/inbox/bulk";
 import { inboxMultiNumberEnabled, matchesInboxNumber, parseInboxNumber, resolveInboxNumber, whatsappNumberParts } from "@/lib/inbox/numbers";
 import { matchesInboxList, parseInboxChannel, parseInboxFilter, windowExpiry } from "@/lib/inbox/rules";
 import { buildInboxTeamStats, inboxTeamStatsEnabled, type TeamStatsMessage } from "@/lib/inbox/team-stats";
@@ -195,6 +196,8 @@ export function previewInbox(query: {
   waWindow?: boolean;
   /** Explicit override. Omit to follow INBOX_QUICK_UX_ENABLED. */
   quickUx?: boolean;
+  /** Explicit override. Omit to follow INBOX_BULK_ACTIONS_ENABLED. */
+  bulkActions?: boolean;
   /** Explicit override. Omit to follow INBOX_WA_METERING_ENABLED. */
   waMetering?: boolean;
   notice?: string | null;
@@ -206,6 +209,7 @@ export function previewInbox(query: {
   const teamStatsOn = query.teamStats ?? inboxTeamStatsEnabled();
   const waWindowEnabled = query.waWindow ?? inboxWaWindowEnabled();
   const quickUx = query.quickUx ?? inboxQuickUxEnabled();
+  const bulkActions = query.bulkActions ?? inboxBulkActionsEnabled();
   const waMeteringEnabled = query.waMetering ?? inboxWaMeteringEnabled();
   const whatsappNumbers = multiNumber ? previewNumbers : [];
   const number = multiNumber
@@ -291,6 +295,7 @@ export function previewInbox(query: {
       thread: selected ? threads[selected] ?? null : null,
     }),
     quickUx,
+    bulkActions,
     quickReplies: quickUx ? quickRepliesForWorkspace(null) : [],
     presence: quickUx ? previewInboxPresence(OPEN_WA, EXPIRED_WA) : [],
     loadedAt: now.toISOString(),

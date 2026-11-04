@@ -79,6 +79,16 @@ export type InboxConnectionOption = {
   label: string;
 };
 
+/** Monthly free service messages for one WhatsApp number. used is null when the count could not be read. */
+export type InboxWaServiceMeter = {
+  connectionId: string;
+  label: string;
+  used: number | null;
+  allowance: number;
+  timezone: string;
+  monthKey: string;
+};
+
 export type InboxWhatsappNumber = {
   id: string;
   displayName: string;
@@ -153,6 +163,12 @@ export type InboxData = {
   teamStats: InboxTeamStats | null;
   /** True only when INBOX_WA_WINDOW_ENABLED is the string true. */
   waWindowEnabled: boolean;
+  /** True only when INBOX_WA_METERING_ENABLED is the string true. */
+  waMeteringEnabled: boolean;
+  /** Empty unless INBOX_WA_METERING_ENABLED is the string true. */
+  waTimezone: string;
+  /** Empty unless INBOX_WA_METERING_ENABLED is the string true. */
+  waMeters: InboxWaServiceMeter[];
   /** True only when INBOX_QUICK_UX_ENABLED is the string true. */
   quickUx: boolean;
   /** Empty unless INBOX_QUICK_UX_ENABLED is the string true. */

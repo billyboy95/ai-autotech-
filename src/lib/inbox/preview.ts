@@ -3,6 +3,14 @@ import { matchesInboxList, parseInboxChannel, parseInboxFilter, windowExpiry } f
 import { buildInboxTeamStats, inboxTeamStatsEnabled, type TeamStatsMessage } from "@/lib/inbox/team-stats";
 import { inboxQuickUxEnabled, previewInboxPresence, quickRepliesForWorkspace } from "@/lib/inbox/quick-ux";
 import { inboxWaWindowEnabled } from "@/lib/inbox/wa-window";
+import {
+  buildServiceMeters,
+  countServiceSendsByConnection,
+  inboxWaMeteringEnabled,
+  waMeterNumbers,
+  WA_METER_TIMEZONE,
+  type ServiceSendRow,
+} from "@/lib/inbox/wa-metering";
 import type { InboxData, InboxTeamStats, InboxThread, InboxWhatsappNumber } from "@/lib/inbox/types";
 
 const PREVIEW_ORG = "00000000-0000-4000-8000-0000000000aa";
@@ -187,6 +195,8 @@ export function previewInbox(query: {
   waWindow?: boolean;
   /** Explicit override. Omit to follow INBOX_QUICK_UX_ENABLED. */
   quickUx?: boolean;
+  /** Explicit override. Omit to follow INBOX_WA_METERING_ENABLED. */
+  waMetering?: boolean;
   notice?: string | null;
   brandSlug?: string | null;
 }): InboxData {
@@ -196,6 +206,7 @@ export function previewInbox(query: {
   const teamStatsOn = query.teamStats ?? inboxTeamStatsEnabled();
   const waWindowEnabled = query.waWindow ?? inboxWaWindowEnabled();
   const quickUx = query.quickUx ?? inboxQuickUxEnabled();
+  const waMeteringEnabled = query.waMetering ?? inboxWaMeteringEnabled();
   const whatsappNumbers = multiNumber ? previewNumbers : [];
   const number = multiNumber
     ? resolveInboxNumber(parseInboxNumber(query.number), whatsappNumbers.map((item) => item.id))
@@ -275,6 +286,10 @@ export function previewInbox(query: {
     members: [{ userId: PREVIEW_USER, role: "client_admin" }],
     teamStats: teamStatsOn ? previewTeamStats(list) : null,
     waWindowEnabled,
+    ...previewWaMetering(waMeteringEnabled, {
+      whatsappNumbers,
+      thread: selected ? threads[selected] ?? null : null,
+    }),
     quickUx,
     quickReplies: quickUx ? quickRepliesForWorkspace(null) : [],
     presence: quickUx ? previewInboxPresence(OPEN_WA, EXPIRED_WA) : [],
@@ -296,6 +311,41 @@ export function previewInbox(query: {
           createdAt: now.toISOString(),
         }
       : null,
+  };
+}
+
+function previewWaMetering(
+  enabled: boolean,
+  input: { whatsappNumbers: InboxWhatsappNumber[]; thread: InboxThread | null },
+) {
+  if (!enabled) return { waMeteringEnabled: false as const, waTimezone: "", waMeters: [] };
+  const connections = [{ id: PREVIEW_WA, channel: "whatsapp", label: "Preview WhatsApp · 1000 free from 1 Oct 2026" }];
+  const numbers = waMeterNumbers({
+    connections,
+    whatsappNumbers: input.whatsappNumbers,
+    threadChannel: input.thread?.channel,
+    threadConnectionId: input.thread?.connectionId,
+  });
+  const rows: ServiceSendRow[] = [];
+  for (const thread of Object.values(threads)) {
+    for (const message of thread.messages) {
+      rows.push({
+        direction: message.direction,
+        channel: message.channel,
+        waCategory: message.waCategory,
+        status: message.status,
+        createdAt: message.createdAt,
+        connectionId: thread.connectionId,
+      });
+    }
+  }
+  const counts = countServiceSendsByConnection(rows, { now, timezone: WA_METER_TIMEZONE });
+  // Preview has no database. The admissions number reuses the fixture counter (serviceUsed).
+  counts[PREVIEW_WA] = 12;
+  return {
+    waMeteringEnabled: true as const,
+    waTimezone: WA_METER_TIMEZONE,
+    waMeters: buildServiceMeters({ numbers, counts, timezone: WA_METER_TIMEZONE, now }),
   };
 }
 

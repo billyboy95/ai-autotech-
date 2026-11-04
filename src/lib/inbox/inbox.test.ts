@@ -5,6 +5,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { InboxCollisionBanner, InboxQuickFrame, InboxQuickReplies } from "@/components/inbox/inbox-quick-ux";
 import { InboxTeamStatsPanel } from "@/components/inbox/inbox-team-stats";
+import { InboxWaMessageMeter, InboxWaMetering } from "@/components/inbox/inbox-wa-metering";
 import { InboxWaReplyFields, InboxWaWindow } from "@/components/inbox/inbox-wa-window";
 import { previewInbox } from "@/lib/inbox/preview";
 import {
@@ -28,6 +29,17 @@ import {
 } from "@/lib/inbox/numbers";
 import { buildInboxTeamStats, inboxTeamStatsEnabled } from "@/lib/inbox/team-stats";
 import { customerCareWindow, inboxWaWindowEnabled, waCareState, type WaWindowMessage } from "@/lib/inbox/wa-window";
+import {
+  buildServiceMeters,
+  countServiceSendsByConnection,
+  freeServiceStartNote,
+  inboxWaMeteringEnabled,
+  meteringTimezone,
+  monthKeyInZone,
+  monthWindow,
+  outboundWaMessageMeter,
+  zonedMonthStart,
+} from "@/lib/inbox/wa-metering";
 import type { InboxData } from "@/lib/inbox/types";
 import {
   acceptRealtimeRow,
@@ -439,6 +451,7 @@ function threadByName(data: InboxData, name: string) {
   return previewInbox({
     id: listed.id,
     waWindow: data.waWindowEnabled,
+    waMetering: data.waMeteringEnabled,
     teamStats: Boolean(data.teamStats),
     quickUx: data.quickUx,
     multiNumber: data.multiNumber,
@@ -859,4 +872,241 @@ test("a branded eastc host keeps the preview inbox inside EASTC", () => {
   assert.equal(JSON.stringify(eastc).includes("Ndlovu"), false);
   const zentrix = previewInbox({ brandSlug: "zentrix" });
   assert.deepEqual(zentrix.conversations, []);
+});
+
+test("WhatsApp metering stays off unless the flag is the string true", () => {
+  assert.equal(inboxWaMeteringEnabled({} as NodeJS.ProcessEnv), false);
+  assert.equal(inboxWaMeteringEnabled({ INBOX_WA_METERING_ENABLED: "" } as NodeJS.ProcessEnv), false);
+  assert.equal(inboxWaMeteringEnabled({ INBOX_WA_METERING_ENABLED: "false" } as NodeJS.ProcessEnv), false);
+  assert.equal(inboxWaMeteringEnabled({ INBOX_WA_METERING_ENABLED: "yes" } as NodeJS.ProcessEnv), false);
+  assert.equal(inboxWaMeteringEnabled({ INBOX_WA_METERING_ENABLED: "1" } as NodeJS.ProcessEnv), false);
+  assert.equal(inboxWaMeteringEnabled({ INBOX_WA_METERING_ENABLED: " true " } as NodeJS.ProcessEnv), true);
+  const off = previewInbox({ waMetering: false, waWindow: true, id: "00000000-0000-4000-8000-000000000001" });
+  assert.equal(off.waMeteringEnabled, false);
+  assert.equal(off.sendingEnabled, false);
+  assert.equal(off.waTimezone, "");
+  assert.deepEqual(off.waMeters, []);
+  assert.equal(off.serviceUsed, 12);
+  assert.equal(off.waWindowEnabled, true);
+  const hidden = renderToStaticMarkup(createElement(InboxWaMetering, {
+    enabled: false,
+    meters: [],
+    currentConnectionId: off.thread?.connectionId ?? null,
+  }));
+  assert.equal(hidden, "");
+  assert.equal(hidden.includes("inbox-wa-metering"), false);
+  assert.equal(hidden.includes("12 / 1000"), false);
+  assert.equal(hidden.includes("inbox-wa-message-meter"), false);
+  const inbound = renderToStaticMarkup(createElement(InboxWaMessageMeter, {
+    now: off.loadedAt,
+    message: { direction: "in", channel: "whatsapp", waCategory: "service", costCents: 0 },
+  }));
+  assert.equal(inbound, "");
+  const today = previewInbox({});
+  assert.equal(today.waMeteringEnabled, false);
+  assert.deepEqual(today.waMeters, []);
+});
+
+test("WhatsApp metering shows category, stored or estimated cost, and used / 1000", () => {
+  const now = new Date("2026-10-15T10:00:00.000Z");
+  const service = outboundWaMessageMeter(
+    { direction: "out", channel: "whatsapp", waCategory: "service", costCents: 0 },
+    now,
+  );
+  assert.equal(service?.source, "stored");
+  assert.equal(service?.label, "WhatsApp · service · free");
+  const stored = outboundWaMessageMeter(
+    { direction: "out", channel: "whatsapp", waCategory: "marketing", costCents: 66 },
+    now,
+  );
+  assert.equal(stored?.source, "stored");
+  assert.equal(stored?.cents, 66);
+  assert.equal(stored?.label, "WhatsApp · marketing · R0.66");
+  const estimated = outboundWaMessageMeter(
+    { direction: "out", channel: "whatsapp", waCategory: "utility", costCents: 0 },
+    now,
+  );
+  assert.equal(estimated?.source, "estimated");
+  assert.equal(estimated?.label, "WhatsApp · utility · est. R0.13");
+  const auth = outboundWaMessageMeter(
+    { direction: "out", channel: "whatsapp", waCategory: "authentication", costCents: 0 },
+    now,
+  );
+  assert.equal(auth?.category, "authentication");
+  assert.equal(auth?.label, "WhatsApp · authentication · est. R0.13");
+  assert.equal(outboundWaMessageMeter({ direction: "out", channel: "whatsapp", waCategory: "", costCents: 66 }, now), null);
+  assert.equal(outboundWaMessageMeter({ direction: "out", channel: "sms", waCategory: "service", costCents: 18 }, now), null);
+  assert.equal(outboundWaMessageMeter({ direction: "in", channel: "whatsapp", waCategory: "service", costCents: 0 }, now), null);
+  assert.equal(outboundWaMessageMeter({ direction: "out", channel: "whatsapp", waCategory: "marketing", costCents: Number.NaN }, now), null);
+
+  const listed = previewInbox({ waMetering: true, multiNumber: true, waWindow: true });
+  assert.equal(listed.sendingEnabled, false);
+  assert.equal(listed.waMeteringEnabled, true);
+  assert.equal(listed.waTimezone, "Africa/Johannesburg");
+  assert.equal(listed.waWindowEnabled, true);
+  const open = threadByName(listed, "Lerato Mokoena");
+  assert.equal(open.sendingEnabled, false);
+  assert.deepEqual(open.waMeters.map((meter) => [meter.label, meter.used, meter.allowance]), [
+    ["Admissions · 0101", 12, 1000],
+    ["Front desk · 0199", 0, 1000],
+  ]);
+  const panel = renderToStaticMarkup(createElement(InboxWaMetering, {
+    enabled: true,
+    meters: open.waMeters,
+    currentConnectionId: open.thread?.connectionId ?? null,
+  }));
+  assert.match(panel, /data-testid="inbox-wa-metering"/);
+  assert.match(panel, /Africa\/Johannesburg/);
+  assert.match(panel, /Admissions · 0101 · 12 \/ 1000 free service messages · 2026-09/);
+  assert.match(panel, /Front desk · 0199 · 0 \/ 1000 free service messages · 2026-09/);
+  assert.match(panel, /data-current="true"/);
+  assert.match(panel, /data-allowance="1000"/);
+  assert.match(panel, /data-testid="inbox-wa-meter-note"/);
+  assert.match(panel, /1 Oct 2026/);
+  assert.match(panel, /Nothing is sent/);
+  assert.equal(/graph\.facebook|api\.whatsapp/i.test(panel), false);
+  const outbound = open.thread?.messages.find((message) => message.direction === "out");
+  assert.ok(outbound);
+  const chip = renderToStaticMarkup(createElement(InboxWaMessageMeter, { message: outbound, now: open.loadedAt }));
+  assert.match(chip, /data-testid="inbox-wa-message-meter"/);
+  assert.match(chip, /data-category="service"/);
+  assert.match(chip, /data-source="stored"/);
+  assert.match(chip, /WhatsApp · service · free/);
+  const marketing = renderToStaticMarkup(createElement(InboxWaMessageMeter, {
+    now: now.toISOString(),
+    message: { direction: "out", channel: "whatsapp", waCategory: "marketing", costCents: 66 },
+  }));
+  assert.match(marketing, /data-source="stored"/);
+  assert.match(marketing, /WhatsApp · marketing · R0\.66/);
+  const utility = renderToStaticMarkup(createElement(InboxWaMessageMeter, {
+    now: now.toISOString(),
+    message: { direction: "out", channel: "whatsapp", waCategory: "utility", costCents: 0 },
+  }));
+  assert.match(utility, /data-source="estimated"/);
+  assert.match(utility, /WhatsApp · utility · est\. R0\.13/);
+  const blank = renderToStaticMarkup(createElement(InboxWaMessageMeter, {
+    now: now.toISOString(),
+    message: { direction: "out", channel: "whatsapp", waCategory: "", costCents: 0 },
+  }));
+  assert.equal(blank, "");
+  const october = buildServiceMeters({
+    numbers: [{ id: "line", label: "Workshop" }],
+    counts: { line: 4 },
+    timezone: "Africa/Johannesburg",
+    now,
+  });
+  const octoberHtml = renderToStaticMarkup(createElement(InboxWaMetering, {
+    enabled: true,
+    meters: october,
+    currentConnectionId: "line",
+  }));
+  assert.match(octoberHtml, /Workshop · 4 \/ 1000/);
+  assert.equal(octoberHtml.includes("inbox-wa-meter-note"), false);
+  assert.equal(freeServiceStartNote("2026-10"), "");
+  const missing = buildServiceMeters({
+    numbers: [{ id: "line", label: "Workshop" }],
+    counts: null,
+    timezone: "Africa/Johannesburg",
+    now,
+  });
+  const missingHtml = renderToStaticMarkup(createElement(InboxWaMetering, {
+    enabled: true,
+    meters: missing,
+    currentConnectionId: null,
+  }));
+  assert.match(missingHtml, /counter unavailable this month/);
+  assert.equal(missingHtml.includes("0 / 1000"), false);
+  const care = waCareState({
+    enabled: true,
+    threadChannel: "whatsapp",
+    replyChannel: "whatsapp",
+    messages: open.thread?.messages ?? [],
+    now: new Date(open.loadedAt),
+    template: null,
+  });
+  assert.equal(care.blocked, false);
+  const closed = threadByName(listed, "Amina Patel");
+  const closedCare = waCareState({
+    enabled: true,
+    threadChannel: "whatsapp",
+    replyChannel: "whatsapp",
+    messages: closed.thread?.messages ?? [],
+    now: new Date(closed.loadedAt),
+    template: null,
+  });
+  assert.equal(closedCare.blocked, true);
+  assert.equal(closed.sendingEnabled, false);
+});
+
+test("the free service counter follows the calendar month in the org timezone", () => {
+  assert.equal(meteringTimezone(""), "Africa/Johannesburg");
+  assert.equal(meteringTimezone("Not/AZone"), "Africa/Johannesburg");
+  assert.equal(meteringTimezone(" Pacific/Auckland "), "Pacific/Auckland");
+  assert.equal(zonedMonthStart(2026, 11, "Africa/Johannesburg").toISOString(), "2026-10-31T22:00:00.000Z");
+  assert.equal(monthKeyInZone(new Date("2026-10-31T22:00:00.000Z"), "Africa/Johannesburg"), "2026-11");
+  assert.equal(monthKeyInZone(new Date("2026-10-31T21:59:00.000Z"), "Africa/Johannesburg"), "2026-10");
+  const window = monthWindow(new Date("2026-11-15T12:00:00.000Z"), "Africa/Johannesburg");
+  assert.equal(window.start, "2026-10-31T22:00:00.000Z");
+  assert.equal(window.end, "2026-11-30T22:00:00.000Z");
+  const row = {
+    direction: "out",
+    channel: "whatsapp",
+    waCategory: "service",
+    status: "sent",
+    createdAt: "2026-10-31T22:00:00.000Z",
+    connectionId: "n1",
+  };
+  const november = new Date("2026-11-15T12:00:00.000Z");
+  const october = new Date("2026-10-15T12:00:00.000Z");
+  assert.equal(countServiceSendsByConnection([row], { now: november, timezone: "Africa/Johannesburg" }).n1, 1);
+  assert.equal(countServiceSendsByConnection([row], { now: october, timezone: "Africa/Johannesburg" }).n1, undefined);
+  assert.equal(countServiceSendsByConnection([row], { now: october, timezone: "Atlantic/Reykjavik" }).n1, 1);
+  assert.equal(countServiceSendsByConnection([row], { now: november, timezone: "Atlantic/Reykjavik" }).n1, undefined);
+  const ignored = countServiceSendsByConnection([
+    row,
+    { ...row, direction: "in", createdAt: november.toISOString() },
+    { ...row, waCategory: "marketing", createdAt: november.toISOString() },
+    { ...row, status: "failed", createdAt: november.toISOString() },
+    { ...row, channel: "sms", createdAt: november.toISOString() },
+    { ...row, connectionId: null, createdAt: november.toISOString() },
+    { ...row, connectionId: "n2", status: "held", createdAt: november.toISOString() },
+    { ...row, connectionId: "n2", status: "queued", createdAt: november.toISOString() },
+    { ...row, connectionId: "n2", status: "blocked_consent", createdAt: november.toISOString() },
+  ], { now: november, timezone: "Africa/Johannesburg" });
+  assert.equal(ignored.n1, 1);
+  assert.equal(ignored.n2, 2);
+});
+
+test("metering UI is flag gated and does not send or call Meta", () => {
+  const view = readFileSync(new URL("../../components/inbox/inbox-view.tsx", import.meta.url), "utf8");
+  const load = readFileSync(new URL("./load.ts", import.meta.url), "utf8");
+  assert.match(view, /enabled=\{data\.waMeteringEnabled\}/);
+  assert.match(view, /data\.waMeteringEnabled \? <InboxWaMessageMeter/);
+  assert.match(view, /message\.channel === "whatsapp" && !data\.waMeteringEnabled/);
+  assert.match(view, /const blocked = Boolean\(care\?\.blocked\)/);
+  assert.match(view, /meteringLive=\{data\.waMeteringEnabled\}/);
+  assert.equal(view.includes("waMeteringEnabled &&"), false);
+  const attach = load.indexOf("async function attachWaMeters");
+  assert.ok(attach > 0);
+  assert.match(load.slice(attach, attach + 400), /if \(!base\.waMeteringEnabled\) return/);
+  const fn = load.slice(load.indexOf("async function loadWaServiceMeters"));
+  assert.match(fn, /wa_service_sends_this_month/);
+  assert.match(fn, /organizations/);
+  assert.match(fn, /timezone/);
+  assert.match(fn, /wa_category/);
+  assert.equal(fn.includes(".insert("), false);
+  assert.equal(fn.includes(".update("), false);
+  assert.equal(fn.includes("sending_enabled"), false);
+  const files = [
+    "src/lib/inbox/wa-metering.ts",
+    "src/components/inbox/inbox-wa-metering.tsx",
+    "src/components/inbox/inbox-view.tsx",
+    "src/lib/inbox/preview.ts",
+    "src/lib/inbox/load.ts",
+  ];
+  for (const file of files) {
+    const text = readFileSync(new URL(`../../../${file}`, import.meta.url), "utf8");
+    assert.equal(/sending_enabled\s*=\s*true/i.test(text), false, file);
+    assert.equal(/graph\.facebook|api\.whatsapp/i.test(text), false, file);
+  }
 });

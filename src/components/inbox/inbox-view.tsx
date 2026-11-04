@@ -7,6 +7,7 @@ import { addInboxNote, assignInboxConversation, bulkAssignInbox, bulkMarkInboxRe
 import { AiDraftPanel } from "@/components/inbox/ai-draft-panel";
 import { InboxBulkChrome } from "@/components/inbox/inbox-bulk";
 import { InboxContactPanel } from "@/components/inbox/inbox-contact-panel";
+import { InboxInternalNotes } from "@/components/inbox/inbox-internal-notes";
 import { InboxCollisionBanner, InboxQuickFrame, InboxQuickReplies } from "@/components/inbox/inbox-quick-ux";
 import { InboxTeamStatsPanel } from "@/components/inbox/inbox-team-stats";
 import { InboxWaMessageMeter, InboxWaMetering } from "@/components/inbox/inbox-wa-metering";
@@ -106,7 +107,10 @@ export function InboxView({ data, banner, bannerTone }: { data: InboxData; banne
       if (!acceptRealtimeRow(data.orgId, row?.org_id)) return;
       router.refresh();
     };
-    for (const table of ["messages", "conversations", "conversation_notes"] as const) {
+    const watched = data.internalNotes
+      ? ["messages", "conversations", "conversation_notes"] as const
+      : ["messages", "conversations"] as const;
+    for (const table of watched) {
       channelName.on("postgres_changes", { event: "*", schema: "public", table, filter }, (payload) => {
         const next = (payload.new && Object.keys(payload.new).length ? payload.new : payload.old) as { org_id?: string };
         refresh(next);
@@ -140,7 +144,7 @@ export function InboxView({ data, banner, bannerTone }: { data: InboxData; banne
       presenceChannel.current = null;
       void supabase.removeChannel(channelName);
     };
-  }, [data.orgId, data.preview, data.quickUx, data.userId, data.members, viewerName, router]);
+  }, [data.internalNotes, data.orgId, data.preview, data.quickUx, data.userId, data.members, viewerName, router]);
 
   useEffect(() => {
     if (!data.quickUx || data.preview) return;
@@ -168,7 +172,7 @@ export function InboxView({ data, banner, bannerTone }: { data: InboxData; banne
   }, [body, data.preview, data.quickUx, data.userId, threadId, viewerName]);
 
   return (
-    <div data-testid="inbox" data-quick-ux={data.quickUx ? "on" : undefined} data-contact-panel={data.contactPanel ? "on" : undefined} className={layout.shell}>
+    <div data-testid="inbox" data-quick-ux={data.quickUx ? "on" : undefined} data-contact-panel={data.contactPanel ? "on" : undefined} data-internal-notes={data.internalNotes ? "on" : undefined} className={layout.shell}>
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="font-display text-2xl font-bold text-[#0B1F3A]">Inbox</h1>
@@ -317,12 +321,6 @@ export function InboxView({ data, banner, bannerTone }: { data: InboxData; banne
                     {data.waMeteringEnabled ? <InboxWaMessageMeter message={message} now={data.loadedAt} /> : null}
                   </article>
                 ))}
-                {thread.notes.map((note) => (
-                  <article key={note.id} className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950">
-                    <p className="text-xs font-semibold uppercase tracking-wide">Internal note · not sent</p>
-                    <p className="mt-1 whitespace-pre-wrap">{note.body}</p>
-                  </article>
-                ))}
               </div>
               <AiDraftPanel data={data} />
               <form action={sendInboxReply} className={layout.replyForm}>
@@ -387,14 +385,16 @@ export function InboxView({ data, banner, bannerTone }: { data: InboxData; banne
                 ) : null}
                 <InboxWaReplyFields blocked={blocked} body={body} onBody={setBody} />
               </form>
-              <form action={addInboxNote} className="grid gap-2">
-                <Hidden data={data} id={thread.id} />
-                <label className="grid gap-1 text-xs font-semibold text-slate-500">
-                  Internal note
-                  <textarea name="note" rows={2} placeholder="Only your team can see this." className={data.quickUx ? "w-full min-w-0 rounded-md border border-slate-200 px-3 py-2 text-sm" : "rounded-md border border-slate-200 px-3 py-2 text-sm"} />
-                </label>
-                <button className="h-9 justify-self-start rounded-md border border-slate-200 px-3 text-sm font-semibold text-[#0B1F3A]">Save note</button>
-              </form>
+              {data.internalNotes ? (
+                <InboxInternalNotes
+                  key={thread.id}
+                  enabled
+                  notes={thread.notes}
+                  data={data}
+                  threadId={thread.id}
+                  saveAction={addInboxNote}
+                />
+              ) : null}
             </div>
           ) : (
             <p className="text-sm text-slate-500">Select a conversation.</p>

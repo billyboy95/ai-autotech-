@@ -30,6 +30,7 @@ export type InboxNote = {
   id: string;
   body: string;
   createdAt: string;
+  authorUserId: string | null;
 };
 
 export type InboxConsent = {
@@ -177,6 +178,8 @@ export type InboxData = {
   bulkActions: boolean;
   /** True only when INBOX_CONTACT_PANEL_ENABLED is the string true. */
   contactPanel: boolean;
+  /** True only when INBOX_INTERNAL_NOTES_ENABLED is the string true. */
+  internalNotes: boolean;
   /** Empty unless INBOX_QUICK_UX_ENABLED is the string true. */
   quickReplies: InboxQuickReply[];
   /**

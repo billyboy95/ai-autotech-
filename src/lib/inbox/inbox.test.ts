@@ -5,6 +5,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { InboxBulkChrome } from "@/components/inbox/inbox-bulk";
 import { InboxContactPanel } from "@/components/inbox/inbox-contact-panel";
+import { InboxInternalNotes } from "@/components/inbox/inbox-internal-notes";
 import {
   bulkAssignNotice,
   bulkIdsInWorkspace,
@@ -34,6 +35,14 @@ import {
   planStageUpdate,
   sameTags,
 } from "@/lib/inbox/contact-panel";
+import {
+  formatNoteTimestamp,
+  inboxInternalNotesEnabled,
+  listInternalNotes,
+  noteAuthorLabel,
+  planInternalNoteSave,
+  saveInternalNote,
+} from "@/lib/inbox/internal-notes";
 import { previewInbox } from "@/lib/inbox/preview";
 import {
   collisionBanner,
@@ -483,6 +492,7 @@ function threadByName(data: InboxData, name: string) {
     quickUx: data.quickUx,
     bulkActions: data.bulkActions,
     contactPanel: data.contactPanel,
+    internalNotes: data.internalNotes,
     multiNumber: data.multiNumber,
     number: data.number,
     filter: data.filter,
@@ -1458,6 +1468,223 @@ test("contact panel wiring reads consent and writes only the lead and contact ro
   const files = [
     "src/lib/inbox/contact-panel.ts",
     "src/components/inbox/inbox-contact-panel.tsx",
+    "src/components/inbox/inbox-view.tsx",
+    "src/app/actions/inbox.ts",
+    "src/lib/inbox/preview.ts",
+    "src/lib/inbox/load.ts",
+  ];
+  for (const file of files) {
+    const text = readFileSync(new URL(`../../../${file}`, import.meta.url), "utf8");
+    assert.equal(/sending_enabled\s*=\s*true/i.test(text), false, file);
+    assert.equal(/graph\.facebook|api\.whatsapp/i.test(text), false, file);
+  }
+});
+
+test("internal notes stay off unless the flag is the string true", () => {
+  assert.equal(inboxInternalNotesEnabled({} as NodeJS.ProcessEnv), false);
+  assert.equal(inboxInternalNotesEnabled({ INBOX_INTERNAL_NOTES_ENABLED: "" } as NodeJS.ProcessEnv), false);
+  assert.equal(inboxInternalNotesEnabled({ INBOX_INTERNAL_NOTES_ENABLED: "false" } as NodeJS.ProcessEnv), false);
+  assert.equal(inboxInternalNotesEnabled({ INBOX_INTERNAL_NOTES_ENABLED: "yes" } as NodeJS.ProcessEnv), false);
+  assert.equal(inboxInternalNotesEnabled({ INBOX_INTERNAL_NOTES_ENABLED: "1" } as NodeJS.ProcessEnv), false);
+  assert.equal(inboxInternalNotesEnabled({ INBOX_INTERNAL_NOTES_ENABLED: " true " } as NodeJS.ProcessEnv), true);
+  const off = previewInbox({ internalNotes: false });
+  const on = previewInbox({ internalNotes: true });
+  assert.equal(off.internalNotes, false);
+  assert.equal(on.internalNotes, true);
+  assert.equal(off.sendingEnabled, false);
+  assert.equal(on.sendingEnabled, false);
+  assert.equal(off.thread?.notes.length, 0);
+  assert.equal(on.thread?.notes.length, 1);
+  assert.equal(off.thread?.messages.length, on.thread?.messages.length);
+  assert.equal(off.thread?.messages.some((message) => message.body.includes("prospectus")), false);
+  assert.equal(on.thread?.messages.some((message) => message.body.includes("prospectus")), false);
+  const noop = () => undefined;
+  const hidden = renderToStaticMarkup(createElement(InboxInternalNotes, {
+    enabled: false,
+    notes: on.thread?.notes ?? [],
+    data: on,
+    threadId: on.thread?.id ?? "",
+    saveAction: noop,
+  }));
+  assert.equal(hidden.includes("inbox-internal-notes"), false);
+  assert.equal(hidden.includes("prospectus"), false);
+  assert.equal(hidden.includes("Save note"), false);
+  const refused = planInternalNoteSave({
+    enabled: false,
+    body: "Call them tomorrow.",
+    assignedOnly: false,
+    assignedUserId: null,
+    userId: on.userId ?? "",
+  });
+  assert.equal(refused.ok, false);
+  const stored = saveInternalNote([], {
+    enabled: false,
+    id: "note-off",
+    orgId: on.orgId,
+    conversationId: on.thread?.id ?? "",
+    body: "Call them tomorrow.",
+    authorUserId: on.userId ?? "",
+    createdAt: on.loadedAt,
+    assignedOnly: false,
+    assignedUserId: null,
+  });
+  assert.equal(stored.ok, false);
+  assert.equal(stored.store.length, 0);
+  assert.deepEqual(listInternalNotes([{
+    id: "note-hidden",
+    orgId: on.orgId,
+    conversationId: on.thread?.id ?? "",
+    body: "Hidden while the flag is off.",
+    authorUserId: on.userId ?? "",
+    createdAt: on.loadedAt,
+  }], { enabled: false, orgId: on.orgId, conversationId: on.thread?.id ?? "" }), []);
+});
+
+test("internal notes can be saved and listed for one thread without a send provider", () => {
+  const on = previewInbox({ internalNotes: true });
+  const threadId = on.thread?.id ?? "";
+  const otherThread = "00000000-0000-4000-8000-000000000002";
+  assert.equal(planInternalNoteSave({
+    enabled: true,
+    body: "   ",
+    assignedOnly: false,
+    assignedUserId: null,
+    userId: on.userId ?? "",
+  }).ok, false);
+  assert.equal(planInternalNoteSave({
+    enabled: true,
+    body: "Leave a callback.",
+    assignedOnly: true,
+    assignedUserId: "00000000-0000-4000-8000-000000000099",
+    userId: on.userId ?? "",
+  }).ok, false);
+  const first = saveInternalNote([], {
+    enabled: true,
+    id: "note-1",
+    orgId: on.orgId,
+    conversationId: threadId,
+    body: "  Asked for the prospectus. Not sent to the contact.  ",
+    authorUserId: on.userId ?? "",
+    createdAt: on.loadedAt,
+    assignedOnly: false,
+    assignedUserId: on.thread?.assignedUserId ?? null,
+  });
+  assert.equal(first.ok, true);
+  if (!first.ok) return;
+  const second = saveInternalNote(first.store, {
+    enabled: true,
+    id: "note-other",
+    orgId: "00000000-0000-4000-8000-0000000000cc",
+    conversationId: threadId,
+    body: "Other workspace.",
+    authorUserId: "00000000-0000-4000-8000-0000000000dd",
+    createdAt: on.loadedAt,
+    assignedOnly: false,
+    assignedUserId: null,
+  });
+  assert.equal(second.ok, true);
+  if (!second.ok) return;
+  const third = saveInternalNote(second.store, {
+    enabled: true,
+    id: "note-sms",
+    orgId: on.orgId,
+    conversationId: otherThread,
+    body: "Different thread.",
+    authorUserId: on.userId ?? "",
+    createdAt: on.loadedAt,
+    assignedOnly: true,
+    assignedUserId: on.userId,
+  });
+  assert.equal(third.ok, true);
+  if (!third.ok) return;
+  const listed = listInternalNotes(third.store, { enabled: true, orgId: on.orgId, conversationId: threadId });
+  assert.deepEqual(listed.map((note) => note.body), ["Asked for the prospectus. Not sent to the contact."]);
+  assert.equal(listed[0]?.authorUserId, on.userId);
+  assert.equal(noteAuthorLabel(on.userId, { userId: on.userId, members: on.members }), "You");
+  assert.equal(noteAuthorLabel("00000000-0000-4000-8000-0000000000dd", { userId: on.userId, members: on.members }), "Staff · 00000000");
+  assert.equal(noteAuthorLabel(null, { userId: on.userId, members: on.members }), "Staff");
+  assert.equal(formatNoteTimestamp(on.loadedAt), "26 Sep 2026, 12:00 UTC");
+  assert.equal(formatNoteTimestamp("not-a-date"), "");
+  const html = renderToStaticMarkup(createElement(InboxInternalNotes, {
+    enabled: true,
+    notes: listed,
+    data: on,
+    threadId,
+    saveAction: () => undefined,
+  }));
+  assert.match(html, /data-testid="inbox-internal-notes"/);
+  assert.match(html, /data-testid="inbox-internal-note-list"/);
+  assert.match(html, /data-testid="inbox-internal-note-meta"/);
+  assert.match(html, /You · 26 Sep 2026, 12:00 UTC · not sent/);
+  assert.match(html, /Asked for the prospectus/);
+  assert.match(html, /data-testid="inbox-internal-note-body"/);
+  assert.match(html, /Save note/);
+  assert.match(html, /Not queued and not sent/);
+  assert.equal(html.includes("graph.facebook"), false);
+  assert.equal(html.includes("crm_outbox"), false);
+  assert.equal(html.includes(">Out<"), false);
+  const empty = renderToStaticMarkup(createElement(InboxInternalNotes, {
+    enabled: true,
+    notes: [],
+    data: on,
+    threadId,
+    saveAction: () => undefined,
+  }));
+  assert.match(empty, /No internal notes yet/);
+  assert.match(empty, /Save note/);
+  const closed = renderToStaticMarkup(createElement(InboxInternalNotes, {
+    enabled: true,
+    notes: listed,
+    data: on,
+    threadId: "",
+    saveAction: () => undefined,
+  }));
+  assert.equal(closed.includes("prospectus"), false);
+});
+
+test("internal notes wiring writes conversation_notes and does not send", () => {
+  const view = readFileSync(new URL("../../components/inbox/inbox-view.tsx", import.meta.url), "utf8");
+  const load = readFileSync(new URL("./load.ts", import.meta.url), "utf8");
+  const actions = readFileSync(new URL("../../app/actions/inbox.ts", import.meta.url), "utf8");
+  const panel = readFileSync(new URL("../../components/inbox/inbox-internal-notes.tsx", import.meta.url), "utf8");
+  assert.match(view, /data\.internalNotes \? \(/);
+  assert.match(view, /<InboxInternalNotes/);
+  assert.match(view, /key=\{thread\.id\}/);
+  assert.match(view, /saveAction=\{addInboxNote\}/);
+  assert.match(view, /data-internal-notes=\{data\.internalNotes \? "on" : undefined\}/);
+  assert.equal(view.includes("thread.notes.map"), false);
+  const listStart = view.indexOf("layout.messageList");
+  const listEnd = view.indexOf("AiDraftPanel");
+  const transcript = view.slice(listStart, listEnd);
+  assert.equal(transcript.includes("notes"), false);
+  assert.equal(transcript.includes("Internal"), false);
+  assert.match(view, /data\.internalNotes\s*\?/);
+  assert.match(load, /internalNotes: inboxInternalNotesEnabled\(\)/);
+  const threadLoad = load.slice(load.indexOf("async function loadThread"));
+  const notesQuery = threadLoad.indexOf('from("conversation_notes")');
+  assert.ok(notesQuery > threadLoad.indexOf("internalNotes"));
+  assert.match(threadLoad.slice(notesQuery, notesQuery + 240), /author_user_id/);
+  assert.match(threadLoad.slice(notesQuery, notesQuery + 240), /eq\("org_id", orgId\)/);
+  const save = actions.slice(actions.indexOf("export async function addInboxNote"), actions.indexOf("export async function assignInboxConversation"));
+  const gate = save.indexOf("if (!inboxInternalNotesEnabled())");
+  const client = save.indexOf("await createSupabaseServerClient()");
+  assert.ok(gate >= 0 && client > gate);
+  assert.match(save, /from\("conversation_notes"\)/);
+  assert.match(save, /author_user_id/);
+  assert.match(save, /eq\("org_id", tenant\.active\.id\)/);
+  assert.match(save, /assigned_only/);
+  assert.match(save, /planInternalNoteSave\(/);
+  assert.equal(save.includes("crm_outbox"), false);
+  assert.equal(save.includes("from(\"messages\")"), false);
+  assert.equal(save.includes("contact_consents"), false);
+  assert.equal(save.includes("sending_enabled"), false);
+  assert.equal(save.includes("unread_count"), false);
+  assert.equal(save.includes(".update("), false);
+  assert.equal(panel.includes("crm_outbox"), false);
+  assert.equal(panel.includes("from(\"messages\")"), false);
+  const files = [
+    "src/lib/inbox/internal-notes.ts",
+    "src/components/inbox/inbox-internal-notes.tsx",
     "src/components/inbox/inbox-view.tsx",
     "src/app/actions/inbox.ts",
     "src/lib/inbox/preview.ts",

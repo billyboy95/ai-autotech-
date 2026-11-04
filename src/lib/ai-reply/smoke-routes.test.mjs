@@ -33,6 +33,7 @@ test("inbox, conversation AI, calendars, reviews, referrals, and public pages re
       GOLIVE_CHECKLIST_ENABLED: "",
       INBOX_MULTI_NUMBER_ENABLED: "",
       INBOX_TEAM_STATS_ENABLED: "",
+      INBOX_WA_WINDOW_ENABLED: "",
       RESEND_API_KEY: "",
       SMTP_HOST: "",
       SMTP_PASS: "",
@@ -95,6 +96,10 @@ test("inbox, conversation AI, calendars, reviews, referrals, and public pages re
     assert.doesNotMatch(inboxHtml, /inbox-team-stats/);
     assert.doesNotMatch(inboxHtml, /inbox-first-response/);
     assert.doesNotMatch(inboxHtml, /inbox-sla-flags/);
+    assert.doesNotMatch(inboxHtml, /inbox-wa-window/);
+    assert.doesNotMatch(inboxHtml, /inbox-wa-template-gate/);
+    assert.doesNotMatch(inboxHtml, /Customer care window/);
+    assert.doesNotMatch(inboxHtml, /Cost metering is not live/);
 
     const settings = await fetch(`http://127.0.0.1:${port}/command-centre/ai-replies`, { redirect: "manual" });
     assert.equal(settings.status, 200);

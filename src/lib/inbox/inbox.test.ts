@@ -4,6 +4,7 @@ import test from "node:test";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { InboxTeamStatsPanel } from "@/components/inbox/inbox-team-stats";
+import { InboxWaReplyFields, InboxWaWindow } from "@/components/inbox/inbox-wa-window";
 import { previewInbox } from "@/lib/inbox/preview";
 import {
   displayPhoneFromConfig,
@@ -15,6 +16,8 @@ import {
   whatsappNumberParts,
 } from "@/lib/inbox/numbers";
 import { buildInboxTeamStats, inboxTeamStatsEnabled } from "@/lib/inbox/team-stats";
+import { customerCareWindow, inboxWaWindowEnabled, waCareState, type WaWindowMessage } from "@/lib/inbox/wa-window";
+import type { InboxData } from "@/lib/inbox/types";
 import {
   acceptRealtimeRow,
   formatInboxCost,
@@ -411,6 +414,230 @@ test("the stats message query runs only when the team stats flag is on", () => {
     assert.equal(/sending_enabled\s*=\s*true/i.test(text), false, file);
     assert.equal(/graph\.facebook|api\.whatsapp/i.test(text), false, file);
   }
+});
+
+function replyFieldsBlocked(html: string) {
+  const body = html.match(/data-testid="inbox-reply-body"[^>]*/)?.[0] ?? "";
+  const button = html.match(/data-testid="inbox-queue-reply"[^>]*/)?.[0] ?? "";
+  return /\sdisabled(?:=|"|\s|$)/.test(body) && /\sdisabled(?:=|"|\s|$)/.test(button);
+}
+
+function threadByName(data: InboxData, name: string) {
+  const listed = data.conversations.find((item) => item.contactName === name);
+  assert.ok(listed, name);
+  return previewInbox({
+    id: listed.id,
+    waWindow: data.waWindowEnabled,
+    teamStats: Boolean(data.teamStats),
+    multiNumber: data.multiNumber,
+    number: data.number,
+    filter: data.filter,
+    channel: data.channel,
+  });
+}
+
+function careMarkup(data: InboxData, template: { approved: boolean; waCategory: string } | null = null) {
+  const thread = data.thread;
+  assert.ok(thread);
+  const state = waCareState({
+    enabled: data.waWindowEnabled,
+    threadChannel: thread.channel,
+    replyChannel: thread.channel,
+    messages: thread.messages,
+    now: new Date(data.loadedAt),
+    template,
+  });
+  const fields = renderToStaticMarkup(createElement(InboxWaReplyFields, { blocked: state.blocked, body: "" }));
+  const panel = state.visible && state.care
+    ? renderToStaticMarkup(createElement(InboxWaWindow, {
+        care: state.care,
+        category: state.category,
+        blocked: state.blocked,
+        prompt: state.prompt,
+      }))
+    : "";
+  return { state, html: `${panel}${fields}` };
+}
+
+test("the WhatsApp care window stays off unless the flag is the string true", () => {
+  assert.equal(inboxWaWindowEnabled({} as NodeJS.ProcessEnv), false);
+  assert.equal(inboxWaWindowEnabled({ INBOX_WA_WINDOW_ENABLED: "" } as NodeJS.ProcessEnv), false);
+  assert.equal(inboxWaWindowEnabled({ INBOX_WA_WINDOW_ENABLED: "false" } as NodeJS.ProcessEnv), false);
+  assert.equal(inboxWaWindowEnabled({ INBOX_WA_WINDOW_ENABLED: "yes" } as NodeJS.ProcessEnv), false);
+  assert.equal(inboxWaWindowEnabled({ INBOX_WA_WINDOW_ENABLED: "1" } as NodeJS.ProcessEnv), false);
+  assert.equal(inboxWaWindowEnabled({ INBOX_WA_WINDOW_ENABLED: " true " } as NodeJS.ProcessEnv), true);
+  const off = previewInbox({ waWindow: false, id: "00000000-0000-4000-8000-000000000003" });
+  assert.equal(off.waWindowEnabled, false);
+  assert.equal(off.sendingEnabled, false);
+  assert.equal(off.thread?.contact?.name, "Amina Patel");
+  const view = careMarkup(off);
+  assert.equal(view.state.visible, false);
+  assert.equal(view.state.blocked, false);
+  assert.equal(view.html.includes("inbox-wa-window"), false);
+  assert.equal(view.html.includes("inbox-wa-template-gate"), false);
+  assert.equal(view.html.includes("Customer care window"), false);
+  assert.equal(view.html.includes("Use an approved template"), false);
+  assert.equal(replyFieldsBlocked(view.html), false);
+  assert.match(view.html, /data-testid="inbox-queue-reply"/);
+  const today = previewInbox({});
+  assert.equal(today.waWindowEnabled, false);
+  assert.equal(today.teamStats, null);
+  assert.equal(today.multiNumber, false);
+});
+
+test("an open preview WhatsApp thread shows the 24-hour countdown and keeps free-form queued", () => {
+  const listed = previewInbox({ waWindow: true, teamStats: true, multiNumber: true });
+  assert.equal(listed.sendingEnabled, false);
+  assert.equal(listed.multiNumber, true);
+  assert.ok(listed.teamStats);
+  assert.deepEqual(listed.conversations.map((item) => item.contactName), [
+    "Lerato Mokoena",
+    "Thabo Ndlovu",
+    "Amina Patel",
+    "Sipho Dlamini",
+  ]);
+  const open = threadByName(listed, "Lerato Mokoena");
+  assert.equal(open.waWindowEnabled, true);
+  assert.equal(open.sendingEnabled, false);
+  assert.equal(open.teamStats?.repliedCount, 1);
+  const view = careMarkup(open);
+  assert.equal(view.state.care?.open, true);
+  assert.equal(view.state.care?.countdown, "24h 0m");
+  assert.equal(view.state.blocked, false);
+  assert.match(view.html, /data-testid="inbox-wa-window"/);
+  assert.match(view.html, /data-window="open"/);
+  assert.match(view.html, /data-freeform="open"/);
+  assert.match(view.html, /Customer care window open\. Closes in 24h 0m/);
+  assert.match(view.html, /Nothing is sent/);
+  assert.match(view.html, /Message category: service \(placeholder\)\. Cost metering is not live yet\./);
+  assert.equal(view.html.includes("inbox-wa-template-gate"), false);
+  assert.equal(replyFieldsBlocked(view.html), false);
+  assert.equal(/R\d/.test(view.html), false);
+  assert.equal(/graph\.facebook|api\.whatsapp/i.test(view.html), false);
+});
+
+test("a closed preview WhatsApp thread blocks free-form until an approved template is chosen", () => {
+  const listed = previewInbox({ waWindow: true });
+  const closed = threadByName(listed, "Amina Patel");
+  assert.equal(closed.sendingEnabled, false);
+  const view = careMarkup(closed);
+  assert.equal(view.state.care?.open, false);
+  assert.equal(view.state.care?.inboundAt != null, true);
+  assert.equal(view.state.blocked, true);
+  assert.match(view.state.prompt, /use an approved template/i);
+  assert.match(view.html, /data-window="closed"/);
+  assert.match(view.html, /data-freeform="blocked"/);
+  assert.match(view.html, /data-testid="inbox-wa-template-gate"/);
+  assert.match(view.html, /24-hour window closed\. Use an approved template\./);
+  assert.match(view.html, /Cost metering is not live yet/);
+  assert.equal(replyFieldsBlocked(view.html), true);
+  assert.equal(/R\d/.test(view.html), false);
+
+  const approved = careMarkup(closed, { approved: true, waCategory: "utility" });
+  assert.equal(approved.state.care?.open, false);
+  assert.equal(approved.state.blocked, false);
+  assert.equal(approved.state.prompt, "");
+  assert.match(approved.html, /Message category: utility \(placeholder\)/);
+  assert.equal(approved.html.includes("inbox-wa-template-gate"), false);
+  assert.equal(replyFieldsBlocked(approved.html), false);
+
+  const draft = careMarkup(closed, { approved: false, waCategory: "marketing" });
+  assert.equal(draft.state.blocked, true);
+  assert.match(draft.state.prompt, /not approved/i);
+  assert.match(draft.html, /data-testid="inbox-wa-template-gate"/);
+});
+
+test("the care window follows the latest inbound WhatsApp message and stays closed with none", () => {
+  const now = new Date("2026-10-15T10:00:00.000Z");
+  const inbound = (createdAt: string, channel = "whatsapp"): WaWindowMessage => ({
+    direction: "in",
+    channel,
+    createdAt,
+    waCategory: "service",
+  });
+  const none = customerCareWindow([
+    { direction: "out", channel: "whatsapp", createdAt: now.toISOString(), waCategory: "service" },
+    inbound(new Date(now.getTime() - 60 * 60 * 1000).toISOString(), "sms"),
+  ], now);
+  assert.equal(none.open, false);
+  assert.equal(none.inboundAt, null);
+  assert.equal(none.expiresAt, null);
+  const empty = waCareState({
+    enabled: true,
+    threadChannel: "whatsapp",
+    replyChannel: "whatsapp",
+    messages: [],
+    now,
+    template: null,
+  });
+  assert.equal(empty.visible, true);
+  assert.equal(empty.blocked, true);
+  assert.equal(empty.care?.inboundAt, null);
+  const emptyHtml = renderToStaticMarkup(createElement(InboxWaWindow, {
+    care: empty.care!,
+    category: empty.category,
+    blocked: empty.blocked,
+    prompt: empty.prompt,
+  }));
+  assert.match(emptyHtml, /No inbound WhatsApp message yet/);
+  assert.match(emptyHtml, /Use an approved template/);
+  assert.match(emptyHtml, /data-freeform="blocked"/);
+
+  const openedAt = new Date(now.getTime() - 23 * 60 * 60 * 1000);
+  const staleAt = new Date(now.getTime() - 30 * 60 * 60 * 1000);
+  const open = customerCareWindow([
+    inbound(staleAt.toISOString()),
+    { direction: "out", channel: "whatsapp", createdAt: now.toISOString() },
+    inbound(openedAt.toISOString()),
+  ], now);
+  assert.equal(open.open, true);
+  assert.equal(open.inboundAt, openedAt.toISOString());
+  assert.equal(open.countdown, "1h 0m");
+
+  const boundary = customerCareWindow([
+    inbound(new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString()),
+  ], now);
+  assert.equal(boundary.open, false);
+  assert.equal(boundary.countdown, null);
+
+  const sms = waCareState({
+    enabled: true,
+    threadChannel: "sms",
+    replyChannel: "sms",
+    messages: [inbound(now.toISOString(), "sms")],
+    now,
+    template: null,
+  });
+  assert.equal(sms.visible, false);
+  assert.equal(sms.blocked, false);
+});
+
+test("the care window UI is wired to the flag and does not send or call Meta", () => {
+  const view = readFileSync(new URL("../../components/inbox/inbox-view.tsx", import.meta.url), "utf8");
+  const load = readFileSync(new URL("./load.ts", import.meta.url), "utf8");
+  assert.match(view, /waCareState\(\{/);
+  assert.match(view, /enabled: data\.waWindowEnabled/);
+  assert.match(view, /care\?\.visible && care\.care \? \(/);
+  assert.match(view, /<InboxWaReplyFields blocked=\{blocked\}/);
+  assert.equal(view.includes("WhatsApp window closes in"), false);
+  assert.match(load, /inboxWaWindowEnabled\(\)/);
+  assert.equal(load.includes("wa_window_messages"), false);
+  const files = [
+    "src/lib/inbox/wa-window.ts",
+    "src/components/inbox/inbox-wa-window.tsx",
+    "src/components/inbox/inbox-view.tsx",
+    "src/lib/inbox/preview.ts",
+    "src/lib/inbox/load.ts",
+  ];
+  for (const file of files) {
+    const text = readFileSync(new URL(`../../../${file}`, import.meta.url), "utf8");
+    assert.equal(/sending_enabled\s*=\s*true/i.test(text), false, file);
+    assert.equal(/graph\.facebook|api\.whatsapp/i.test(text), false, file);
+  }
+  const rules = readFileSync(new URL("./wa-window.ts", import.meta.url), "utf8");
+  assert.equal(rules.includes(".from("), false);
+  assert.match(rules, /direction !== "in"/);
+  assert.match(rules, /channel !== "whatsapp"/);
 });
 
 test("a branded eastc host keeps the preview inbox inside EASTC", () => {

@@ -138,6 +138,10 @@ export type InboxData = {
   members: InboxMemberOption[];
   /** Null unless INBOX_TEAM_STATS_ENABLED is the string true. */
   teamStats: InboxTeamStats | null;
+  /** True only when INBOX_WA_WINDOW_ENABLED is the string true. */
+  waWindowEnabled: boolean;
+  /** Server clock for the WhatsApp window. Preview uses the fixture time. */
+  loadedAt: string;
   serviceUsed: number;
   notice: string | null;
   aiEnabled: boolean;

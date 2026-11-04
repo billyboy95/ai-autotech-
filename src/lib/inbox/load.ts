@@ -3,6 +3,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { safeResolveWorkspace } from "@/lib/tenant/context";
 import { displayPhoneFromConfig, inboxMultiNumberEnabled, parseInboxNumber, resolveInboxNumber, whatsappNumberParts } from "@/lib/inbox/numbers";
 import { INBOX_TEAM_STATS_MESSAGE_CAP, buildInboxTeamStats, inboxTeamStatsEnabled, type TeamStatsMessage } from "@/lib/inbox/team-stats";
+import { inboxWaWindowEnabled } from "@/lib/inbox/wa-window";
 import { contactLookup, parseInboxChannel, parseInboxFilter } from "@/lib/inbox/rules";
 import { previewInbox } from "@/lib/inbox/preview";
 import type { InboxConsent, InboxContact, InboxData, InboxListItem, InboxMessage, InboxNote, InboxThread } from "@/lib/inbox/types";
@@ -32,6 +33,8 @@ export async function loadInbox(query: {
   const filter = parseInboxFilter(query.filter);
   const channel = parseInboxChannel(query.channel);
   const multiNumber = inboxMultiNumberEnabled();
+  const waWindowEnabled = inboxWaWindowEnabled();
+  const loadedAt = new Date().toISOString();
   const tenant = await safeResolveWorkspace(query.org);
   if (
     tenant.requiresLogin
@@ -71,6 +74,8 @@ export async function loadInbox(query: {
     connections: [],
     members: [],
     teamStats: null,
+    waWindowEnabled,
+    loadedAt,
     serviceUsed: 0,
     notice: query.notice ?? null,
     aiEnabled: false,

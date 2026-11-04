@@ -6,8 +6,10 @@ import { useRouter } from "next/navigation";
 import { addInboxNote, assignInboxConversation, markInboxRead, sendInboxReply, setInboxStatus } from "@/app/actions/inbox";
 import { AiDraftPanel } from "@/components/inbox/ai-draft-panel";
 import { InboxTeamStatsPanel } from "@/components/inbox/inbox-team-stats";
+import { InboxWaReplyFields, InboxWaWindow } from "@/components/inbox/inbox-wa-window";
 import { inboxHref } from "@/lib/inbox/numbers";
-import { formatInboxCost, inboxCost, realtimeOrgFilter, acceptRealtimeRow, serviceAllowanceLabel, whatsappComposeGate, windowCountdown, type InboxChannel } from "@/lib/inbox/rules";
+import { formatInboxCost, inboxCost, realtimeOrgFilter, acceptRealtimeRow, serviceAllowanceLabel, type InboxChannel } from "@/lib/inbox/rules";
+import { waCareState } from "@/lib/inbox/wa-window";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import type { InboxData } from "@/lib/inbox/types";
 
@@ -20,13 +22,19 @@ export function InboxView({ data, banner, bannerTone }: { data: InboxData; banne
   const [templateId, setTemplateId] = useState("");
   const [body, setBody] = useState("");
   const now = useMemo(() => new Date(), []);
+  const [windowNow, setWindowNow] = useState(() => new Date(data.loadedAt));
   const template = data.templates.find((item) => item.id === templateId) || null;
-  const gate = whatsappComposeGate({
-    channel,
-    now,
-    windowExpiresAt: channel === thread?.channel ? thread.windowExpiresAt : null,
-    template: template ? { approved: template.approved } : null,
-  });
+  const care = thread
+    ? waCareState({
+        enabled: data.waWindowEnabled,
+        threadChannel: thread.channel,
+        replyChannel: channel,
+        messages: thread.messages,
+        now: windowNow,
+        template: template ? { approved: template.approved, waCategory: template.waCategory } : null,
+      })
+    : null;
+  const blocked = Boolean(care?.blocked);
   const cost = inboxCost({
     channel,
     waCategory: template?.waCategory || (channel === "whatsapp" ? "service" : ""),
@@ -43,6 +51,14 @@ export function InboxView({ data, banner, bannerTone }: { data: InboxData; banne
     setTemplateId("");
     setBody("");
   }, [threadId, threadChannel]);
+  useEffect(() => {
+    setWindowNow(new Date(data.loadedAt));
+  }, [data.loadedAt]);
+  useEffect(() => {
+    if (!data.waWindowEnabled || data.preview) return;
+    const timer = setInterval(() => setWindowNow(new Date()), 30_000);
+    return () => clearInterval(timer);
+  }, [data.waWindowEnabled, data.preview]);
   useEffect(() => {
     if (!threadId || data.preview || threadId.startsWith("00000000")) return;
     void markInboxRead(threadId);
@@ -192,7 +208,6 @@ export function InboxView({ data, banner, bannerTone }: { data: InboxData; banne
                   {data.multiNumber && thread.channel === "whatsapp" ? (
                     <p className="mt-1 text-sm text-slate-600">{whatsappNumberLabel(data, thread.connectionId) || "No WhatsApp number on this thread"}</p>
                   ) : null}
-                  {thread.channel === "whatsapp" ? <WindowLine expiresAt={thread.windowExpiresAt} /> : null}
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <form action={setInboxStatus}>
@@ -268,11 +283,10 @@ export function InboxView({ data, banner, bannerTone }: { data: InboxData; banne
                 <p className="text-xs text-slate-500">
                   {formatInboxCost(cost)}. {serviceAllowanceLabel({ now, used: data.serviceUsed, hasNumber: channel === "whatsapp" && Boolean(connectionId) })}
                 </p>
-                {!gate.ok ? <p className="text-sm font-medium text-amber-800">{gate.message}</p> : null}
-                <textarea name="body" value={body} onChange={(event) => setBody(event.target.value)} rows={4} placeholder="Write a reply. It is queued, not sent." className="rounded-md border border-slate-200 px-3 py-2 text-sm" />
-                <button className="h-10 justify-self-start rounded-md bg-[#0B1F3A] px-4 text-sm font-semibold text-white" disabled={!gate.ok}>
-                  Queue reply
-                </button>
+                {care?.visible && care.care ? (
+                  <InboxWaWindow care={care.care} category={care.category} blocked={care.blocked} prompt={care.prompt} />
+                ) : null}
+                <InboxWaReplyFields blocked={blocked} body={body} onBody={setBody} />
               </form>
               <form action={addInboxNote} className="grid gap-2">
                 <Hidden data={data} id={thread.id} />
@@ -331,19 +345,6 @@ export function InboxView({ data, banner, bannerTone }: { data: InboxData; banne
       </div>
     </div>
   );
-}
-
-function WindowLine({ expiresAt }: { expiresAt: string | null }) {
-  const [now, setNow] = useState<Date | null>(null);
-  useEffect(() => {
-    setNow(new Date());
-    const timer = setInterval(() => setNow(new Date()), 30_000);
-    return () => clearInterval(timer);
-  }, []);
-  if (!now) return <p className="mt-1 text-sm text-slate-600">WhatsApp 24-hour window</p>;
-  const left = windowCountdown(expiresAt, now);
-  if (!left) return <p className="mt-1 text-sm font-medium text-amber-800">24-hour window closed. Use an approved template.</p>;
-  return <p className="mt-1 text-sm text-slate-600">WhatsApp window closes in {left}.</p>;
 }
 
 function Hidden({ data, id }: { data: InboxData; id: string }) {

@@ -1,6 +1,16 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 import { previewInbox } from "@/lib/inbox/preview";
+import {
+  displayPhoneFromConfig,
+  inboxHref,
+  inboxMultiNumberEnabled,
+  matchesInboxNumber,
+  parseInboxNumber,
+  resolveInboxNumber,
+  whatsappNumberParts,
+} from "@/lib/inbox/numbers";
 import {
   acceptRealtimeRow,
   formatInboxCost,
@@ -173,6 +183,89 @@ test("a suppressed reply is recorded as blocked_consent and is not sent", () => 
   assert.equal(reply.outbox.status, "blocked_consent");
   assert.notEqual(reply.message.status, "sent");
   assert.equal(reply.outbox.provider, "outbox");
+});
+
+test("the WhatsApp number filter stays off unless the flag is the string true", () => {
+  assert.equal(inboxMultiNumberEnabled({} as NodeJS.ProcessEnv), false);
+  assert.equal(inboxMultiNumberEnabled({ INBOX_MULTI_NUMBER_ENABLED: "" } as NodeJS.ProcessEnv), false);
+  assert.equal(inboxMultiNumberEnabled({ INBOX_MULTI_NUMBER_ENABLED: "false" } as NodeJS.ProcessEnv), false);
+  assert.equal(inboxMultiNumberEnabled({ INBOX_MULTI_NUMBER_ENABLED: "true" } as NodeJS.ProcessEnv), true);
+  const today = previewInbox({ multiNumber: false, number: "preview-wa-desk" });
+  assert.equal(today.multiNumber, false);
+  assert.equal(today.number, "");
+  assert.deepEqual(today.whatsappNumbers, []);
+  assert.equal(today.sendingEnabled, false);
+  assert.deepEqual(today.conversations.map((item) => item.contactName), [
+    "Lerato Mokoena",
+    "Thabo Ndlovu",
+    "Amina Patel",
+  ]);
+  assert.equal(inboxHref({ multiNumber: false, number: "preview-wa-desk" }), "/command-centre/inbox");
+});
+
+test("a selected WhatsApp number filters the preview inbox and all numbers shows every thread", () => {
+  const all = previewInbox({ multiNumber: true });
+  assert.equal(all.multiNumber, true);
+  assert.equal(all.number, "");
+  assert.equal(all.sendingEnabled, false);
+  assert.deepEqual(all.whatsappNumbers.map((item) => item.label), ["Admissions · 0101", "Front desk · 0199"]);
+  assert.deepEqual(all.conversations.map((item) => item.contactName), [
+    "Lerato Mokoena",
+    "Thabo Ndlovu",
+    "Amina Patel",
+    "Sipho Dlamini",
+  ]);
+  const desk = previewInbox({ multiNumber: true, number: "preview-wa-desk" });
+  assert.equal(desk.number, "preview-wa-desk");
+  assert.deepEqual(desk.conversations.map((item) => item.contactName), ["Sipho Dlamini"]);
+  assert.equal(desk.thread?.contact?.name, "Sipho Dlamini");
+  assert.equal(desk.conversations[0]?.connectionId, "preview-wa-desk");
+  const admissions = previewInbox({ multiNumber: true, number: "preview-wa" });
+  assert.deepEqual(admissions.conversations.map((item) => item.contactName), ["Lerato Mokoena", "Amina Patel"]);
+  const unknown = previewInbox({ multiNumber: true, number: "other-org-number" });
+  assert.equal(unknown.number, "");
+  assert.equal(unknown.conversations.length, all.conversations.length);
+  assert.equal(inboxHref({ multiNumber: true, number: "preview-wa", channel: "whatsapp" }), "/command-centre/inbox?channel=whatsapp&number=preview-wa");
+  assert.equal(inboxHref({ multiNumber: true, number: "", filter: "mine" }), "/command-centre/inbox?filter=mine");
+});
+
+test("number labels use the display name and the last four digits", () => {
+  assert.deepEqual(whatsappNumberParts({ displayName: "Sales", identifier: "109876543210", displayPhone: "" }), {
+    displayName: "Sales",
+    last4: "3210",
+    label: "Sales · 3210",
+  });
+  assert.equal(
+    whatsappNumberParts({ displayName: "Front desk", identifier: "109876543210", displayPhone: "+27 82 555 0199" }).label,
+    "Front desk · 0199",
+  );
+  assert.equal(whatsappNumberParts({ displayName: "", identifier: "109876543210" }).label, "WhatsApp · 3210");
+  assert.equal(whatsappNumberParts({ displayName: "Placeholder", identifier: "placeholder" }).label, "Placeholder");
+  assert.equal(displayPhoneFromConfig({ displayPhone: " +27115550101 " }), "+27115550101");
+  assert.equal(displayPhoneFromConfig("{\"display_phone\":\"0825550101\"}"), "0825550101");
+  assert.equal(parseInboxNumber("all"), "");
+  assert.equal(parseInboxNumber("preview-wa"), "preview-wa");
+  assert.equal(parseInboxNumber("bad id"), "");
+  assert.equal(resolveInboxNumber("preview-wa", ["preview-wa"]), "preview-wa");
+  assert.equal(resolveInboxNumber("other-org", ["preview-wa"]), "");
+  assert.equal(matchesInboxNumber({ enabled: false, numberId: "preview-wa", channel: "whatsapp", connectionId: "other" }), true);
+  assert.equal(matchesInboxNumber({ enabled: true, numberId: "preview-wa", channel: "sms", connectionId: "preview-wa" }), false);
+  assert.equal(matchesInboxNumber({ enabled: true, numberId: "preview-wa", channel: "whatsapp", connectionId: "preview-wa" }), true);
+});
+
+test("the multi-number filter does not turn sending on or call Meta", () => {
+  const files = [
+    "src/lib/inbox/numbers.ts",
+    "src/lib/inbox/load.ts",
+    "src/lib/inbox/preview.ts",
+    "src/components/inbox/inbox-view.tsx",
+    "src/app/actions/inbox.ts",
+  ];
+  for (const file of files) {
+    const text = readFileSync(new URL(`../../../${file}`, import.meta.url), "utf8");
+    assert.equal(/sending_enabled\s*=\s*true/i.test(text), false, file);
+    assert.equal(/graph\.facebook|api\.whatsapp/i.test(text), false, file);
+  }
 });
 
 test("a branded eastc host keeps the preview inbox inside EASTC", () => {

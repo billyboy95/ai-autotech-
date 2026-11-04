@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { addInboxNote, assignInboxConversation, markInboxRead, sendInboxReply, setInboxStatus } from "@/app/actions/inbox";
 import { AiDraftPanel } from "@/components/inbox/ai-draft-panel";
+import { inboxHref } from "@/lib/inbox/numbers";
 import { formatInboxCost, inboxCost, realtimeOrgFilter, acceptRealtimeRow, serviceAllowanceLabel, whatsappComposeGate, windowCountdown, type InboxChannel } from "@/lib/inbox/rules";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import type { InboxData } from "@/lib/inbox/types";
@@ -95,25 +96,64 @@ export function InboxView({ data, banner, bannerTone }: { data: InboxData; banne
         {(["open", "mine", "unassigned"] as const).map((filter) => (
           <Link
             key={filter}
-            href={href({ ...data, filter, channel: data.channel, id: thread?.id })}
+            href={inboxHref({ ...data, filter, id: thread?.id })}
             className={`inline-flex h-9 items-center rounded-full px-3 text-sm font-semibold ${data.filter === filter ? "bg-[#0B1F3A] text-white" : "bg-white text-slate-700 ring-1 ring-slate-200"}`}
           >
             {filter === "open" ? "Open" : filter === "mine" ? "Mine" : "Unassigned"}
           </Link>
         ))}
-        <Link href={href({ ...data, channel: "", id: thread?.id })} className={`inline-flex h-9 items-center rounded-full px-3 text-sm font-semibold ${data.channel === "" ? "bg-[#2563EB] text-white" : "bg-white text-slate-700 ring-1 ring-slate-200"}`}>
+        <Link href={inboxHref({ ...data, channel: "", id: thread?.id })} className={`inline-flex h-9 items-center rounded-full px-3 text-sm font-semibold ${data.channel === "" ? "bg-[#2563EB] text-white" : "bg-white text-slate-700 ring-1 ring-slate-200"}`}>
           All channels
         </Link>
         {CHANNELS.map((item) => (
           <Link
             key={item}
-            href={href({ ...data, channel: item, id: thread?.id })}
+            href={inboxHref({ ...data, channel: item, number: item === "whatsapp" ? data.number : "", id: thread?.id })}
             className={`inline-flex h-9 items-center rounded-full px-3 text-sm font-semibold capitalize ${data.channel === item ? "bg-[#2563EB] text-white" : "bg-white text-slate-700 ring-1 ring-slate-200"}`}
           >
             {item}
           </Link>
         ))}
       </div>
+      {data.multiNumber ? (
+        <form action="/command-centre/inbox" method="get" data-testid="inbox-number-filter" className="flex flex-wrap items-end gap-2">
+          {data.orgSlug && data.orgSlug !== "preview" ? <input type="hidden" name="org" value={data.orgSlug} /> : null}
+          {data.filter !== "open" ? <input type="hidden" name="filter" value={data.filter} /> : null}
+          {data.channel === "whatsapp" ? <input type="hidden" name="channel" value="whatsapp" /> : null}
+          {thread?.id ? <input type="hidden" name="id" value={thread.id} /> : null}
+          <label className="grid gap-1 text-xs font-semibold text-slate-500">
+            WhatsApp number
+            <select
+              name="number"
+              aria-label="WhatsApp number"
+              value={data.number}
+              onChange={(event) => {
+                const next = event.target.value;
+                router.push(inboxHref({
+                  ...data,
+                  number: next,
+                  channel: next && data.channel && data.channel !== "whatsapp" ? "" : data.channel,
+                  id: thread?.id,
+                }));
+              }}
+              className="h-9 rounded-full border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-800"
+            >
+              <option value="">All numbers</option>
+              {data.whatsappNumbers.map((item) => (
+                <option key={item.id} value={item.id}>{item.label}</option>
+              ))}
+            </select>
+          </label>
+          <button type="submit" className="h-9 rounded-full bg-white px-3 text-sm font-semibold text-slate-700 ring-1 ring-slate-200">
+            Show
+          </button>
+          {data.whatsappNumbers.length === 0 ? (
+            <p className="text-sm text-slate-500">No WhatsApp numbers are connected for this workspace.</p>
+          ) : (
+            <p className="text-sm text-slate-500">Filter only. Replies stay queued and nothing is sent.</p>
+          )}
+        </form>
+      ) : null}
       <div className="grid items-start gap-4 lg:grid-cols-[280px_minmax(0,1fr)_280px]">
         <section className="grid gap-2">
           {data.conversations.length === 0 ? (
@@ -122,7 +162,7 @@ export function InboxView({ data, banner, bannerTone }: { data: InboxData; banne
           {data.conversations.map((item) => (
             <Link
               key={item.id}
-              href={href({ ...data, id: item.id })}
+              href={inboxHref({ ...data, id: item.id })}
               className={`rounded-xl border bg-white p-3 shadow-sm ${thread?.id === item.id ? "border-[#2563EB]" : "border-slate-200"}`}
             >
               <span className="flex items-center justify-between gap-2">
@@ -130,6 +170,9 @@ export function InboxView({ data, banner, bannerTone }: { data: InboxData; banne
                 {item.unread > 0 ? <span className="rounded-full bg-[#2563EB] px-2 py-0.5 text-xs font-semibold text-white">{item.unread}</span> : null}
               </span>
               <span className="mt-1 block text-xs uppercase tracking-wide text-slate-500">{item.channel} · {item.status}</span>
+              {data.multiNumber && item.channel === "whatsapp" ? (
+                <span className="mt-1 block text-xs text-slate-500">{whatsappNumberLabel(data, item.connectionId) || "No number"}</span>
+              ) : null}
               <span className="mt-1 block truncate text-sm text-slate-600">{item.preview || "Open the thread"}</span>
             </Link>
           ))}
@@ -141,6 +184,9 @@ export function InboxView({ data, banner, bannerTone }: { data: InboxData; banne
                 <div>
                   <h2 className="font-semibold text-[#0B1F3A]">{thread.contact?.name || "Conversation"}</h2>
                   <p className="text-xs uppercase tracking-wide text-slate-500">{thread.channel} · {thread.status}</p>
+                  {data.multiNumber && thread.channel === "whatsapp" ? (
+                    <p className="mt-1 text-sm text-slate-600">{whatsappNumberLabel(data, thread.connectionId) || "No WhatsApp number on this thread"}</p>
+                  ) : null}
                   {thread.channel === "whatsapp" ? <WindowLine expiresAt={thread.windowExpiresAt} /> : null}
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -301,17 +347,13 @@ function Hidden({ data, id }: { data: InboxData; id: string }) {
       <input type="hidden" name="org" value={data.orgSlug === "preview" ? "" : data.orgSlug} />
       <input type="hidden" name="filter" value={data.filter} />
       <input type="hidden" name="channel" value={data.channel} />
+      {data.multiNumber && data.number ? <input type="hidden" name="number" value={data.number} /> : null}
       <input type="hidden" name="id" value={id} />
     </>
   );
 }
 
-function href(input: { orgSlug: string; filter: string; channel: string; id?: string }) {
-  const params = new URLSearchParams();
-  if (input.orgSlug && input.orgSlug !== "preview") params.set("org", input.orgSlug);
-  if (input.filter && input.filter !== "open") params.set("filter", input.filter);
-  if (input.channel) params.set("channel", input.channel);
-  if (input.id) params.set("id", input.id);
-  const qs = params.toString();
-  return qs ? `/command-centre/inbox?${qs}` : "/command-centre/inbox";
+function whatsappNumberLabel(data: InboxData, connectionId: string | null) {
+  if (!connectionId) return "";
+  return data.whatsappNumbers.find((item) => item.id === connectionId)?.label ?? "";
 }

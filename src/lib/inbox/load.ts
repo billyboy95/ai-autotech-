@@ -1,6 +1,7 @@
 import { missingAiTable, parseAiDraft, parseAiReplySettings } from "@/lib/ai-reply/types";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { safeResolveWorkspace } from "@/lib/tenant/context";
+import { displayPhoneFromConfig, inboxMultiNumberEnabled, parseInboxNumber, resolveInboxNumber, whatsappNumberParts } from "@/lib/inbox/numbers";
 import { contactLookup, parseInboxChannel, parseInboxFilter } from "@/lib/inbox/rules";
 import { previewInbox } from "@/lib/inbox/preview";
 import type { InboxConsent, InboxContact, InboxData, InboxListItem, InboxMessage, InboxNote, InboxThread } from "@/lib/inbox/types";
@@ -24,10 +25,12 @@ export async function loadInbox(query: {
   filter?: string;
   channel?: string;
   id?: string;
+  number?: string;
   notice?: string | null;
 }): Promise<InboxData> {
   const filter = parseInboxFilter(query.filter);
   const channel = parseInboxChannel(query.channel);
+  const multiNumber = inboxMultiNumberEnabled();
   const tenant = await safeResolveWorkspace(query.org);
   if (
     tenant.requiresLogin
@@ -58,6 +61,9 @@ export async function loadInbox(query: {
     sendingEnabled: tenant.active.sendingEnabled,
     filter,
     channel,
+    multiNumber,
+    number: "",
+    whatsappNumbers: [],
     conversations: [],
     thread: null,
     templates: [],
@@ -81,6 +87,35 @@ export async function loadInbox(query: {
     if (!membership.error && membership.data) base.assignedOnly = Boolean(membership.data.assigned_only);
   }
 
+  const connections = await supabase
+    .from("channel_connections")
+    .select("id, channel, display_name, identifier, public_config")
+    .eq("org_id", tenant.active.id);
+  if (!connections.error) {
+    base.connections = (connections.data ?? []).map((row) => ({
+      id: String(row.id),
+      channel: String(row.channel),
+      label: String(row.display_name || row.identifier || row.channel),
+    }));
+    if (multiNumber) {
+      base.whatsappNumbers = (connections.data ?? [])
+        .filter((row) => String(row.channel) === "whatsapp")
+        .map((row) => ({
+          id: String(row.id),
+          ...whatsappNumberParts({
+            displayName: String(row.display_name || ""),
+            identifier: String(row.identifier || ""),
+            displayPhone: displayPhoneFromConfig(row.public_config),
+          }),
+        }))
+        .sort((a, b) => a.label.localeCompare(b.label));
+      base.number = resolveInboxNumber(
+        parseInboxNumber(query.number),
+        base.whatsappNumbers.map((item) => item.id),
+      );
+    }
+  }
+
   let listed = supabase
     .from("conversations")
     .select("id, channel, status, assigned_user_id, unread_count, last_message_at, wa_window_expires_at, contact_id, channel_connection_id, crm_contacts(first_name, last_name)")
@@ -91,6 +126,7 @@ export async function loadInbox(query: {
   if (filter === "mine" && userId) listed = listed.eq("assigned_user_id", userId);
   if (filter === "unassigned") listed = listed.is("assigned_user_id", null);
   if (channel) listed = listed.eq("channel", channel);
+  if (base.number) listed = listed.eq("channel", "whatsapp").eq("channel_connection_id", base.number);
   const conversations = await listed;
   if (conversations.error) {
     if (missingInboxTable(conversations.error.message)) {
@@ -107,6 +143,7 @@ export async function loadInbox(query: {
       channel: String(row.channel),
       status: String(row.status),
       assignedUserId: row.assigned_user_id ? String(row.assigned_user_id) : null,
+      connectionId: row.channel_connection_id ? String(row.channel_connection_id) : null,
       unread: Number(row.unread_count || 0),
       lastMessageAt: row.last_message_at ? String(row.last_message_at) : null,
       windowExpiresAt: row.wa_window_expires_at ? String(row.wa_window_expires_at) : null,
@@ -118,9 +155,8 @@ export async function loadInbox(query: {
   const selected = query.id && base.conversations.some((item) => item.id === query.id) ? query.id : base.conversations[0]?.id;
   if (selected) base.thread = await loadThread(supabase, tenant.active.id, selected);
 
-  const [templates, connections, members] = await Promise.all([
+  const [templates, members] = await Promise.all([
     supabase.from("message_templates").select("id, name, channel, subject, body, wa_category, wa_status, active").eq("org_id", tenant.active.id).eq("active", true),
-    supabase.from("channel_connections").select("id, channel, display_name, identifier").eq("org_id", tenant.active.id),
     supabase.from("memberships").select("user_id, role").eq("org_id", tenant.active.id),
   ]);
   if (!templates.error) {
@@ -132,13 +168,6 @@ export async function loadInbox(query: {
       body: String(row.body || ""),
       waCategory: String(row.wa_category || ""),
       approved: String(row.wa_status || "") === "approved" || String(row.channel) !== "whatsapp",
-    }));
-  }
-  if (!connections.error) {
-    base.connections = (connections.data ?? []).map((row) => ({
-      id: String(row.id),
-      channel: String(row.channel),
-      label: String(row.display_name || row.identifier || row.channel),
     }));
   }
   if (!members.error) {

@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { workspaceWriteBlock } from "@/lib/billing/guard";
 import { usageForSend } from "@/lib/compliance/usage";
 import type { ConsentStatus } from "@/lib/compliance/send-gate";
+import { inboxMultiNumberEnabled, parseInboxNumber } from "@/lib/inbox/numbers";
 import { contactLookup, outboxRow, parseInboxChannel, planInboxReply, type InboxTemplateChoice, type WaCategory } from "@/lib/inbox/rules";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -17,6 +18,10 @@ function back(formData: FormData, extra?: Record<string, string>): never {
   for (const key of ["org", "filter", "channel"]) {
     const value = text(formData, key);
     if (value) params.set(key, value);
+  }
+  if (inboxMultiNumberEnabled()) {
+    const number = parseInboxNumber(text(formData, "number"));
+    if (number) params.set("number", number);
   }
   const id = extra?.id || text(formData, "id");
   if (id) params.set("id", id);

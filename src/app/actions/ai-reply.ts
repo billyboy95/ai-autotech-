@@ -10,6 +10,7 @@ import { canManageAiReplies, missingAiTable, parseAiReplySettings, AI_REPLY_CHAN
 import { workspaceWriteBlock } from "@/lib/billing/guard";
 import { isStopCommand } from "@/lib/compliance/stop";
 import { usageForSend } from "@/lib/compliance/usage";
+import { inboxMultiNumberEnabled, parseInboxNumber } from "@/lib/inbox/numbers";
 import { contactLookup, outboxRow } from "@/lib/inbox/rules";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { safeResolveWorkspace } from "@/lib/tenant/context";
@@ -25,6 +26,10 @@ function back(formData: FormData, extra?: Record<string, string>): never {
   for (const key of ["org", "filter", "channel"]) {
     const value = text(formData, key);
     if (value) params.set(key, value);
+  }
+  if (inboxMultiNumberEnabled()) {
+    const number = parseInboxNumber(text(formData, "number"));
+    if (number) params.set("number", number);
   }
   const id = extra?.id || text(formData, "id");
   if (id) params.set("id", id);

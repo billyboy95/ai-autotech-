@@ -1,11 +1,20 @@
+import { inboxMultiNumberEnabled, matchesInboxNumber, parseInboxNumber, resolveInboxNumber, whatsappNumberParts } from "@/lib/inbox/numbers";
 import { matchesInboxList, parseInboxChannel, parseInboxFilter, windowExpiry } from "@/lib/inbox/rules";
-import type { InboxData, InboxThread } from "@/lib/inbox/types";
+import type { InboxData, InboxThread, InboxWhatsappNumber } from "@/lib/inbox/types";
 
 const PREVIEW_ORG = "00000000-0000-4000-8000-0000000000aa";
 const PREVIEW_USER = "00000000-0000-4000-8000-0000000000bb";
 const OPEN_WA = "00000000-0000-4000-8000-000000000001";
 const OPEN_SMS = "00000000-0000-4000-8000-000000000002";
 const EXPIRED_WA = "00000000-0000-4000-8000-000000000003";
+const DESK_WA = "00000000-0000-4000-8000-000000000004";
+const PREVIEW_WA = "preview-wa";
+const PREVIEW_WA_DESK = "preview-wa-desk";
+
+const previewNumbers: InboxWhatsappNumber[] = [
+  { id: PREVIEW_WA, displayName: "Admissions", identifier: "10000000000101", displayPhone: "+27115550101" },
+  { id: PREVIEW_WA_DESK, displayName: "Front desk", identifier: "10000000000199", displayPhone: "+27825550199" },
+].map((row) => ({ id: row.id, ...whatsappNumberParts(row) }));
 
 const now = new Date("2026-09-26T12:00:00.000Z");
 
@@ -15,7 +24,7 @@ const threads: Record<string, InboxThread> = {
     channel: "whatsapp",
     status: "open",
     assignedUserId: PREVIEW_USER,
-    connectionId: "preview-wa",
+    connectionId: PREVIEW_WA,
     windowExpiresAt: windowExpiry(now),
     contact: {
       id: "preview-contact",
@@ -98,7 +107,7 @@ const threads: Record<string, InboxThread> = {
     channel: "whatsapp",
     status: "open",
     assignedUserId: null,
-    connectionId: "preview-wa",
+    connectionId: PREVIEW_WA,
     windowExpiresAt: new Date(now.getTime() - 60 * 60 * 1000).toISOString(),
     contact: {
       id: "preview-expired",
@@ -127,21 +136,65 @@ const threads: Record<string, InboxThread> = {
     notes: [],
     consents: [],
   },
+  [DESK_WA]: {
+    id: DESK_WA,
+    channel: "whatsapp",
+    status: "open",
+    assignedUserId: null,
+    connectionId: PREVIEW_WA_DESK,
+    windowExpiresAt: windowExpiry(now),
+    contact: {
+      id: "preview-desk",
+      name: "Sipho Dlamini",
+      email: "",
+      phone: "+27825550199",
+      whatsapp: "+27825550199",
+      company: "Dlamini Panel",
+      tags: ["workshop"],
+      stage: "Booked",
+      leadId: null,
+    },
+    messages: [
+      {
+        id: "preview-desk-in",
+        direction: "in",
+        body: "The bakkie is ready for collection.",
+        status: "received",
+        channel: "whatsapp",
+        waCategory: "service",
+        costCents: 0,
+        providerMessageId: "wamid.desk",
+        createdAt: now.toISOString(),
+      },
+    ],
+    notes: [],
+    consents: [{ channel: "whatsapp", purpose: "service", status: "opted_in" }],
+  },
 };
 
 export function previewInbox(query: {
   filter?: string;
   channel?: string;
   id?: string;
+  number?: string;
+  multiNumber?: boolean;
   notice?: string | null;
   brandSlug?: string | null;
 }): InboxData {
   const filter = parseInboxFilter(query.filter);
   const channel = parseInboxChannel(query.channel);
+  const multiNumber = query.multiNumber ?? inboxMultiNumberEnabled();
+  const whatsappNumbers = multiNumber ? previewNumbers : [];
+  const number = multiNumber
+    ? resolveInboxNumber(parseInboxNumber(query.number), whatsappNumbers.map((item) => item.id))
+    : "";
   const list = [
-    { id: OPEN_WA, channel: "whatsapp", status: "open", assignedUserId: PREVIEW_USER, unread: 1, preview: "Can I still apply for the October intake?", name: "Lerato Mokoena", window: threads[OPEN_WA].windowExpiresAt },
-    { id: OPEN_SMS, channel: "sms", status: "open", assignedUserId: null, unread: 0, preview: "Please call the practice.", name: "Thabo Ndlovu", window: null },
-    { id: EXPIRED_WA, channel: "whatsapp", status: "open", assignedUserId: null, unread: 2, preview: "Thanks, I will think about it.", name: "Amina Patel", window: threads[EXPIRED_WA].windowExpiresAt },
+    { id: OPEN_WA, connectionId: PREVIEW_WA, channel: "whatsapp", status: "open", assignedUserId: PREVIEW_USER, unread: 1, preview: "Can I still apply for the October intake?", name: "Lerato Mokoena", window: threads[OPEN_WA].windowExpiresAt },
+    { id: OPEN_SMS, connectionId: null, channel: "sms", status: "open", assignedUserId: null, unread: 0, preview: "Please call the practice.", name: "Thabo Ndlovu", window: null },
+    { id: EXPIRED_WA, connectionId: PREVIEW_WA, channel: "whatsapp", status: "open", assignedUserId: null, unread: 2, preview: "Thanks, I will think about it.", name: "Amina Patel", window: threads[EXPIRED_WA].windowExpiresAt },
+    ...(multiNumber
+      ? [{ id: DESK_WA, connectionId: PREVIEW_WA_DESK, channel: "whatsapp", status: "open", assignedUserId: null, unread: 1, preview: "The bakkie is ready for collection.", name: "Sipho Dlamini", window: threads[DESK_WA].windowExpiresAt }]
+      : []),
   ].filter((item) => {
     if (!query.brandSlug || query.brandSlug === "ai-autotech") return true;
     const company = threads[item.id]?.contact?.company ?? "";
@@ -154,6 +207,11 @@ export function previewInbox(query: {
     filter,
     channelFilter: channel,
     userId: PREVIEW_USER,
+  })).filter((item) => matchesInboxNumber({
+    enabled: multiNumber,
+    numberId: number,
+    channel: item.channel,
+    connectionId: item.connectionId,
   }));
   const selected = query.id && list.some((item) => item.id === query.id) ? query.id : list[0]?.id;
   return {
@@ -165,11 +223,15 @@ export function previewInbox(query: {
     sendingEnabled: false,
     filter,
     channel,
+    multiNumber,
+    number,
+    whatsappNumbers,
     conversations: list.map((item) => ({
       id: item.id,
       channel: item.channel,
       status: item.status,
       assignedUserId: item.assignedUserId,
+      connectionId: item.connectionId,
       unread: item.unread,
       lastMessageAt: now.toISOString(),
       windowExpiresAt: item.window,
@@ -197,7 +259,7 @@ export function previewInbox(query: {
         approved: false,
       },
     ],
-    connections: [{ id: "preview-wa", channel: "whatsapp", label: "Preview WhatsApp · 1000 free from 1 Oct 2026" }],
+    connections: [{ id: PREVIEW_WA, channel: "whatsapp", label: "Preview WhatsApp · 1000 free from 1 Oct 2026" }],
     members: [{ userId: PREVIEW_USER, role: "client_admin" }],
     serviceUsed: 12,
     notice: query.notice ?? "Preview inbox. Connect Supabase to load this workspace. Nothing here is delivered.",

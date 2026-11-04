@@ -3,9 +3,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { addInboxNote, assignInboxConversation, bulkAssignInbox, bulkMarkInboxRead, bulkSetInboxStatus, markInboxRead, sendInboxReply, setInboxStatus } from "@/app/actions/inbox";
+import { addInboxNote, assignInboxConversation, bulkAssignInbox, bulkMarkInboxRead, bulkSetInboxStatus, markInboxRead, saveInboxContactPanel, sendInboxReply, setInboxStatus } from "@/app/actions/inbox";
 import { AiDraftPanel } from "@/components/inbox/ai-draft-panel";
 import { InboxBulkChrome } from "@/components/inbox/inbox-bulk";
+import { InboxContactPanel } from "@/components/inbox/inbox-contact-panel";
 import { InboxCollisionBanner, InboxQuickFrame, InboxQuickReplies } from "@/components/inbox/inbox-quick-ux";
 import { InboxTeamStatsPanel } from "@/components/inbox/inbox-team-stats";
 import { InboxWaMessageMeter, InboxWaMetering } from "@/components/inbox/inbox-wa-metering";
@@ -167,7 +168,7 @@ export function InboxView({ data, banner, bannerTone }: { data: InboxData; banne
   }, [body, data.preview, data.quickUx, data.userId, threadId, viewerName]);
 
   return (
-    <div data-testid="inbox" data-quick-ux={data.quickUx ? "on" : undefined} className={layout.shell}>
+    <div data-testid="inbox" data-quick-ux={data.quickUx ? "on" : undefined} data-contact-panel={data.contactPanel ? "on" : undefined} className={layout.shell}>
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="font-display text-2xl font-bold text-[#0B1F3A]">Inbox</h1>
@@ -399,6 +400,16 @@ export function InboxView({ data, banner, bannerTone }: { data: InboxData; banne
             <p className="text-sm text-slate-500">Select a conversation.</p>
           )}
         </section>
+        {data.contactPanel ? (
+          <InboxContactPanel
+            enabled
+            className={layout.aside}
+            data={data}
+            thread={thread ?? null}
+            saveAction={saveInboxContactPanel}
+            assignAction={assignInboxConversation}
+          />
+        ) : (
         <aside className={layout.aside}>
           <h2 className="font-semibold text-[#0B1F3A]">Contact</h2>
           {thread?.contact ? (
@@ -440,6 +451,7 @@ export function InboxView({ data, banner, bannerTone }: { data: InboxData; banne
             <p className="mt-3 text-sm text-slate-500">No contact on this thread.</p>
           )}
         </aside>
+        )}
       </InboxQuickFrame>
     </div>
   );

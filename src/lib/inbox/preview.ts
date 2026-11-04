@@ -1,4 +1,5 @@
 import { inboxBulkActionsEnabled } from "@/lib/inbox/bulk";
+import { inboxContactPanelEnabled } from "@/lib/inbox/contact-panel";
 import { inboxMultiNumberEnabled, matchesInboxNumber, parseInboxNumber, resolveInboxNumber, whatsappNumberParts } from "@/lib/inbox/numbers";
 import { matchesInboxList, parseInboxChannel, parseInboxFilter, windowExpiry } from "@/lib/inbox/rules";
 import { buildInboxTeamStats, inboxTeamStatsEnabled, type TeamStatsMessage } from "@/lib/inbox/team-stats";
@@ -129,8 +130,9 @@ const threads: Record<string, InboxThread> = {
       whatsapp: "+27825550222",
       company: "",
       tags: [],
+      leadTags: ["follow-up"],
       stage: "Contacted",
-      leadId: null,
+      leadId: "preview-lead-amina",
     },
     messages: [
       {
@@ -198,6 +200,8 @@ export function previewInbox(query: {
   quickUx?: boolean;
   /** Explicit override. Omit to follow INBOX_BULK_ACTIONS_ENABLED. */
   bulkActions?: boolean;
+  /** Explicit override. Omit to follow INBOX_CONTACT_PANEL_ENABLED. */
+  contactPanel?: boolean;
   /** Explicit override. Omit to follow INBOX_WA_METERING_ENABLED. */
   waMetering?: boolean;
   notice?: string | null;
@@ -210,6 +214,7 @@ export function previewInbox(query: {
   const waWindowEnabled = query.waWindow ?? inboxWaWindowEnabled();
   const quickUx = query.quickUx ?? inboxQuickUxEnabled();
   const bulkActions = query.bulkActions ?? inboxBulkActionsEnabled();
+  const contactPanel = query.contactPanel ?? inboxContactPanelEnabled();
   const waMeteringEnabled = query.waMetering ?? inboxWaMeteringEnabled();
   const whatsappNumbers = multiNumber ? previewNumbers : [];
   const number = multiNumber
@@ -296,6 +301,7 @@ export function previewInbox(query: {
     }),
     quickUx,
     bulkActions,
+    contactPanel,
     quickReplies: quickUx ? quickRepliesForWorkspace(null) : [],
     presence: quickUx ? previewInboxPresence(OPEN_WA, EXPIRED_WA) : [],
     loadedAt: now.toISOString(),

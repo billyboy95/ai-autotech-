@@ -4,6 +4,7 @@ import test from "node:test";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { InboxBulkChrome } from "@/components/inbox/inbox-bulk";
+import { InboxContactPanel } from "@/components/inbox/inbox-contact-panel";
 import {
   bulkAssignNotice,
   bulkIdsInWorkspace,
@@ -25,6 +26,14 @@ import { InboxCollisionBanner, InboxQuickFrame, InboxQuickReplies } from "@/comp
 import { InboxTeamStatsPanel } from "@/components/inbox/inbox-team-stats";
 import { InboxWaMessageMeter, InboxWaMetering } from "@/components/inbox/inbox-wa-metering";
 import { InboxWaReplyFields, InboxWaWindow } from "@/components/inbox/inbox-wa-window";
+import {
+  buildContactPanel,
+  consentStatusLabel,
+  inboxContactPanelEnabled,
+  parseContactTags,
+  planStageUpdate,
+  sameTags,
+} from "@/lib/inbox/contact-panel";
 import { previewInbox } from "@/lib/inbox/preview";
 import {
   collisionBanner,
@@ -473,6 +482,7 @@ function threadByName(data: InboxData, name: string) {
     teamStats: Boolean(data.teamStats),
     quickUx: data.quickUx,
     bulkActions: data.bulkActions,
+    contactPanel: data.contactPanel,
     multiNumber: data.multiNumber,
     number: data.number,
     filter: data.filter,
@@ -1278,6 +1288,176 @@ test("bulk inbox wiring reuses conversation updates and does not send", () => {
   const files = [
     "src/lib/inbox/bulk.ts",
     "src/components/inbox/inbox-bulk.tsx",
+    "src/components/inbox/inbox-view.tsx",
+    "src/app/actions/inbox.ts",
+    "src/lib/inbox/preview.ts",
+    "src/lib/inbox/load.ts",
+  ];
+  for (const file of files) {
+    const text = readFileSync(new URL(`../../../${file}`, import.meta.url), "utf8");
+    assert.equal(/sending_enabled\s*=\s*true/i.test(text), false, file);
+    assert.equal(/graph\.facebook|api\.whatsapp/i.test(text), false, file);
+  }
+});
+
+test("the contact panel stays off unless the flag is the string true", () => {
+  assert.equal(inboxContactPanelEnabled({} as NodeJS.ProcessEnv), false);
+  assert.equal(inboxContactPanelEnabled({ INBOX_CONTACT_PANEL_ENABLED: "" } as NodeJS.ProcessEnv), false);
+  assert.equal(inboxContactPanelEnabled({ INBOX_CONTACT_PANEL_ENABLED: "false" } as NodeJS.ProcessEnv), false);
+  assert.equal(inboxContactPanelEnabled({ INBOX_CONTACT_PANEL_ENABLED: "yes" } as NodeJS.ProcessEnv), false);
+  assert.equal(inboxContactPanelEnabled({ INBOX_CONTACT_PANEL_ENABLED: "1" } as NodeJS.ProcessEnv), false);
+  assert.equal(inboxContactPanelEnabled({ INBOX_CONTACT_PANEL_ENABLED: " true " } as NodeJS.ProcessEnv), true);
+  const off = previewInbox({ contactPanel: false });
+  const on = previewInbox({ contactPanel: true });
+  assert.equal(off.contactPanel, false);
+  assert.equal(on.contactPanel, true);
+  assert.equal(off.sendingEnabled, false);
+  assert.equal(on.sendingEnabled, false);
+  assert.equal(off.thread?.contact?.name, on.thread?.contact?.name);
+  const noop = () => undefined;
+  const hidden = renderToStaticMarkup(createElement(InboxContactPanel, {
+    enabled: false,
+    className: "aside",
+    data: off,
+    thread: off.thread,
+    saveAction: noop,
+    assignAction: noop,
+  }));
+  assert.equal(hidden.includes("inbox-contact-panel"), false);
+  assert.equal(hidden.includes("Lerato"), false);
+  assert.equal(hidden.includes("Save contact"), false);
+  const lerato = on.thread?.contact;
+  assert.ok(lerato);
+  const model = buildContactPanel({ contact: lerato, consents: on.thread?.consents ?? [], channel: "whatsapp" });
+  assert.equal(model.name, "Lerato Mokoena");
+  assert.equal(model.address, "+27115550101");
+  assert.equal(model.addressKind, "phone");
+  assert.equal(model.stageLabel, "Enquiry");
+  assert.deepEqual(model.tags, ["admissions"]);
+  assert.equal(model.tagSource, "contact");
+  assert.equal(model.channels.find((row) => row.channel === "sms")?.known, false);
+  assert.equal(consentStatusLabel("opted_in"), "Opted in");
+  assert.equal(consentStatusLabel("pending_review"), "pending_review");
+  assert.equal(consentStatusLabel(""), "Unknown");
+  const html = renderToStaticMarkup(createElement(InboxContactPanel, {
+    enabled: true,
+    className: "aside",
+    data: on,
+    thread: on.thread,
+    saveAction: noop,
+    assignAction: noop,
+  }));
+  assert.match(html, /data-testid="inbox-contact-panel"/);
+  assert.match(html, /data-testid="inbox-contact-panel-toggle"/);
+  assert.match(html, /lg:hidden/);
+  assert.match(html, /data-testid="inbox-contact-name"/);
+  assert.match(html, /Lerato Mokoena/);
+  assert.match(html, /\+27115550101/);
+  assert.match(html, /Stage: Enquiry/);
+  assert.match(html, /admissions/);
+  assert.match(html, /WhatsApp · service · Opted in/);
+  assert.match(html, /WhatsApp · marketing · Opted out/);
+  assert.match(html, /Email · marketing · Requested/);
+  assert.match(html, /SMS · Unknown/);
+  assert.match(html, /This panel does not change it/);
+  assert.match(html, /Nothing is queued and no sequence starts/);
+  assert.match(html, /data-testid="inbox-contact-stage"/);
+  assert.match(html, /data-testid="inbox-contact-tags"/);
+  assert.equal(html.includes("graph.facebook"), false);
+  const amina = previewInbox({ contactPanel: true, id: "00000000-0000-4000-8000-000000000003" });
+  const leadOnly = buildContactPanel({
+    contact: amina.thread?.contact ?? null,
+    consents: amina.thread?.consents ?? [],
+    channel: "whatsapp",
+  });
+  assert.equal(leadOnly.tagSource, "lead");
+  assert.deepEqual(leadOnly.tags, ["follow-up"]);
+  assert.equal(leadOnly.stageLabel, "Contacted");
+  const leadHtml = renderToStaticMarkup(createElement(InboxContactPanel, {
+    enabled: true,
+    className: "aside",
+    data: amina,
+    thread: amina.thread,
+    saveAction: noop,
+    assignAction: noop,
+  }));
+  assert.match(leadHtml, /follow-up/);
+  assert.match(leadHtml, /From the linked lead/);
+  assert.match(leadHtml, /Stage: Contacted/);
+  assert.match(leadHtml, /WhatsApp · Unknown/);
+  assert.match(leadHtml, /Email · Unknown/);
+  const missing = buildContactPanel({ contact: null, consents: [], channel: "email" });
+  assert.equal(missing.hasContact, false);
+  assert.equal(missing.name, "");
+  assert.equal(missing.stageLabel, "No linked lead");
+  assert.deepEqual(missing.tags, []);
+  assert.equal(missing.channels.every((row) => row.known === false), true);
+  const blank = renderToStaticMarkup(createElement(InboxContactPanel, {
+    enabled: true,
+    className: "aside",
+    data: on,
+    thread: null,
+    saveAction: noop,
+    assignAction: noop,
+  }));
+  assert.match(blank, /No contact on this thread/);
+  assert.equal(blank.includes("Save contact"), false);
+  assert.equal(blank.includes("Lerato"), false);
+  const unnamed = buildContactPanel({
+    contact: { ...lerato, name: " ", email: "", phone: "", whatsapp: "", stage: "", leadId: "lead-1", tags: [], leadTags: [] },
+    consents: [{ channel: "email", purpose: "", status: "" }],
+    channel: "email",
+  });
+  assert.equal(unnamed.name, "Unknown");
+  assert.equal(unnamed.addressKind, "none");
+  assert.equal(unnamed.stageLabel, "Unknown");
+  assert.equal(unnamed.channels.find((row) => row.channel === "email")?.lines[0]?.statusLabel, "Unknown");
+  assert.equal(parseContactTags(" Admissions, admissions, , workshop ").ok, true);
+  const parsed = parseContactTags(" Admissions, admissions, workshop ");
+  if (parsed.ok) assert.deepEqual(parsed.tags, ["Admissions", "workshop"]);
+  assert.equal(parseContactTags(Array.from({ length: 21 }, (_, index) => `tag${index}`).join(",")).ok, false);
+  assert.equal(sameTags(["a"], ["a"]), true);
+  assert.equal(sameTags(["a"], ["b"]), false);
+  assert.deepEqual(planStageUpdate({ submitted: "Enquiry", current: "Enquiry", leadId: "lead-1" }), { ok: true, stage: null });
+  assert.deepEqual(planStageUpdate({ submitted: "Contacted", current: "Enquiry", leadId: "lead-1" }), { ok: true, stage: "Contacted" });
+  assert.equal(planStageUpdate({ submitted: "Not a stage", current: "Enquiry", leadId: "lead-1" }).ok, false);
+  assert.equal(planStageUpdate({ submitted: "New", current: "", leadId: null }).ok, false);
+  assert.deepEqual(planStageUpdate({ submitted: "", current: "", leadId: "lead-1" }), { ok: true, stage: null });
+});
+
+test("contact panel wiring reads consent and writes only the lead and contact rows", () => {
+  const view = readFileSync(new URL("../../components/inbox/inbox-view.tsx", import.meta.url), "utf8");
+  const load = readFileSync(new URL("./load.ts", import.meta.url), "utf8");
+  const actions = readFileSync(new URL("../../app/actions/inbox.ts", import.meta.url), "utf8");
+  assert.match(view, /data\.contactPanel \? \(/);
+  assert.match(view, /<InboxContactPanel/);
+  assert.match(view, /saveAction=\{saveInboxContactPanel\}/);
+  assert.match(view, /assignAction=\{assignInboxConversation\}/);
+  assert.match(view, /data-contact-panel=\{data\.contactPanel \? "on" : undefined\}/);
+  assert.match(view, /Stage: \{thread\.contact\.stage \|\| "No lead stage"\}/);
+  assert.match(load, /contactPanel: inboxContactPanelEnabled\(\)/);
+  const threadLoad = load.slice(load.indexOf("async function loadThread"));
+  const stageSelect = threadLoad.indexOf('select("stage")');
+  const panelQuery = threadLoad.indexOf("if (contactPanel && contactRow?.lead_id)");
+  assert.ok(stageSelect > 0);
+  assert.ok(panelQuery > stageSelect);
+  assert.match(threadLoad.slice(panelQuery, panelQuery + 400), /\.select\("tags"\)/);
+  const save = actions.slice(actions.indexOf("export async function saveInboxContactPanel"), actions.indexOf("async function serviceCount"));
+  const gate = save.indexOf("if (!inboxContactPanelEnabled())");
+  const client = save.indexOf("await createSupabaseServerClient()");
+  assert.ok(gate >= 0 && client > gate);
+  assert.match(save, /from\("crm_contacts"\)/);
+  assert.match(save, /from\("crm_leads"\)/);
+  assert.match(save, /eq\("org_id", tenant\.active\.id\)/);
+  assert.match(save, /assigned_only/);
+  assert.equal(save.includes("contact_consents"), false);
+  assert.equal(save.includes("from(\"messages\")"), false);
+  assert.equal(save.includes("crm_outbox"), false);
+  assert.equal(save.includes(".insert("), false);
+  assert.equal(save.includes("sending_enabled"), false);
+  const files = [
+    "src/lib/inbox/contact-panel.ts",
+    "src/components/inbox/inbox-contact-panel.tsx",
     "src/components/inbox/inbox-view.tsx",
     "src/app/actions/inbox.ts",
     "src/lib/inbox/preview.ts",

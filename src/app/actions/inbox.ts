@@ -6,6 +6,12 @@ import { workspaceWriteBlock } from "@/lib/billing/guard";
 import { usageForSend } from "@/lib/compliance/usage";
 import type { ConsentStatus } from "@/lib/compliance/send-gate";
 import {
+  inboxContactPanelEnabled,
+  parseContactTags,
+  planStageUpdate,
+  sameTags,
+} from "@/lib/inbox/contact-panel";
+import {
   bulkAssignNotice,
   bulkIdsInWorkspace,
   bulkReadNotice,
@@ -413,6 +419,92 @@ async function isSuppressed(
   const key = lookup.email || lookup.phone || address.trim().toLowerCase();
   const found = await supabase.from("suppressions").select("id").eq("org_id", orgId).eq("channel", channel).eq("address", key).limit(1);
   return Boolean(found.data && found.data.length > 0);
+}
+
+export async function saveInboxContactPanel(formData: FormData) {
+  if (!inboxContactPanelEnabled()) back(formData, { error: "Contact panel is off." });
+  const id = text(formData, "id");
+  if (!id) back(formData, { error: "Choose a conversation first." });
+  const supabase = await createSupabaseServerClient();
+  const user = await supabase.auth.getUser();
+  if (!user.data.user) redirect("/login?next=/command-centre/inbox");
+  const tenant = await safeResolveWorkspace(text(formData, "org"));
+  if (!tenant.scoped || !tenant.role || tenant.active.id.startsWith("preview-")) {
+    back(formData, { error: "Choose a workspace before updating the contact." });
+  }
+  const blocked = await workspaceWriteBlock(tenant.active.id);
+  if (blocked) back(formData, { error: blocked });
+  const conversation = await supabase
+    .from("conversations")
+    .select("id, contact_id, assigned_user_id")
+    .eq("id", id)
+    .eq("org_id", tenant.active.id)
+    .maybeSingle();
+  if (conversation.error || !conversation.data) {
+    back(formData, { error: conversation.error?.message || "That conversation is not in this workspace." });
+  }
+  const current = conversation.data;
+  if (!current?.contact_id) back(formData, { error: "No contact on this thread." });
+  const membership = await supabase
+    .from("memberships")
+    .select("user_id, role, assigned_only")
+    .eq("user_id", user.data.user.id)
+    .eq("org_id", tenant.active.id)
+    .maybeSingle();
+  const assignedOnly = membershipAssignedOnly(
+    [{
+      userId: user.data.user.id,
+      role: String(membership.data?.role || ""),
+      assignedOnly: Boolean(membership.data?.assigned_only),
+    }],
+    user.data.user.id,
+  );
+  if (assignedOnly && String(current.assigned_user_id || "") !== user.data.user.id) {
+    back(formData, { error: "You only update conversations assigned to you." });
+  }
+  const contact = await supabase
+    .from("crm_contacts")
+    .select("id, tags, lead_id")
+    .eq("id", current.contact_id)
+    .eq("org_id", tenant.active.id)
+    .maybeSingle();
+  if (contact.error || !contact.data) back(formData, { error: contact.error?.message || "That contact is not in this workspace." });
+  const row = contact.data;
+  if (!row) back(formData, { error: "That contact is not in this workspace." });
+  const parsed = parseContactTags(text(formData, "tags"));
+  if (!parsed.ok) back(formData, { error: parsed.message });
+  const leadId = row.lead_id ? String(row.lead_id) : null;
+  let currentStage = "";
+  if (leadId) {
+    const lead = await supabase.from("crm_leads").select("stage").eq("id", leadId).eq("org_id", tenant.active.id).maybeSingle();
+    if (lead.error) back(formData, { error: lead.error.message });
+    if (!lead.data) back(formData, { error: "That lead is not in this workspace." });
+    currentStage = String(lead.data?.stage || "");
+  }
+  const planned = planStageUpdate({ submitted: text(formData, "stage"), current: currentStage, leadId });
+  if (!planned.ok) back(formData, { error: planned.message });
+  const currentTags = Array.isArray(row.tags) ? row.tags.map(String) : [];
+  const tagsChanged = !sameTags(parsed.tags, currentTags);
+  if (planned.stage && leadId) {
+    const savedStage = await supabase
+      .from("crm_leads")
+      .update({ stage: planned.stage, stage_changed_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+      .eq("id", leadId)
+      .eq("org_id", tenant.active.id)
+      .select("id");
+    if (savedStage.error) back(formData, { error: savedStage.error.message });
+    if (!savedStage.data?.length) back(formData, { error: "That lead is not in this workspace." });
+  }
+  if (tagsChanged) {
+    const savedTags = await supabase
+      .from("crm_contacts")
+      .update({ tags: parsed.tags, updated_at: new Date().toISOString() })
+      .eq("id", row.id)
+      .eq("org_id", tenant.active.id);
+    if (savedTags.error) back(formData, { error: savedTags.error.message });
+  }
+  revalidatePath("/command-centre/inbox");
+  back(formData, { notice: planned.stage || tagsChanged ? "Contact updated. Nothing was sent." : "No contact changes." });
 }
 
 async function serviceCount(

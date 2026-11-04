@@ -36,6 +36,7 @@ test("inbox, conversation AI, calendars, reviews, referrals, and public pages re
       INBOX_WA_WINDOW_ENABLED: "",
       INBOX_QUICK_UX_ENABLED: "",
       INBOX_BULK_ACTIONS_ENABLED: "",
+      INBOX_CONTACT_PANEL_ENABLED: "",
       RESEND_API_KEY: "",
       SMTP_HOST: "",
       SMTP_PASS: "",
@@ -114,6 +115,8 @@ test("inbox, conversation AI, calendars, reviews, referrals, and public pages re
     assert.doesNotMatch(inboxHtml, /inbox-bulk-select/);
     assert.doesNotMatch(inboxHtml, /inbox-bulk-row/);
     assert.doesNotMatch(inboxHtml, /Select Lerato Mokoena/);
+    assert.doesNotMatch(inboxHtml, /inbox-contact-panel/);
+    assert.doesNotMatch(inboxHtml, /data-contact-panel="on"/);
 
     const settings = await fetch(`http://127.0.0.1:${port}/command-centre/ai-replies`, { redirect: "manual" });
     assert.equal(settings.status, 200);

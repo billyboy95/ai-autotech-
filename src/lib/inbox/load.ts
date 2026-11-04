@@ -2,6 +2,7 @@ import { missingAiTable, parseAiDraft, parseAiReplySettings } from "@/lib/ai-rep
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { safeResolveWorkspace } from "@/lib/tenant/context";
 import { inboxBulkActionsEnabled } from "@/lib/inbox/bulk";
+import { inboxContactPanelEnabled } from "@/lib/inbox/contact-panel";
 import { displayPhoneFromConfig, inboxMultiNumberEnabled, parseInboxNumber, resolveInboxNumber, whatsappNumberParts } from "@/lib/inbox/numbers";
 import { INBOX_TEAM_STATS_MESSAGE_CAP, buildInboxTeamStats, inboxTeamStatsEnabled, type TeamStatsMessage } from "@/lib/inbox/team-stats";
 import { inboxQuickUxEnabled, quickRepliesForWorkspace } from "@/lib/inbox/quick-ux";
@@ -93,6 +94,7 @@ export async function loadInbox(query: {
     waMeters: [],
     quickUx: false,
     bulkActions: inboxBulkActionsEnabled(),
+    contactPanel: inboxContactPanelEnabled(),
     quickReplies: [],
     presence: [],
     loadedAt,
@@ -186,7 +188,7 @@ export async function loadInbox(query: {
   });
 
   const selected = query.id && base.conversations.some((item) => item.id === query.id) ? query.id : base.conversations[0]?.id;
-  if (selected) base.thread = await loadThread(supabase, tenant.active.id, selected);
+  if (selected) base.thread = await loadThread(supabase, tenant.active.id, selected, base.contactPanel);
 
   const [templates, members] = await Promise.all([
     supabase.from("message_templates").select("id, name, channel, subject, body, wa_category, wa_status, active").eq("org_id", tenant.active.id).eq("active", true),
@@ -412,7 +414,7 @@ async function loadInboxTeamStats(
   });
 }
 
-async function loadThread(supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>, orgId: string, id: string): Promise<InboxThread | null> {
+async function loadThread(supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>, orgId: string, id: string, contactPanel = false): Promise<InboxThread | null> {
   const conversation = await supabase
     .from("conversations")
     .select("id, channel, status, assigned_user_id, channel_connection_id, wa_window_expires_at, contact_id, crm_contacts(id, first_name, last_name, email, phone_e164, whatsapp_e164, company, tags, lead_id)")
@@ -433,9 +435,16 @@ async function loadThread(supabase: Awaited<ReturnType<typeof createSupabaseServ
     lead_id?: string | null;
   } | null;
   let stage = "";
+  let leadTags: string[] = [];
   if (contactRow?.lead_id) {
     const lead = await supabase.from("crm_leads").select("stage").eq("id", contactRow.lead_id).eq("org_id", orgId).maybeSingle();
     if (!lead.error && lead.data) stage = String(lead.data.stage || "");
+  }
+  if (contactPanel && contactRow?.lead_id) {
+    const tagged = await supabase.from("crm_leads").select("tags").eq("id", contactRow.lead_id).eq("org_id", orgId).maybeSingle();
+    if (!tagged.error && Array.isArray(tagged.data?.tags)) {
+      leadTags = tagged.data.tags.map((tag: unknown) => String(tag));
+    }
   }
   const contact: InboxContact | null = contactRow?.id
     ? {
@@ -446,6 +455,7 @@ async function loadThread(supabase: Awaited<ReturnType<typeof createSupabaseServ
         whatsapp: String(contactRow.whatsapp_e164 || ""),
         company: String(contactRow.company || ""),
         tags: Array.isArray(contactRow.tags) ? contactRow.tags.map(String) : [],
+        leadTags,
         stage,
         leadId: contactRow.lead_id ? String(contactRow.lead_id) : null,
       }

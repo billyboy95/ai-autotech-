@@ -5,6 +5,16 @@ import { displayPhoneFromConfig, inboxMultiNumberEnabled, parseInboxNumber, reso
 import { INBOX_TEAM_STATS_MESSAGE_CAP, buildInboxTeamStats, inboxTeamStatsEnabled, type TeamStatsMessage } from "@/lib/inbox/team-stats";
 import { inboxQuickUxEnabled, quickRepliesForWorkspace } from "@/lib/inbox/quick-ux";
 import { inboxWaWindowEnabled } from "@/lib/inbox/wa-window";
+import {
+  buildServiceMeters,
+  countServiceSendsByConnection,
+  inboxWaMeteringEnabled,
+  meteringTimezone,
+  monthWindow,
+  waMeterNumbers,
+  WA_METER_TIMEZONE,
+  type ServiceSendRow,
+} from "@/lib/inbox/wa-metering";
 import { contactLookup, parseInboxChannel, parseInboxFilter } from "@/lib/inbox/rules";
 import { previewInbox } from "@/lib/inbox/preview";
 import type { InboxConsent, InboxContact, InboxData, InboxListItem, InboxMessage, InboxNote, InboxThread } from "@/lib/inbox/types";
@@ -35,6 +45,7 @@ export async function loadInbox(query: {
   const channel = parseInboxChannel(query.channel);
   const multiNumber = inboxMultiNumberEnabled();
   const waWindowEnabled = inboxWaWindowEnabled();
+  const waMeteringEnabled = inboxWaMeteringEnabled();
   const loadedAt = new Date().toISOString();
   const tenant = await safeResolveWorkspace(query.org);
   if (
@@ -76,6 +87,9 @@ export async function loadInbox(query: {
     members: [],
     teamStats: null,
     waWindowEnabled,
+    waMeteringEnabled,
+    waTimezone: "",
+    waMeters: [],
     quickUx: false,
     quickReplies: [],
     presence: [],
@@ -145,6 +159,7 @@ export async function loadInbox(query: {
   if (base.number) listed = listed.eq("channel", "whatsapp").eq("channel_connection_id", base.number);
   const conversations = await listed;
   if (conversations.error) {
+    await attachWaMeters(supabase, tenant.active.id, base);
     if (missingInboxTable(conversations.error.message)) {
       return { ...base, notice: "Inbox tables are not in this database yet. Apply phase 2e before using the inbox. Nothing was sent." };
     }
@@ -219,10 +234,125 @@ export async function loadInbox(query: {
   } catch {
     // A missing Conversation AI migration must not take down the inbox.
   }
+  await attachWaMeters(supabase, tenant.active.id, base);
   if (inboxTeamStatsEnabled()) {
     base.teamStats = await loadInboxTeamStats(supabase, tenant.active.id, base);
   }
   return base;
+}
+
+async function attachWaMeters(
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  orgId: string,
+  base: InboxData,
+) {
+  if (!base.waMeteringEnabled) return;
+  try {
+    const loaded = await loadWaServiceMeters(supabase, orgId, base);
+    base.waTimezone = loaded.timezone;
+    base.waMeters = loaded.meters;
+  } catch {
+    base.waTimezone = WA_METER_TIMEZONE;
+    base.waMeters = [];
+  }
+}
+
+async function loadWaServiceMeters(
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  orgId: string,
+  base: InboxData,
+) {
+  const timezone = await readMeterTimezone(supabase, orgId);
+  const now = new Date();
+  const numbers = waMeterNumbers({
+    connections: base.connections,
+    whatsappNumbers: base.whatsappNumbers,
+    threadChannel: base.thread?.channel,
+    threadConnectionId: base.thread?.connectionId,
+  });
+  if (numbers.length === 0) return { timezone, meters: [] };
+  const counts = timezone === WA_METER_TIMEZONE
+    ? await serviceCountsFromRpc(supabase, orgId, numbers)
+    : null;
+  const resolved = counts ?? await serviceCountsFromMessages(supabase, orgId, timezone, now);
+  return {
+    timezone,
+    meters: buildServiceMeters({ numbers, counts: resolved, timezone, now }),
+  };
+}
+
+async function readMeterTimezone(
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  orgId: string,
+) {
+  try {
+    const org = await supabase.from("organizations").select("timezone").eq("id", orgId).maybeSingle();
+    if (org.error || !org.data) return WA_METER_TIMEZONE;
+    return meteringTimezone(String((org.data as { timezone?: string }).timezone || ""));
+  } catch {
+    return WA_METER_TIMEZONE;
+  }
+}
+
+async function serviceCountsFromRpc(
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  orgId: string,
+  numbers: readonly { id: string }[],
+) {
+  if (!isUuid(orgId)) return null;
+  const counts: Record<string, number> = {};
+  for (const number of numbers) {
+    if (!isUuid(number.id)) return null;
+    const counted = await supabase.rpc("wa_service_sends_this_month", { p_org: orgId, p_connection: number.id });
+    const used = rpcCount(counted.data);
+    if (counted.error || used == null) return null;
+    counts[number.id] = used;
+  }
+  return counts;
+}
+
+async function serviceCountsFromMessages(
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  orgId: string,
+  timezone: string,
+  now: Date,
+) {
+  if (!isUuid(orgId)) return null;
+  const window = monthWindow(now, timezone);
+  const listed = await supabase
+    .from("messages")
+    .select("created_at, status, direction, channel, wa_category, conversations!inner(channel_connection_id)")
+    .eq("org_id", orgId)
+    .eq("channel", "whatsapp")
+    .eq("direction", "out")
+    .eq("wa_category", "service")
+    .in("status", ["queued", "held", "sent"])
+    .gte("created_at", window.start)
+    .lt("created_at", window.end)
+    .limit(5000);
+  if (listed.error || !listed.data) return null;
+  const rows: ServiceSendRow[] = (listed.data as Record<string, unknown>[]).map((row) => ({
+    direction: String(row.direction || ""),
+    channel: String(row.channel || ""),
+    waCategory: String(row.wa_category || ""),
+    status: String(row.status || ""),
+    createdAt: String(row.created_at || ""),
+    connectionId: connectionIdFromJoin(row.conversations),
+  }));
+  return countServiceSendsByConnection(rows, { now, timezone });
+}
+
+function connectionIdFromJoin(value: unknown) {
+  const row = Array.isArray(value) ? value[0] : value;
+  if (!row || typeof row !== "object") return null;
+  const id = (row as { channel_connection_id?: string | null }).channel_connection_id;
+  return id ? String(id) : null;
+}
+
+function rpcCount(value: unknown) {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string" && value.trim() !== "" && Number.isFinite(Number(value))) return Number(value);
+  return null;
 }
 
 async function loadQuickReplies(

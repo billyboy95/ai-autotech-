@@ -7,6 +7,7 @@ import { addInboxNote, assignInboxConversation, markInboxRead, sendInboxReply, s
 import { AiDraftPanel } from "@/components/inbox/ai-draft-panel";
 import { InboxCollisionBanner, InboxQuickFrame, InboxQuickReplies } from "@/components/inbox/inbox-quick-ux";
 import { InboxTeamStatsPanel } from "@/components/inbox/inbox-team-stats";
+import { InboxWaMessageMeter, InboxWaMetering } from "@/components/inbox/inbox-wa-metering";
 import { InboxWaReplyFields, InboxWaWindow } from "@/components/inbox/inbox-wa-window";
 import { inboxHref } from "@/lib/inbox/numbers";
 import {
@@ -273,6 +274,11 @@ export function InboxView({ data, banner, bannerTone }: { data: InboxData; banne
           ))}
         </section>
         <section className={layout.thread}>
+          <InboxWaMetering
+            enabled={data.waMeteringEnabled}
+            meters={data.waMeters}
+            currentConnectionId={thread?.channel === "whatsapp" ? thread.connectionId : null}
+          />
           {thread ? (
             <div className="grid gap-4">
               <div className="flex flex-wrap items-start justify-between gap-3">
@@ -300,9 +306,10 @@ export function InboxView({ data, banner, bannerTone }: { data: InboxData; banne
                     <p className="whitespace-pre-wrap">{message.body}</p>
                     <p className={`mt-1 text-xs ${message.direction === "out" ? "text-slate-200" : "text-slate-500"}`}>
                       {message.direction === "out" ? "Out" : "In"} · {message.status}
-                      {message.channel === "whatsapp" ? ` · ${formatInboxCost({ cents: message.costCents, label: message.waCategory || "service" })}` : ""}
+                      {message.channel === "whatsapp" && !data.waMeteringEnabled ? ` · ${formatInboxCost({ cents: message.costCents, label: message.waCategory || "service" })}` : ""}
                       {message.providerMessageId ? ` · ${message.providerMessageId}` : ""}
                     </p>
+                    {data.waMeteringEnabled ? <InboxWaMessageMeter message={message} now={data.loadedAt} /> : null}
                   </article>
                 ))}
                 {thread.notes.map((note) => (
@@ -359,7 +366,13 @@ export function InboxView({ data, banner, bannerTone }: { data: InboxData; banne
                   {formatInboxCost(cost)}. {serviceAllowanceLabel({ now, used: data.serviceUsed, hasNumber: channel === "whatsapp" && Boolean(connectionId) })}
                 </p>
                 {care?.visible && care.care ? (
-                  <InboxWaWindow care={care.care} category={care.category} blocked={care.blocked} prompt={care.prompt} />
+                  <InboxWaWindow
+                    care={care.care}
+                    category={care.category}
+                    blocked={care.blocked}
+                    prompt={care.prompt}
+                    meteringLive={data.waMeteringEnabled}
+                  />
                 ) : null}
                 {data.quickUx ? (
                   <InboxQuickReplies

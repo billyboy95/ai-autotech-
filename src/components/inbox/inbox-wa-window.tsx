@@ -6,11 +6,14 @@ export function InboxWaWindow({
   category,
   blocked,
   prompt,
+  meteringLive = false,
 }: {
   care: CustomerCareWindow;
   category: string;
   blocked: boolean;
   prompt: string;
+  /** When the metering flag is on, the thread shows category and cost. This placeholder stays for the window flag alone. */
+  meteringLive?: boolean;
 }) {
   const status = care.open
     ? `Customer care window open. Closes in ${care.countdown}. Free-form stays queued only. Nothing is sent.`
@@ -27,9 +30,11 @@ export function InboxWaWindow({
       <p data-testid="inbox-wa-window-status" className={`text-sm font-medium ${care.open ? "text-emerald-950" : "text-amber-950"}`}>
         {status}
       </p>
-      <p data-testid="inbox-wa-window-meter" className="mt-1 text-xs text-slate-600">
-        Message category: {category} (placeholder). Cost metering is not live yet.
-      </p>
+      {meteringLive ? null : (
+        <p data-testid="inbox-wa-window-meter" className="mt-1 text-xs text-slate-600">
+          Message category: {category} (placeholder). Cost metering is not live yet.
+        </p>
+      )}
       {blocked ? (
         <p data-testid="inbox-wa-template-gate" className="mt-2 text-sm font-medium text-amber-950">
           {prompt}

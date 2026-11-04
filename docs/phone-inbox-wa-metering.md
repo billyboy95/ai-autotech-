@@ -8,7 +8,7 @@ The counter already lives in phase 2e (`wa_service_sends_this_month`, 1,000 free
 
 ## What you are reviewing
 
-Branch `cursor/inbox-wa-metering-bd44`. It stacks on draft [#97](https://github.com/billyboy95/ai-autotech-/pull/97) (`cursor/inbox-quick-ux-a99b`). The Files tab on this draft is only the metering change. It is not the whole inbox stack.
+Draft [#98](https://github.com/billyboy95/ai-autotech-/pull/98). Branch `cursor/inbox-wa-metering-bd44`. It stacks on draft [#97](https://github.com/billyboy95/ai-autotech-/pull/97) (`cursor/inbox-quick-ux-a99b`). The Files tab on #98 is only the metering change. It is not the whole inbox stack.
 
 When the flag is the string `true`:
 
@@ -21,7 +21,7 @@ When the flag is the string `true`:
 On the phone:
 
 1. Open GitHub and sign in as the account that can see `billyboy95/ai-autotech-`.
-2. Open Pull requests. Find the draft whose branch is `cursor/inbox-wa-metering-bd44`.
+2. Open https://github.com/billyboy95/ai-autotech-/pull/98 . The branch is `cursor/inbox-wa-metering-bd44`.
 3. Read the title and the base branch. The base is `cursor/inbox-quick-ux-a99b` (draft #97). If the base is `main`, stop. Do not merge it into main from here.
 4. Open Files changed. Pass when the diff is the metering flag, the inbox display, tests, and this note. Fail and stop if the diff turns `sending_enabled` on, calls Meta, or sends WhatsApp, email, or SMS.
 5. Leave the draft as a draft. Do not tap Merge on this visit unless Billy says yes to the whole stack below, in that order.
@@ -34,7 +34,7 @@ Merge one pull request at a time, from the bottom of the stack. Wait until the n
 2. [#95](https://github.com/billyboy95/ai-autotech-/pull/95) — team stats. After #94 is on main.
 3. [#96](https://github.com/billyboy95/ai-autotech-/pull/96) — 24-hour WhatsApp care window. After #95 is on main.
 4. [#97](https://github.com/billyboy95/ai-autotech-/pull/97) — quick replies, collision warning, and the narrow layout. After #96 is on main.
-5. This metering draft (`cursor/inbox-wa-metering-bd44`). After #97 is on main.
+5. [#98](https://github.com/billyboy95/ai-autotech-/pull/98) — WhatsApp category, cost, and the free service counter (`cursor/inbox-wa-metering-bd44`). After #97 is on main.
 
 A yes to one pull request is not a yes to the next. A yes to merge is not a yes to the flag, and it is not a yes to send.
 

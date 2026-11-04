@@ -46,6 +46,8 @@ export type InboxContact = {
   whatsapp: string;
   company: string;
   tags: string[];
+  /** Lead tags when the inbox contact panel loaded them. Empty when that flag is off. */
+  leadTags?: string[];
   stage: string;
   leadId: string | null;
 };
@@ -173,6 +175,8 @@ export type InboxData = {
   quickUx: boolean;
   /** True only when INBOX_BULK_ACTIONS_ENABLED is the string true. */
   bulkActions: boolean;
+  /** True only when INBOX_CONTACT_PANEL_ENABLED is the string true. */
+  contactPanel: boolean;
   /** Empty unless INBOX_QUICK_UX_ENABLED is the string true. */
   quickReplies: InboxQuickReply[];
   /**

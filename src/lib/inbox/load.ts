@@ -3,6 +3,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { safeResolveWorkspace } from "@/lib/tenant/context";
 import { displayPhoneFromConfig, inboxMultiNumberEnabled, parseInboxNumber, resolveInboxNumber, whatsappNumberParts } from "@/lib/inbox/numbers";
 import { INBOX_TEAM_STATS_MESSAGE_CAP, buildInboxTeamStats, inboxTeamStatsEnabled, type TeamStatsMessage } from "@/lib/inbox/team-stats";
+import { inboxQuickUxEnabled, quickRepliesForWorkspace } from "@/lib/inbox/quick-ux";
 import { inboxWaWindowEnabled } from "@/lib/inbox/wa-window";
 import { contactLookup, parseInboxChannel, parseInboxFilter } from "@/lib/inbox/rules";
 import { previewInbox } from "@/lib/inbox/preview";
@@ -75,6 +76,9 @@ export async function loadInbox(query: {
     members: [],
     teamStats: null,
     waWindowEnabled,
+    quickUx: false,
+    quickReplies: [],
+    presence: [],
     loadedAt,
     serviceUsed: 0,
     notice: query.notice ?? null,
@@ -83,6 +87,11 @@ export async function loadInbox(query: {
     aiRequireHuman: true,
     draft: null,
   };
+
+  if (inboxQuickUxEnabled()) {
+    base.quickUx = true;
+    base.quickReplies = await loadQuickReplies(supabase, tenant.active.id);
+  }
 
   if (userId) {
     const membership = await supabase
@@ -214,6 +223,19 @@ export async function loadInbox(query: {
     base.teamStats = await loadInboxTeamStats(supabase, tenant.active.id, base);
   }
   return base;
+}
+
+async function loadQuickReplies(
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  orgId: string,
+) {
+  try {
+    const org = await supabase.from("organizations").select("settings").eq("id", orgId).maybeSingle();
+    if (org.error || !org.data) return quickRepliesForWorkspace(null);
+    return quickRepliesForWorkspace(org.data.settings);
+  } catch {
+    return quickRepliesForWorkspace(null);
+  }
 }
 
 async function loadInboxTeamStats(

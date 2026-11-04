@@ -1,6 +1,7 @@
 import { inboxMultiNumberEnabled, matchesInboxNumber, parseInboxNumber, resolveInboxNumber, whatsappNumberParts } from "@/lib/inbox/numbers";
 import { matchesInboxList, parseInboxChannel, parseInboxFilter, windowExpiry } from "@/lib/inbox/rules";
 import { buildInboxTeamStats, inboxTeamStatsEnabled, type TeamStatsMessage } from "@/lib/inbox/team-stats";
+import { inboxQuickUxEnabled, previewInboxPresence, quickRepliesForWorkspace } from "@/lib/inbox/quick-ux";
 import { inboxWaWindowEnabled } from "@/lib/inbox/wa-window";
 import type { InboxData, InboxTeamStats, InboxThread, InboxWhatsappNumber } from "@/lib/inbox/types";
 
@@ -184,6 +185,8 @@ export function previewInbox(query: {
   teamStats?: boolean;
   /** Explicit override. Omit to follow INBOX_WA_WINDOW_ENABLED. */
   waWindow?: boolean;
+  /** Explicit override. Omit to follow INBOX_QUICK_UX_ENABLED. */
+  quickUx?: boolean;
   notice?: string | null;
   brandSlug?: string | null;
 }): InboxData {
@@ -192,6 +195,7 @@ export function previewInbox(query: {
   const multiNumber = query.multiNumber ?? inboxMultiNumberEnabled();
   const teamStatsOn = query.teamStats ?? inboxTeamStatsEnabled();
   const waWindowEnabled = query.waWindow ?? inboxWaWindowEnabled();
+  const quickUx = query.quickUx ?? inboxQuickUxEnabled();
   const whatsappNumbers = multiNumber ? previewNumbers : [];
   const number = multiNumber
     ? resolveInboxNumber(parseInboxNumber(query.number), whatsappNumbers.map((item) => item.id))
@@ -271,6 +275,9 @@ export function previewInbox(query: {
     members: [{ userId: PREVIEW_USER, role: "client_admin" }],
     teamStats: teamStatsOn ? previewTeamStats(list) : null,
     waWindowEnabled,
+    quickUx,
+    quickReplies: quickUx ? quickRepliesForWorkspace(null) : [],
+    presence: quickUx ? previewInboxPresence(OPEN_WA, EXPIRED_WA) : [],
     loadedAt: now.toISOString(),
     serviceUsed: 12,
     notice: query.notice ?? "Preview inbox. Connect Supabase to load this workspace. Nothing here is delivered.",

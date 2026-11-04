@@ -1,17 +1,26 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { addInboxNote, assignInboxConversation, markInboxRead, sendInboxReply, setInboxStatus } from "@/app/actions/inbox";
 import { AiDraftPanel } from "@/components/inbox/ai-draft-panel";
+import { InboxCollisionBanner, InboxQuickFrame, InboxQuickReplies } from "@/components/inbox/inbox-quick-ux";
 import { InboxTeamStatsPanel } from "@/components/inbox/inbox-team-stats";
 import { InboxWaReplyFields, InboxWaWindow } from "@/components/inbox/inbox-wa-window";
 import { inboxHref } from "@/lib/inbox/numbers";
+import {
+  collisionBanner,
+  inboxQuickClasses,
+  insertQuickReply,
+  peersFromPresence,
+  presencePayload,
+  viewerPresenceName,
+} from "@/lib/inbox/quick-ux";
 import { formatInboxCost, inboxCost, realtimeOrgFilter, acceptRealtimeRow, serviceAllowanceLabel, type InboxChannel } from "@/lib/inbox/rules";
 import { waCareState } from "@/lib/inbox/wa-window";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
-import type { InboxData } from "@/lib/inbox/types";
+import type { InboxData, InboxPresencePeer } from "@/lib/inbox/types";
 
 const CHANNELS: InboxChannel[] = ["whatsapp", "sms", "email", "facebook", "instagram"];
 
@@ -21,6 +30,14 @@ export function InboxView({ data, banner, bannerTone }: { data: InboxData; banne
   const [channel, setChannel] = useState(thread?.channel || "whatsapp");
   const [templateId, setTemplateId] = useState("");
   const [body, setBody] = useState("");
+  const [livePeers, setLivePeers] = useState<InboxPresencePeer[] | null>(null);
+  const presenceChannel = useRef<{ track: (payload: Record<string, string>) => Promise<unknown> } | null>(null);
+  const bodyRef = useRef(body);
+  const threadIdRef = useRef(thread?.id ?? "");
+  bodyRef.current = body;
+  threadIdRef.current = thread?.id ?? "";
+  const layout = inboxQuickClasses(data.quickUx);
+  const viewerName = viewerPresenceName(data.userId, data.members);
   const now = useMemo(() => new Date(), []);
   const [windowNow, setWindowNow] = useState(() => new Date(data.loadedAt));
   const template = data.templates.find((item) => item.id === templateId) || null;
@@ -46,6 +63,7 @@ export function InboxView({ data, banner, bannerTone }: { data: InboxData; banne
 
   const threadId = thread?.id ?? "";
   const threadChannel = thread?.channel ?? "whatsapp";
+  const collision = data.quickUx && thread ? collisionBanner(livePeers ?? data.presence, data.userId, thread.id) : "";
   useEffect(() => {
     setChannel(threadChannel);
     setTemplateId("");
@@ -65,6 +83,11 @@ export function InboxView({ data, banner, bannerTone }: { data: InboxData; banne
   }, [threadId, data.preview]);
 
   useEffect(() => {
+    if (!data.quickUx) return;
+    setLivePeers(null);
+  }, [data.quickUx, threadId]);
+
+  useEffect(() => {
     if (data.preview || !process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) return;
     let filter = "";
     try {
@@ -73,7 +96,9 @@ export function InboxView({ data, banner, bannerTone }: { data: InboxData; banne
       return;
     }
     const supabase = createSupabaseBrowserClient();
-    const channelName = supabase.channel(`inbox-${data.orgId}`);
+    const channelName = data.quickUx
+      ? supabase.channel(`inbox-${data.orgId}`, { config: { presence: { key: data.userId || "viewer" } } })
+      : supabase.channel(`inbox-${data.orgId}`);
     const refresh = (row: { org_id?: string } | null | undefined) => {
       if (!acceptRealtimeRow(data.orgId, row?.org_id)) return;
       router.refresh();
@@ -84,14 +109,63 @@ export function InboxView({ data, banner, bannerTone }: { data: InboxData; banne
         refresh(next);
       });
     }
-    channelName.subscribe();
+    if (data.quickUx) {
+      channelName.on("presence", { event: "sync" }, () => {
+        setLivePeers(peersFromPresence(
+          channelName.presenceState() as Record<string, readonly unknown[]>,
+          data.userId,
+          threadIdRef.current,
+          data.members,
+        ));
+      });
+      channelName.subscribe((status) => {
+        if (status !== "SUBSCRIBED") return;
+        const payload = presencePayload({
+          userId: data.userId,
+          name: viewerName,
+          conversationId: threadIdRef.current,
+          typing: bodyRef.current.trim().length > 0,
+        });
+        if (!payload) return;
+        presenceChannel.current = channelName;
+        void channelName.track(payload);
+      });
+    } else {
+      channelName.subscribe();
+    }
     return () => {
+      presenceChannel.current = null;
       void supabase.removeChannel(channelName);
     };
-  }, [data.orgId, data.preview, router]);
+  }, [data.orgId, data.preview, data.quickUx, data.userId, data.members, viewerName, router]);
+
+  useEffect(() => {
+    if (!data.quickUx || data.preview) return;
+    const tracked = presenceChannel.current;
+    if (!tracked || !threadId) return;
+    const payload = presencePayload({
+      userId: data.userId,
+      name: viewerName,
+      conversationId: threadId,
+      typing: body.trim().length > 0,
+    });
+    if (!payload) return;
+    void tracked.track(payload);
+    if (!body.trim()) return;
+    const timer = window.setTimeout(() => {
+      const idle = presencePayload({
+        userId: data.userId,
+        name: viewerName,
+        conversationId: threadId,
+        typing: false,
+      });
+      if (idle) void tracked.track(idle);
+    }, 2500);
+    return () => window.clearTimeout(timer);
+  }, [body, data.preview, data.quickUx, data.userId, threadId, viewerName]);
 
   return (
-    <div data-testid="inbox" className="grid gap-4">
+    <div data-testid="inbox" data-quick-ux={data.quickUx ? "on" : undefined} className={layout.shell}>
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="font-display text-2xl font-bold text-[#0B1F3A]">Inbox</h1>
@@ -112,31 +186,31 @@ export function InboxView({ data, banner, bannerTone }: { data: InboxData; banne
           {banner}
         </p>
       ) : null}
-      <div className="flex flex-wrap gap-2">
+      <div className={layout.filters}>
         {(["open", "mine", "unassigned"] as const).map((filter) => (
           <Link
             key={filter}
             href={inboxHref({ ...data, filter, id: thread?.id })}
-            className={`inline-flex h-9 items-center rounded-full px-3 text-sm font-semibold ${data.filter === filter ? "bg-[#0B1F3A] text-white" : "bg-white text-slate-700 ring-1 ring-slate-200"}`}
+            className={`${layout.chip} ${data.filter === filter ? "bg-[#0B1F3A] text-white" : "bg-white text-slate-700 ring-1 ring-slate-200"}`}
           >
             {filter === "open" ? "Open" : filter === "mine" ? "Mine" : "Unassigned"}
           </Link>
         ))}
-        <Link href={inboxHref({ ...data, channel: "", id: thread?.id })} className={`inline-flex h-9 items-center rounded-full px-3 text-sm font-semibold ${data.channel === "" ? "bg-[#2563EB] text-white" : "bg-white text-slate-700 ring-1 ring-slate-200"}`}>
+        <Link href={inboxHref({ ...data, channel: "", id: thread?.id })} className={`${layout.chip} ${data.channel === "" ? "bg-[#2563EB] text-white" : "bg-white text-slate-700 ring-1 ring-slate-200"}`}>
           All channels
         </Link>
         {CHANNELS.map((item) => (
           <Link
             key={item}
             href={inboxHref({ ...data, channel: item, number: item === "whatsapp" ? data.number : "", id: thread?.id })}
-            className={`inline-flex h-9 items-center rounded-full px-3 text-sm font-semibold capitalize ${data.channel === item ? "bg-[#2563EB] text-white" : "bg-white text-slate-700 ring-1 ring-slate-200"}`}
+            className={`${layout.chip} capitalize ${data.channel === item ? "bg-[#2563EB] text-white" : "bg-white text-slate-700 ring-1 ring-slate-200"}`}
           >
             {item}
           </Link>
         ))}
       </div>
       {data.multiNumber ? (
-        <form action="/command-centre/inbox" method="get" data-testid="inbox-number-filter" className="flex flex-wrap items-end gap-2">
+        <form action="/command-centre/inbox" method="get" data-testid="inbox-number-filter" className={layout.numberForm}>
           {data.orgSlug && data.orgSlug !== "preview" ? <input type="hidden" name="org" value={data.orgSlug} /> : null}
           {data.filter !== "open" ? <input type="hidden" name="filter" value={data.filter} /> : null}
           {data.channel === "whatsapp" ? <input type="hidden" name="channel" value="whatsapp" /> : null}
@@ -156,7 +230,7 @@ export function InboxView({ data, banner, bannerTone }: { data: InboxData; banne
                   id: thread?.id,
                 }));
               }}
-              className="h-9 rounded-full border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-800"
+              className={layout.numberSelect}
             >
               <option value="">All numbers</option>
               {data.whatsappNumbers.map((item) => (
@@ -164,7 +238,7 @@ export function InboxView({ data, banner, bannerTone }: { data: InboxData; banne
               ))}
             </select>
           </label>
-          <button type="submit" className="h-9 rounded-full bg-white px-3 text-sm font-semibold text-slate-700 ring-1 ring-slate-200">
+          <button type="submit" className={layout.showButton}>
             Show
           </button>
           {data.whatsappNumbers.length === 0 ? (
@@ -175,8 +249,8 @@ export function InboxView({ data, banner, bannerTone }: { data: InboxData; banne
         </form>
       ) : null}
       {data.teamStats ? <InboxTeamStatsPanel stats={data.teamStats} /> : null}
-      <div className="grid items-start gap-4 lg:grid-cols-[280px_minmax(0,1fr)_280px]">
-        <section className="grid gap-2">
+      <InboxQuickFrame enabled={data.quickUx}>
+        <section className={layout.list}>
           {data.conversations.length === 0 ? (
             <p className="rounded-xl border border-dashed border-slate-300 bg-white p-4 text-sm text-slate-500">No conversations in this filter.</p>
           ) : null}
@@ -198,7 +272,7 @@ export function InboxView({ data, banner, bannerTone }: { data: InboxData; banne
             </Link>
           ))}
         </section>
-        <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+        <section className={layout.thread}>
           {thread ? (
             <div className="grid gap-4">
               <div className="flex flex-wrap items-start justify-between gap-3">
@@ -219,9 +293,10 @@ export function InboxView({ data, banner, bannerTone }: { data: InboxData; banne
                   </form>
                 </div>
               </div>
-              <div className="grid max-h-[28rem] gap-2 overflow-y-auto">
+              {data.quickUx ? <InboxCollisionBanner label={collision} /> : null}
+              <div className={layout.messageList}>
                 {thread.messages.map((message) => (
-                  <article key={message.id} className={`max-w-[36rem] rounded-xl px-3 py-2 text-sm ${message.direction === "out" ? "ml-auto bg-[#0B1F3A] text-white" : "bg-slate-100 text-slate-800"}`}>
+                  <article key={message.id} className={`${layout.bubble} ${message.direction === "out" ? "ml-auto bg-[#0B1F3A] text-white" : "bg-slate-100 text-slate-800"}`}>
                     <p className="whitespace-pre-wrap">{message.body}</p>
                     <p className={`mt-1 text-xs ${message.direction === "out" ? "text-slate-200" : "text-slate-500"}`}>
                       {message.direction === "out" ? "Out" : "In"} · {message.status}
@@ -238,16 +313,16 @@ export function InboxView({ data, banner, bannerTone }: { data: InboxData; banne
                 ))}
               </div>
               <AiDraftPanel data={data} />
-              <form action={sendInboxReply} className="grid gap-2 border-t border-slate-100 pt-3">
+              <form action={sendInboxReply} className={layout.replyForm}>
                 <Hidden data={data} id={thread.id} />
-                <div className="flex flex-wrap gap-2">
-                  <label className="grid gap-1 text-xs font-semibold text-slate-500">
+                <div className={layout.compose}>
+                  <label className={layout.channelField}>
                     Channel
-                    <select name="replyChannel" value={channel} onChange={(event) => { setChannel(event.target.value); setTemplateId(""); }} className="h-10 rounded-md border border-slate-200 bg-white px-2 text-sm text-slate-900">
+                    <select name="replyChannel" value={channel} onChange={(event) => { setChannel(event.target.value); setTemplateId(""); }} className={layout.replySelect}>
                       {CHANNELS.map((item) => <option key={item} value={item}>{item}</option>)}
                     </select>
                   </label>
-                  <label className="grid min-w-40 flex-1 gap-1 text-xs font-semibold text-slate-500">
+                  <label className={layout.field}>
                     Template
                     <select
                       name="templateId"
@@ -260,7 +335,7 @@ export function InboxView({ data, banner, bannerTone }: { data: InboxData; banne
                           setBody(next.body);
                         }
                       }}
-                      className="h-10 rounded-md border border-slate-200 bg-white px-2 text-sm text-slate-900"
+                      className={layout.replySelect}
                     >
                       <option value="">Free-form</option>
                       {data.templates.filter((item) => item.channel === channel).map((item) => (
@@ -270,9 +345,9 @@ export function InboxView({ data, banner, bannerTone }: { data: InboxData; banne
                       ))}
                     </select>
                   </label>
-                  <label className="grid min-w-40 flex-1 gap-1 text-xs font-semibold text-slate-500">
+                  <label className={layout.field}>
                     Number
-                    <select name="connectionId" defaultValue={connectionId} className="h-10 rounded-md border border-slate-200 bg-white px-2 text-sm text-slate-900">
+                    <select name="connectionId" defaultValue={connectionId} className={layout.replySelect}>
                       <option value="">Workspace default</option>
                       {data.connections.filter((item) => item.channel === channel).map((item) => (
                         <option key={item.id} value={item.id}>{item.label}</option>
@@ -286,13 +361,19 @@ export function InboxView({ data, banner, bannerTone }: { data: InboxData; banne
                 {care?.visible && care.care ? (
                   <InboxWaWindow care={care.care} category={care.category} blocked={care.blocked} prompt={care.prompt} />
                 ) : null}
+                {data.quickUx ? (
+                  <InboxQuickReplies
+                    replies={data.quickReplies}
+                    onInsert={(reply) => setBody((current) => insertQuickReply(current, reply))}
+                  />
+                ) : null}
                 <InboxWaReplyFields blocked={blocked} body={body} onBody={setBody} />
               </form>
               <form action={addInboxNote} className="grid gap-2">
                 <Hidden data={data} id={thread.id} />
                 <label className="grid gap-1 text-xs font-semibold text-slate-500">
                   Internal note
-                  <textarea name="note" rows={2} placeholder="Only your team can see this." className="rounded-md border border-slate-200 px-3 py-2 text-sm" />
+                  <textarea name="note" rows={2} placeholder="Only your team can see this." className={data.quickUx ? "w-full min-w-0 rounded-md border border-slate-200 px-3 py-2 text-sm" : "rounded-md border border-slate-200 px-3 py-2 text-sm"} />
                 </label>
                 <button className="h-9 justify-self-start rounded-md border border-slate-200 px-3 text-sm font-semibold text-[#0B1F3A]">Save note</button>
               </form>
@@ -301,7 +382,7 @@ export function InboxView({ data, banner, bannerTone }: { data: InboxData; banne
             <p className="text-sm text-slate-500">Select a conversation.</p>
           )}
         </section>
-        <aside className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+        <aside className={layout.aside}>
           <h2 className="font-semibold text-[#0B1F3A]">Contact</h2>
           {thread?.contact ? (
             <div className="mt-3 grid gap-3 text-sm text-slate-700">
@@ -342,7 +423,7 @@ export function InboxView({ data, banner, bannerTone }: { data: InboxData; banne
             <p className="mt-3 text-sm text-slate-500">No contact on this thread.</p>
           )}
         </aside>
-      </div>
+      </InboxQuickFrame>
     </div>
   );
 }

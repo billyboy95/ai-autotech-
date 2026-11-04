@@ -5,9 +5,21 @@ import { redirect } from "next/navigation";
 import { workspaceWriteBlock } from "@/lib/billing/guard";
 import { usageForSend } from "@/lib/compliance/usage";
 import type { ConsentStatus } from "@/lib/compliance/send-gate";
+import {
+  bulkAssignNotice,
+  bulkIdsInWorkspace,
+  bulkReadNotice,
+  bulkStatusFor,
+  bulkStatusNotice,
+  inboxBulkActionsEnabled,
+  membershipAssignedOnly,
+  parseBulkConversationIds,
+  planBulkAssign,
+} from "@/lib/inbox/bulk";
 import { inboxMultiNumberEnabled, parseInboxNumber } from "@/lib/inbox/numbers";
 import { contactLookup, outboxRow, parseInboxChannel, planInboxReply, type InboxTemplateChoice, type WaCategory } from "@/lib/inbox/rules";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { safeResolveWorkspace } from "@/lib/tenant/context";
 
 function text(formData: FormData, key: string) {
   return String(formData.get(key) || "").trim();
@@ -190,10 +202,7 @@ export async function assignInboxConversation(formData: FormData) {
   const supabase = await createSupabaseServerClient();
   const user = await supabase.auth.getUser();
   if (!user.data.user) redirect("/login?next=/command-centre/inbox");
-  const saved = await supabase
-    .from("conversations")
-    .update({ assigned_user_id: assignee || null })
-    .eq("id", id);
+  const saved = await conversationsUpdate(supabase, [id], { assigned_user_id: assignee || null });
   if (saved.error) back(formData, { error: saved.error.message });
   revalidatePath("/command-centre/inbox");
   back(formData, { notice: assignee ? "Conversation assigned." : "Conversation is unassigned." });
@@ -205,7 +214,7 @@ export async function setInboxStatus(formData: FormData) {
   const supabase = await createSupabaseServerClient();
   const user = await supabase.auth.getUser();
   if (!user.data.user) redirect("/login?next=/command-centre/inbox");
-  const saved = await supabase.from("conversations").update({ status }).eq("id", id);
+  const saved = await conversationsUpdate(supabase, [id], { status });
   if (saved.error) back(formData, { error: saved.error.message });
   revalidatePath("/command-centre/inbox");
   back(formData, { notice: status === "closed" ? "Conversation closed." : "Conversation reopened." });
@@ -214,8 +223,94 @@ export async function setInboxStatus(formData: FormData) {
 export async function markInboxRead(conversationId: string) {
   if (!/^[0-9a-f-]{36}$/i.test(conversationId)) return;
   const supabase = await createSupabaseServerClient();
-  await supabase.from("conversations").update({ unread_count: 0 }).eq("id", conversationId).gt("unread_count", 0);
+  await conversationsUpdate(supabase, [conversationId], { unread_count: 0 });
   revalidatePath("/command-centre/inbox");
+}
+
+export async function bulkAssignInbox(formData: FormData) {
+  const started = await beginBulk(formData);
+  if (!started.ok) {
+    if (started.login) redirect("/login?next=/command-centre/inbox");
+    back(formData, { error: started.message });
+  }
+  const members = await started.supabase.from("memberships").select("user_id, role, assigned_only").eq("org_id", started.orgId);
+  if (members.error) back(formData, { error: members.error.message });
+  const rows = (members.data ?? []).map((row) => ({
+    userId: String(row.user_id),
+    role: String(row.role || ""),
+    assignedOnly: Boolean(row.assigned_only),
+  }));
+  const planned = planBulkAssign({
+    assignee: text(formData, "assignee"),
+    memberIds: rows.map((row) => row.userId),
+    assignedOnly: membershipAssignedOnly(rows, started.userId),
+    userId: started.userId,
+  });
+  if (!planned.ok) back(formData, { error: planned.message });
+  const saved = await conversationsUpdate(started.supabase, started.ids, { assigned_user_id: planned.assignee }, started.orgId);
+  if (saved.error) back(formData, { error: saved.error.message });
+  revalidatePath("/command-centre/inbox");
+  back(formData, { notice: bulkAssignNotice(saved.data?.length ?? 0, planned.assignee) });
+}
+
+export async function bulkSetInboxStatus(formData: FormData) {
+  const started = await beginBulk(formData);
+  if (!started.ok) {
+    if (started.login) redirect("/login?next=/command-centre/inbox");
+    back(formData, { error: started.message });
+  }
+  const status = bulkStatusFor(started.statuses);
+  const saved = await conversationsUpdate(started.supabase, started.ids, { status }, started.orgId);
+  if (saved.error) back(formData, { error: saved.error.message });
+  revalidatePath("/command-centre/inbox");
+  back(formData, { notice: bulkStatusNotice(saved.data?.length ?? 0, status) });
+}
+
+export async function bulkMarkInboxRead(formData: FormData) {
+  const started = await beginBulk(formData);
+  if (!started.ok) {
+    if (started.login) redirect("/login?next=/command-centre/inbox");
+    back(formData, { error: started.message });
+  }
+  const saved = await conversationsUpdate(started.supabase, started.ids, { unread_count: 0 }, started.orgId);
+  if (saved.error) back(formData, { error: saved.error.message });
+  revalidatePath("/command-centre/inbox");
+  back(formData, { notice: bulkReadNotice(saved.data?.length ?? 0) });
+}
+
+function conversationsUpdate(
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  ids: readonly string[],
+  patch: { assigned_user_id: string | null } | { status: "open" | "closed" } | { unread_count: 0 },
+  orgId = "",
+) {
+  let query = supabase.from("conversations").update(patch).in("id", [...ids]);
+  if (orgId) query = query.eq("org_id", orgId);
+  if ("unread_count" in patch) query = query.gt("unread_count", 0);
+  return query.select("id");
+}
+
+async function beginBulk(formData: FormData) {
+  if (!inboxBulkActionsEnabled()) return { ok: false as const, login: false, message: "Bulk actions are off." };
+  const parsed = parseBulkConversationIds(formData.getAll("ids").map((value) => String(value)));
+  if (!parsed.ok) return { ok: false as const, login: false, message: parsed.message };
+  const supabase = await createSupabaseServerClient();
+  const user = await supabase.auth.getUser();
+  if (!user.data.user) return { ok: false as const, login: true, message: "Sign in to update conversations." };
+  const tenant = await safeResolveWorkspace(text(formData, "org"));
+  if (!tenant.scoped || !tenant.role || tenant.active.id.startsWith("preview-")) {
+    return { ok: false as const, login: false, message: "Choose a workspace before updating conversations." };
+  }
+  const blocked = await workspaceWriteBlock(tenant.active.id);
+  if (blocked) return { ok: false as const, login: false, message: blocked };
+  const found = await supabase.from("conversations").select("id, status").in("id", parsed.ids).eq("org_id", tenant.active.id);
+  if (found.error) return { ok: false as const, login: false, message: found.error.message };
+  const visible = bulkIdsInWorkspace(parsed.ids, (found.data ?? []).map((row) => ({
+    id: String(row.id),
+    status: String(row.status || ""),
+  })));
+  if (!visible.ids.length) return { ok: false as const, login: false, message: "Those conversations are not in this workspace." };
+  return { ok: true as const, supabase, userId: user.data.user.id, orgId: tenant.active.id, ids: visible.ids, statuses: visible.statuses };
 }
 
 async function openChannelThread(input: {

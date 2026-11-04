@@ -1,6 +1,7 @@
 import { missingAiTable, parseAiDraft, parseAiReplySettings } from "@/lib/ai-reply/types";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { safeResolveWorkspace } from "@/lib/tenant/context";
+import { inboxBulkActionsEnabled } from "@/lib/inbox/bulk";
 import { displayPhoneFromConfig, inboxMultiNumberEnabled, parseInboxNumber, resolveInboxNumber, whatsappNumberParts } from "@/lib/inbox/numbers";
 import { INBOX_TEAM_STATS_MESSAGE_CAP, buildInboxTeamStats, inboxTeamStatsEnabled, type TeamStatsMessage } from "@/lib/inbox/team-stats";
 import { inboxQuickUxEnabled, quickRepliesForWorkspace } from "@/lib/inbox/quick-ux";
@@ -91,6 +92,7 @@ export async function loadInbox(query: {
     waTimezone: "",
     waMeters: [],
     quickUx: false,
+    bulkActions: inboxBulkActionsEnabled(),
     quickReplies: [],
     presence: [],
     loadedAt,

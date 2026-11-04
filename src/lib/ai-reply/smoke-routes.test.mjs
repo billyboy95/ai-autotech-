@@ -34,6 +34,7 @@ test("inbox, conversation AI, calendars, reviews, referrals, and public pages re
       INBOX_MULTI_NUMBER_ENABLED: "",
       INBOX_TEAM_STATS_ENABLED: "",
       INBOX_WA_WINDOW_ENABLED: "",
+      INBOX_QUICK_UX_ENABLED: "",
       RESEND_API_KEY: "",
       SMTP_HOST: "",
       SMTP_PASS: "",
@@ -100,6 +101,14 @@ test("inbox, conversation AI, calendars, reviews, referrals, and public pages re
     assert.doesNotMatch(inboxHtml, /inbox-wa-template-gate/);
     assert.doesNotMatch(inboxHtml, /Customer care window/);
     assert.doesNotMatch(inboxHtml, /Cost metering is not live/);
+    assert.doesNotMatch(inboxHtml, /inbox-quick-replies/);
+    assert.doesNotMatch(inboxHtml, /inbox-quick-layout/);
+    assert.doesNotMatch(inboxHtml, /inbox-collision/);
+    assert.doesNotMatch(inboxHtml, /data-stack="narrow"/);
+    assert.doesNotMatch(inboxHtml, /data-quick-ux="on"/);
+    assert.doesNotMatch(inboxHtml, /Naledi Khumalo/);
+    assert.doesNotMatch(inboxHtml, /is typing/);
+    assert.doesNotMatch(inboxHtml, /Quick replies/);
 
     const settings = await fetch(`http://127.0.0.1:${port}/command-centre/ai-replies`, { redirect: "manual" });
     assert.equal(settings.status, 200);

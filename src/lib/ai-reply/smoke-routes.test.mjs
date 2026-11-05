@@ -46,6 +46,8 @@ test("inbox, conversation AI, calendars, reviews, referrals, and public pages re
       INBOX_SEARCH_ENABLED: "",
       INBOX_TAG_FILTER_ENABLED: "",
       INBOX_MEDIA_ENABLED: "",
+      INBOX_OUTBOUND_MEDIA_ENABLED: "",
+      INBOX_ASSIGNED_ONLY_ENABLED: "",
       RESEND_API_KEY: "",
       SMTP_HOST: "",
       SMTP_PASS: "",

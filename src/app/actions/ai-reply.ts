@@ -10,6 +10,7 @@ import { canManageAiReplies, missingAiTable, parseAiReplySettings, AI_REPLY_CHAN
 import { workspaceWriteBlock } from "@/lib/billing/guard";
 import { isStopCommand } from "@/lib/compliance/stop";
 import { usageForSend } from "@/lib/compliance/usage";
+import { conversationVisible, inboxAssignedOnlyEnabled, loadInboxScopeForOrg } from "@/lib/inbox/assigned-only";
 import { inboxMultiNumberEnabled, parseInboxNumber } from "@/lib/inbox/numbers";
 import { contactLookup, outboxRow } from "@/lib/inbox/rules";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -58,12 +59,15 @@ export async function draftInboxWithAi(formData: FormData) {
 
   const conversation = await supabase
     .from("conversations")
-    .select("id, org_id, contact_id, channel, channel_connection_id, wa_window_expires_at")
+    .select("id, org_id, contact_id, channel, channel_connection_id, wa_window_expires_at, assigned_user_id")
     .eq("id", id)
     .maybeSingle();
   if (conversation.error || !conversation.data) back(formData, { error: "That conversation is not in this workspace." });
   const current = conversation.data;
   if (!current) back(formData, { error: "That conversation is not in this workspace." });
+  if (await hiddenFromAssignee(supabase, user.data.user.id, String(current.org_id), current.assigned_user_id ? String(current.assigned_user_id) : null)) {
+    back(formData, { error: "That conversation is not in this workspace." });
+  }
   const blocked = await workspaceWriteBlock(String(current.org_id));
   if (blocked) back(formData, { error: blocked });
 
@@ -151,12 +155,15 @@ export async function approveAiDraft(formData: FormData) {
   const settings = parseAiReplySettings(settingsResult.data);
   const conversation = await supabase
     .from("conversations")
-    .select("id, org_id, contact_id, channel, channel_connection_id, wa_window_expires_at, status")
+    .select("id, org_id, contact_id, channel, channel_connection_id, wa_window_expires_at, status, assigned_user_id")
     .eq("id", draft.conversation_id)
     .eq("org_id", draft.org_id)
     .maybeSingle();
   if (!conversation.data) back(formData, { error: "That conversation is not in this workspace." });
   const current = conversation.data;
+  if (await hiddenFromAssignee(supabase, user.data.user.id, String(current.org_id), current.assigned_user_id ? String(current.assigned_user_id) : null)) {
+    back(formData, { error: "That conversation is not in this workspace." });
+  }
   const channel = String(current.channel);
   const loaded = await loadThreadContext(supabase, {
     orgId: String(current.org_id),
@@ -292,8 +299,11 @@ export async function editAiDraft(formData: FormData) {
   const supabase = await createSupabaseServerClient();
   const user = await supabase.auth.getUser();
   if (!user.data.user) redirect("/login?next=/command-centre/inbox");
-  const found = await supabase.from("ai_drafts").select("id, org_id, status").eq("id", draftId).maybeSingle();
+  const found = await supabase.from("ai_drafts").select("id, org_id, status, conversation_id").eq("id", draftId).maybeSingle();
   if (!found.data) back(formData, { error: "That draft is not in this workspace." });
+  if (await hiddenDraftThread(supabase, user.data.user.id, String(found.data.org_id), found.data.conversation_id ? String(found.data.conversation_id) : "")) {
+    back(formData, { error: "That conversation is not in this workspace." });
+  }
   if (found.data.status !== "pending_review" && found.data.status !== "approved") {
     back(formData, { error: "This draft can no longer be edited." });
   }
@@ -315,8 +325,11 @@ export async function rejectAiDraft(formData: FormData) {
   const supabase = await createSupabaseServerClient();
   const user = await supabase.auth.getUser();
   if (!user.data.user) redirect("/login?next=/command-centre/inbox");
-  const found = await supabase.from("ai_drafts").select("id, org_id, status").eq("id", draftId).maybeSingle();
+  const found = await supabase.from("ai_drafts").select("id, org_id, status, conversation_id").eq("id", draftId).maybeSingle();
   if (!found.data) back(formData, { error: "That draft is not in this workspace." });
+  if (await hiddenDraftThread(supabase, user.data.user.id, String(found.data.org_id), found.data.conversation_id ? String(found.data.conversation_id) : "")) {
+    back(formData, { error: "That conversation is not in this workspace." });
+  }
   if (found.data.status === "queued" || found.data.status === "sent") {
     back(formData, { error: "This draft is already in the outbox." });
   }
@@ -383,6 +396,30 @@ export async function saveAiReplySettings(
   revalidatePath("/command-centre/ai-replies");
   revalidatePath("/command-centre/inbox");
   return { ok: true, message: "Conversation AI settings saved. Sending was not changed." };
+}
+
+async function hiddenFromAssignee(
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  userId: string,
+  orgId: string,
+  assignedUserId: string | null,
+) {
+  if (!inboxAssignedOnlyEnabled()) return false;
+  const scope = await loadInboxScopeForOrg(supabase, userId, orgId);
+  return !conversationVisible(scope, { assignedUserId }, userId);
+}
+
+async function hiddenDraftThread(
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  userId: string,
+  orgId: string,
+  conversationId: string,
+) {
+  if (!inboxAssignedOnlyEnabled()) return false;
+  if (!conversationId) return true;
+  const conversation = await supabase.from("conversations").select("org_id, assigned_user_id").eq("id", conversationId).eq("org_id", orgId).maybeSingle();
+  if (!conversation.data) return true;
+  return hiddenFromAssignee(supabase, userId, String(conversation.data.org_id), conversation.data.assigned_user_id ? String(conversation.data.assigned_user_id) : null);
 }
 
 async function loadThreadContext(

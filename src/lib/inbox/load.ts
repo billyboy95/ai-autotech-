@@ -1,4 +1,15 @@
 import { missingAiTable, parseAiDraft, parseAiReplySettings } from "@/lib/ai-reply/types";
+import {
+  conversationRowVisible,
+  conversationVisible,
+  inboxAssignedOnlyEnabled,
+  inboxListConstraint,
+  resolveInboxScope,
+  selectInboxThreadId,
+  sumVisibleUnread,
+  unreadScope,
+  type InboxScope,
+} from "@/lib/inbox/assigned-only";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { safeResolveWorkspace } from "@/lib/tenant/context";
 import { inboxBulkActionsEnabled } from "@/lib/inbox/bulk";
@@ -34,9 +45,44 @@ export async function loadInboxUnread() {
     const supabase = await createSupabaseServerClient();
     const user = await supabase.auth.getUser();
     if (!user.data.user) return 0;
-    const listed = await supabase.from("conversations").select("unread_count").neq("status", "closed");
-    if (listed.error) return 0;
-    return (listed.data ?? []).reduce((sum, row) => sum + Number(row.unread_count || 0), 0);
+    if (!inboxAssignedOnlyEnabled()) {
+      const listed = await supabase.from("conversations").select("unread_count").neq("status", "closed");
+      if (listed.error) return 0;
+      return (listed.data ?? []).reduce((sum, row) => sum + Number(row.unread_count || 0), 0);
+    }
+    const memberships = await supabase.from("memberships").select("org_id, assigned_only").eq("user_id", user.data.user.id);
+    const decision = unreadScope({
+      enabled: true,
+      memberships: memberships.error
+        ? null
+        : (memberships.data ?? []).map((row) => ({ orgId: String(row.org_id), assignedOnly: Boolean(row.assigned_only) })),
+    });
+    if (decision.mode !== "scoped") return 0;
+    if (decision.restrictedOrgIds.length === 0) {
+      const listed = await supabase.from("conversations").select("unread_count").neq("status", "closed");
+      if (listed.error) return 0;
+      return (listed.data ?? []).reduce((sum, row) => sum + Number(row.unread_count || 0), 0);
+    }
+    const userId = user.data.user.id;
+    const mine = await supabase
+      .from("conversations")
+      .select("unread_count, org_id, assigned_user_id")
+      .neq("status", "closed")
+      .in("org_id", decision.restrictedOrgIds)
+      .eq("assigned_user_id", userId);
+    if (mine.error) return 0;
+    const others = await supabase
+      .from("conversations")
+      .select("unread_count, org_id, assigned_user_id")
+      .neq("status", "closed")
+      .not("org_id", "in", `(${decision.restrictedOrgIds.join(",")})`);
+    if (others.error) return 0;
+    const rows = [...(mine.data ?? []), ...(others.data ?? [])].map((row) => ({
+      orgId: String(row.org_id),
+      assignedUserId: row.assigned_user_id ? String(row.assigned_user_id) : null,
+      unread: Number(row.unread_count || 0),
+    }));
+    return sumVisibleUnread({ restrictedOrgIds: decision.restrictedOrgIds, userId, rows });
   } catch {
     return 0;
   }
@@ -85,6 +131,7 @@ export async function loadInbox(query: {
     orgSlug: tenant.active.slug,
     userId,
     assignedOnly: false,
+    inboxScope: "main",
     sendingEnabled: tenant.active.sendingEnabled,
     filter,
     statusFiltersEnabled,
@@ -122,6 +169,7 @@ export async function loadInbox(query: {
     draft: null,
   };
 
+  let scope: InboxScope = { kind: "main" };
   if (inboxQuickUxEnabled()) {
     base.quickUx = true;
     base.quickReplies = await loadQuickReplies(supabase, tenant.active.id);
@@ -135,6 +183,27 @@ export async function loadInbox(query: {
       .eq("org_id", tenant.active.id)
       .maybeSingle();
     if (!membership.error && membership.data) base.assignedOnly = Boolean(membership.data.assigned_only);
+    if (inboxAssignedOnlyEnabled()) {
+      scope = resolveInboxScope({
+        enabled: true,
+        userId,
+        membership: !membership.error && membership.data ? { assignedOnly: Boolean(membership.data.assigned_only) } : null,
+        membershipError: Boolean(membership.error),
+        orgRole: tenant.role,
+      });
+    }
+  } else if (inboxAssignedOnlyEnabled()) {
+    scope = { kind: "closed" };
+  }
+  const constraint = inboxListConstraint({ scope, filter: query.filter, channel: query.channel, userId });
+  const closedList = statusFiltersEnabled && filter === "closed" && scope.kind !== "closed";
+  if (inboxAssignedOnlyEnabled()) {
+    base.inboxScope = scope.kind;
+    if (!closedList) base.filter = constraint.filter;
+    base.channel = constraint.channel;
+    if (constraint.refuseAll) {
+      return { ...base, conversations: [], thread: null, notice: "This login has no workspace membership on this inbox. Nothing was sent." };
+    }
   }
 
   const connections = await supabase
@@ -173,11 +242,21 @@ export async function loadInbox(query: {
     .eq("org_id", tenant.active.id)
     .order("last_message_at", { ascending: false })
     .limit(100);
-  if (listPlan.onlyClosed) listed = listed.eq("status", "closed");
-  if (listPlan.excludeClosed) listed = listed.neq("status", "closed");
-  if (listPlan.assignedUserId) listed = listed.eq("assigned_user_id", listPlan.assignedUserId);
-  if (listPlan.unassigned) listed = listed.is("assigned_user_id", null);
-  if (channel) listed = listed.eq("channel", channel);
+  if (inboxAssignedOnlyEnabled() && scope.kind === "own") {
+    listed = listed.eq("assigned_user_id", scope.userId);
+    listed = closedList ? listed.eq("status", "closed") : listed.neq("status", "closed");
+  } else if (inboxAssignedOnlyEnabled() && !closedList) {
+    if (constraint.excludeClosed) listed = listed.neq("status", "closed");
+    if (constraint.assignedUserId) listed = listed.eq("assigned_user_id", constraint.assignedUserId);
+    if (constraint.unassigned) listed = listed.is("assigned_user_id", null);
+  } else {
+    if (listPlan.onlyClosed) listed = listed.eq("status", "closed");
+    if (listPlan.excludeClosed) listed = listed.neq("status", "closed");
+    if (listPlan.assignedUserId) listed = listed.eq("assigned_user_id", listPlan.assignedUserId);
+    if (listPlan.unassigned) listed = listed.is("assigned_user_id", null);
+  }
+  if (inboxAssignedOnlyEnabled() && constraint.channel) listed = listed.eq("channel", constraint.channel);
+  else if (channel) listed = listed.eq("channel", channel);
   if (base.number) listed = listed.eq("channel", "whatsapp").eq("channel_connection_id", base.number);
   const conversations = await listed;
   if (conversations.error) {
@@ -224,13 +303,29 @@ export async function loadInbox(query: {
       leadTags: listedTags.leadTags,
       leadId: base.tagFilter && contact?.lead_id ? String(contact.lead_id) : "",
     };
-  });
+  }).filter((item) => !inboxAssignedOnlyEnabled() || conversationRowVisible({
+    constraint: closedList
+      ? { ...constraint, excludeClosed: false, unassigned: false, assignedUserId: scope.kind === "own" ? scope.userId : null }
+      : constraint,
+    status: item.status,
+    assignedUserId: item.assignedUserId,
+    channel: item.channel,
+    haystack: item.contactName,
+  }));
   const tagged = await attachInboxLeadTags(supabase, tenant.active.id, mapped, base.tagFilter);
   base.conversations = tagged.map(publishedListItem);
   base.conversations = await attachInboxSearchPreviews(supabase, tenant.active.id, base.conversations, base.search);
 
-  const selected = query.id && base.conversations.some((item) => item.id === query.id) ? query.id : base.conversations[0]?.id;
-  if (selected) base.thread = await loadThread(supabase, tenant.active.id, selected, base.contactPanel, base.internalNotes, base.media);
+  const visibleIds = base.conversations.map((item) => item.id);
+  const selected = inboxAssignedOnlyEnabled()
+    ? selectInboxThreadId(scope, query.id, visibleIds)
+    : (query.id && visibleIds.includes(query.id) ? query.id : visibleIds[0]);
+  if (selected) {
+    const thread = await loadThread(supabase, tenant.active.id, selected, base.contactPanel, base.internalNotes, base.media);
+    if (thread && (!inboxAssignedOnlyEnabled() || conversationVisible(scope, { assignedUserId: thread.assignedUserId }, userId))) {
+      base.thread = thread;
+    }
+  }
 
   const [templates, members] = await Promise.all([
     supabase.from("message_templates").select("id, name, channel, subject, body, wa_category, wa_status, active").eq("org_id", tenant.active.id).eq("active", true),

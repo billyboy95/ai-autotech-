@@ -1,4 +1,5 @@
 import type { AiDraftView, AiReplyMode } from "@/lib/ai-reply/types";
+import type { InboxScopeKind } from "@/lib/inbox/assigned-only";
 import type { InboxAttachment } from "@/lib/inbox/media";
 import type { InboxFilter } from "@/lib/inbox/rules";
 
@@ -160,6 +161,8 @@ export type InboxData = {
   orgSlug: string;
   userId: string | null;
   assignedOnly: boolean;
+  /** main when the flag is off. own and closed exist only while the flag is on. */
+  inboxScope: InboxScopeKind;
   sendingEnabled: boolean;
   filter: InboxFilter;
   /** Closed chip and filter=closed. Open, Mine, and Unassigned stay either way. */

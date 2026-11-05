@@ -27,10 +27,11 @@ import {
   presencePayload,
   viewerPresenceName,
 } from "@/lib/inbox/quick-ux";
-import { formatInboxCost, inboxCost, realtimeOrgFilter, acceptRealtimeRow, serviceAllowanceLabel, type InboxChannel } from "@/lib/inbox/rules";
+import { formatInboxCost, inboxCost, realtimeOrgFilter, serviceAllowanceLabel, type InboxChannel } from "@/lib/inbox/rules";
 import { inboxListForSearch, searchApplyDelay } from "@/lib/inbox/search";
 import { inboxListForTags, tagFilterChoices, toggleTagSelection } from "@/lib/inbox/tag-filter";
 import { pickTemplateIntoComposer } from "@/lib/inbox/templates-picker";
+import { acceptInboxRealtime, inboxFilterChips, inboxScopeFromKind } from "@/lib/inbox/assigned-only";
 import { applyInboxRealtimeChange, attachInboxRealtime, liveInboxFromData, liveUnreadCount, type RealtimeSocket } from "@/lib/inbox/realtime";
 import { inboxFilterLabel, inboxStatusFilterChips } from "@/lib/inbox/status-filter";
 import { waCareState } from "@/lib/inbox/wa-window";
@@ -160,8 +161,17 @@ export function InboxView({
     });
   }, [realtimeEnabled, data]);
 
+  const scope = useMemo(
+    () => inboxScopeFromKind(data.inboxScope, data.userId),
+    [data.inboxScope, data.userId],
+  );
+  const filterChips = (scope.kind === "own" || scope.kind === "closed")
+    ? (data.statusFiltersEnabled && scope.kind === "own" ? [...inboxFilterChips(scope), "closed" as const] : inboxFilterChips(scope))
+    : inboxStatusFilterChips(data.statusFiltersEnabled);
+
   useEffect(() => {
     if (!realtimeEnabled || data.preview) return;
+    if (data.inboxScope === "closed") return;
     if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) return;
     let socket: RealtimeSocket;
     try {
@@ -176,6 +186,14 @@ export function InboxView({
       supabaseConfigured: true,
       client: socket,
       onChange: (change) => {
+        if (!acceptInboxRealtime({
+          scope,
+          sessionOrgId: data.orgId,
+          rowOrgId: change.orgId,
+          table: change.table,
+          assignedUserId: typeof change.row.assigned_user_id === "string" ? change.row.assigned_user_id : null,
+          userId: data.userId,
+        })) return;
         setLive((current) => {
           const latest = dataRef.current;
           const base = current ?? snapshotFrom(latest);
@@ -185,7 +203,7 @@ export function InboxView({
       },
     });
     return () => attached.detach();
-  }, [realtimeEnabled, data.preview, data.orgId, router]);
+  }, [realtimeEnabled, data.preview, data.inboxScope, data.orgId, data.userId, router, scope]);
 
   useEffect(() => {
     if (!data.quickUx) return;
@@ -193,7 +211,7 @@ export function InboxView({
   }, [data.quickUx, threadId]);
 
   useEffect(() => {
-    if (data.preview || !process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) return;
+    if (data.preview || data.inboxScope === "closed" || !process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) return;
     let filter = "";
     try {
       filter = realtimeOrgFilter(data.orgId);
@@ -204,8 +222,15 @@ export function InboxView({
     const channelName = data.quickUx
       ? supabase.channel(`inbox-${data.orgId}`, { config: { presence: { key: data.userId || "viewer" } } })
       : supabase.channel(`inbox-${data.orgId}`);
-    const refresh = (row: { org_id?: string } | null | undefined) => {
-      if (!acceptRealtimeRow(data.orgId, row?.org_id)) return;
+    const refresh = (table: "messages" | "conversations" | "conversation_notes", row: { org_id?: string; assigned_user_id?: string | null } | null | undefined) => {
+      if (!acceptInboxRealtime({
+        scope,
+        sessionOrgId: data.orgId,
+        rowOrgId: row?.org_id,
+        table,
+        assignedUserId: row?.assigned_user_id,
+        userId: data.userId,
+      })) return;
       router.refresh();
     };
     const watched = data.internalNotes
@@ -213,8 +238,8 @@ export function InboxView({
       : ["messages", "conversations"] as const;
     for (const table of watched) {
       channelName.on("postgres_changes", { event: "*", schema: "public", table, filter }, (payload) => {
-        const next = (payload.new && Object.keys(payload.new).length ? payload.new : payload.old) as { org_id?: string };
-        refresh(next);
+        const next = (payload.new && Object.keys(payload.new).length ? payload.new : payload.old) as { org_id?: string; assigned_user_id?: string | null };
+        refresh(table, next);
       });
     }
     if (data.quickUx) {
@@ -245,7 +270,7 @@ export function InboxView({
       presenceChannel.current = null;
       void supabase.removeChannel(channelName);
     };
-  }, [data.internalNotes, data.orgId, data.preview, data.quickUx, data.userId, data.members, viewerName, router]);
+  }, [data.internalNotes, data.inboxScope, data.orgId, data.preview, data.quickUx, data.userId, data.members, viewerName, router, scope]);
 
   useEffect(() => {
     if (!data.quickUx || data.preview) return;
@@ -296,7 +321,7 @@ export function InboxView({
         </p>
       ) : null}
       <div className={layout.filters}>
-        {inboxStatusFilterChips(data.statusFiltersEnabled).map((filter) => (
+        {filterChips.map((filter) => (
           <Link
             key={filter}
             href={inboxHref({ ...data, filter, id: thread?.id })}

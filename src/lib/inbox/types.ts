@@ -1,4 +1,5 @@
 import type { AiDraftView, AiReplyMode } from "@/lib/ai-reply/types";
+import type { InboxAttachment } from "@/lib/inbox/media";
 import type { InboxFilter } from "@/lib/inbox/rules";
 
 export type InboxListItem = {
@@ -32,6 +33,8 @@ export type InboxMessage = {
   costCents: number;
   providerMessageId: string;
   createdAt: string;
+  /** Stored attachments. Empty unless INBOX_MEDIA_ENABLED is the string true and media jsonb has files. */
+  media: InboxAttachment[];
 };
 
 export type InboxNote = {
@@ -194,6 +197,8 @@ export type InboxData = {
   search: boolean;
   /** True only when INBOX_TAG_FILTER_ENABLED is the string true. */
   tagFilter: boolean;
+  /** True only when INBOX_MEDIA_ENABLED is the string true. */
+  media: boolean;
   /** Empty unless INBOX_QUICK_UX_ENABLED is the string true. */
   quickReplies: InboxQuickReply[];
   /**

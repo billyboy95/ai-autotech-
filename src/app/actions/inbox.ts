@@ -27,6 +27,7 @@ import {
 import { inboxMultiNumberEnabled, parseInboxNumber } from "@/lib/inbox/numbers";
 import { inboxOutboundMediaEnabled, queuedMessageMedia } from "@/lib/inbox/outbound-media";
 import { contactLookup, outboxRow, parseInboxChannel, planInboxReply, type InboxTemplateChoice, type WaCategory } from "@/lib/inbox/rules";
+import { inboxSnoozeEnabled, missingSnoozeColumn, planInboxSnooze, SNOOZE_COLUMN_MISSING } from "@/lib/inbox/snooze";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { safeResolveWorkspace } from "@/lib/tenant/context";
 
@@ -287,6 +288,28 @@ export async function setInboxStatus(formData: FormData) {
   if (saved.error) back(formData, { error: saved.error.message });
   revalidatePath("/command-centre/inbox");
   back(formData, { notice: status === "closed" ? "Conversation closed." : "Conversation reopened." });
+}
+
+export async function snoozeInboxConversation(formData: FormData) {
+  if (!inboxSnoozeEnabled()) back(formData, { error: "Snooze is off." });
+  const id = text(formData, "id");
+  if (!id) back(formData, { error: "Choose a conversation first." });
+  const plan = planInboxSnooze({ preset: text(formData, "preset"), now: new Date() });
+  if (!plan.ok) back(formData, { error: plan.message });
+  const supabase = await createSupabaseServerClient();
+  const user = await supabase.auth.getUser();
+  if (!user.data.user) redirect("/login?next=/command-centre/inbox");
+  const gate = await assignedOnlyPin(supabase, user.data.user.id, id);
+  if (gate.error) back(formData, { error: gate.error });
+  let update = supabase.from("conversations").update({ snoozed_until: plan.snoozedUntil }).eq("id", id);
+  if (gate.pin) update = update.eq("assigned_user_id", gate.pin);
+  const saved = await update.select("id");
+  if (saved.error) {
+    back(formData, { error: missingSnoozeColumn(saved.error.message) ? SNOOZE_COLUMN_MISSING : saved.error.message });
+  }
+  if (!saved.data?.length) back(formData, { error: "That conversation is not in this workspace." });
+  revalidatePath("/command-centre/inbox");
+  back(formData, { notice: plan.notice });
 }
 
 export async function markInboxRead(conversationId: string) {

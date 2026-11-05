@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { addInboxNote, assignInboxConversation, bulkAssignInbox, bulkMarkInboxRead, bulkSetInboxStatus, markInboxRead, saveInboxContactPanel, sendInboxReply, setInboxStatus } from "@/app/actions/inbox";
+import { addInboxNote, assignInboxConversation, bulkAssignInbox, bulkMarkInboxRead, bulkSetInboxStatus, markInboxRead, saveInboxContactPanel, sendInboxReply, setInboxStatus, snoozeInboxConversation } from "@/app/actions/inbox";
+import { SNOOZE_PRESETS } from "@/lib/inbox/snooze";
 import { AiDraftPanel } from "@/components/inbox/ai-draft-panel";
 import { InboxBulkChrome } from "@/components/inbox/inbox-bulk";
 import { InboxContactPanel } from "@/components/inbox/inbox-contact-panel";
@@ -165,9 +166,12 @@ export function InboxView({
     () => inboxScopeFromKind(data.inboxScope, data.userId),
     [data.inboxScope, data.userId],
   );
-  const filterChips = (scope.kind === "own" || scope.kind === "closed")
-    ? (data.statusFiltersEnabled && scope.kind === "own" ? [...inboxFilterChips(scope), "closed" as const] : inboxFilterChips(scope))
-    : inboxStatusFilterChips(data.statusFiltersEnabled);
+  const filterChips = [
+    ...((scope.kind === "own" || scope.kind === "closed")
+      ? (data.statusFiltersEnabled && scope.kind === "own" ? [...inboxFilterChips(scope), "closed" as const] : inboxFilterChips(scope))
+      : inboxStatusFilterChips(data.statusFiltersEnabled)),
+    ...(data.snoozeEnabled && scope.kind !== "closed" ? ["snoozed" as const] : []),
+  ];
 
   useEffect(() => {
     if (!realtimeEnabled || data.preview) return;
@@ -325,7 +329,7 @@ export function InboxView({
           <Link
             key={filter}
             href={inboxHref({ ...data, filter, id: thread?.id })}
-            {...(filter === "closed" ? { "data-testid": "inbox-filter-closed" } : {})}
+            {...(filter === "closed" ? { "data-testid": "inbox-filter-closed" } : filter === "snoozed" ? { "data-testid": "inbox-filter-snoozed" } : {})}
             className={`${layout.chip} ${data.filter === filter ? "bg-[#0B1F3A] text-white" : "bg-white text-slate-700 ring-1 ring-slate-200"}`}
           >
             {inboxFilterLabel(filter)}
@@ -445,6 +449,18 @@ export function InboxView({
                     </button>
                   </form>
                 </div>
+                {data.snoozeEnabled ? (
+                  <form action={snoozeInboxConversation} data-testid="inbox-snooze" className="flex flex-wrap items-center gap-2">
+                    <Hidden data={data} id={thread.id} />
+                    {thread.snoozeLabel ? <p className="w-full text-sm text-slate-600">Snoozed until {thread.snoozeLabel}. Nothing is sent.</p> : null}
+                    <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Snooze</span>
+                    {SNOOZE_PRESETS.map((preset) => (
+                      <button key={preset.id} name="preset" value={preset.id} className="h-9 rounded-md border border-slate-200 px-3 text-sm font-semibold text-[#0B1F3A]">
+                        {preset.label}
+                      </button>
+                    ))}
+                  </form>
+                ) : null}
               </div>
               {data.quickUx ? <InboxCollisionBanner label={collision} /> : null}
               <div className={layout.messageList}>
@@ -645,6 +661,7 @@ function InboxConversationCard({ data, item, active, realtimeEnabled }: { data: 
         <span className="mt-1 block text-xs text-slate-500">{whatsappNumberLabel(data, item.connectionId) || "No number"}</span>
       ) : null}
       <span className="mt-1 block truncate text-sm text-slate-600">{item.preview || "Open the thread"}</span>
+      {item.snoozeLabel ? <span className="mt-1 block text-xs text-slate-500">Snoozed until {item.snoozeLabel}</span> : null}
     </Link>
   );
 }

@@ -12,6 +12,8 @@ export type InboxListItem = {
   unread: number;
   lastMessageAt: string | null;
   windowExpiresAt: string | null;
+  snoozedUntil: string | null;
+  snoozeLabel: string | null;
   contactName: string;
   preview: string;
   /** Phone or WhatsApp from the list contact. Empty unless INBOX_SEARCH_ENABLED is the string true. */
@@ -72,6 +74,8 @@ export type InboxThread = {
   assignedUserId: string | null;
   connectionId: string | null;
   windowExpiresAt: string | null;
+  snoozedUntil: string | null;
+  snoozeLabel: string | null;
   contact: InboxContact | null;
   messages: InboxMessage[];
   notes: InboxNote[];
@@ -167,6 +171,7 @@ export type InboxData = {
   filter: InboxFilter;
   /** Closed chip and filter=closed. Open, Mine, and Unassigned stay either way. */
   statusFiltersEnabled: boolean;
+  snoozeEnabled: boolean;
   channel: string;
   /** True only when INBOX_MULTI_NUMBER_ENABLED is the string true. */
   multiNumber: boolean;

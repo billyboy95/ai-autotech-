@@ -66,6 +66,7 @@ test("inbox, conversation AI, calendars, reviews, referrals, and public pages re
       AUTOMATION_SEND_ENABLED: "",
       INBOX_STATUS_ASSIGNEE_FILTERS_ENABLED: "",
       INBOX_REALTIME_ENABLED: "",
+      INBOX_SNOOZE_ENABLED: "",
       BILLING_SANDBOX: "",
       CRON_SECRET: "",
       PAYFAST_MERCHANT_ID: "",
@@ -159,6 +160,8 @@ test("inbox, conversation AI, calendars, reviews, referrals, and public pages re
     assert.doesNotMatch(inboxHtml, /inbox-media-fallback/);
     assert.doesNotMatch(inboxHtml, /lerato-id\.png/);
     assert.doesNotMatch(inboxHtml, /october-intake\.pdf/);
+    assert.equal(inboxHtml.includes("inbox-snooze"), false);
+    assert.equal(inboxHtml.includes("inbox-filter-snoozed"), false);
 
     const settings = await fetch(`http://127.0.0.1:${port}/command-centre/ai-replies`, { redirect: "manual" });
     assert.equal(settings.status, 200);

@@ -2,18 +2,20 @@ import { WHATSAPP_FREE_SERVICE_PER_MONTH, WHATSAPP_SERVICE_PRICING_START } from 
 import { johannesburgDateKey, newId, toWaDigits } from "@/lib/automation/ids";
 import { evaluateSend, type ConsentStatus, type OutboundChannel, type OutboundPurpose } from "@/lib/compliance/send-gate";
 import { DEFAULT_UNIT_COST_CENTS, usageForSend } from "@/lib/compliance/usage";
+import { isSnoozeActive } from "@/lib/inbox/snooze";
 
 export const INBOX_CHANNELS = ["whatsapp", "sms", "email", "facebook", "instagram"] as const;
 export type InboxChannel = (typeof INBOX_CHANNELS)[number];
-export type InboxFilter = "open" | "mine" | "unassigned" | "closed";
+export type InboxFilter = "open" | "mine" | "unassigned" | "closed" | "snoozed";
 export type WaCategory = "" | "marketing" | "utility" | "authentication" | "service";
 
 const ORG_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 export const WHATSAPP_WINDOW_MS = 24 * 60 * 60 * 1000;
 export const USE_TEMPLATE = "Free-form WhatsApp is outside the 24-hour window. Use an approved template.";
 
-export function parseInboxFilter(value: string | undefined | null): InboxFilter {
+export function parseInboxFilter(value: string | undefined | null, options?: { snoozeEnabled?: boolean }): InboxFilter {
   if (value === "mine" || value === "unassigned") return value;
+  if (options?.snoozeEnabled && value === "snoozed") return "snoozed";
   return "open";
 }
 
@@ -29,10 +31,18 @@ export function matchesInboxList(input: {
   filter: InboxFilter;
   channelFilter: string;
   userId: string | null;
+  snoozedUntil?: string | null;
+  now?: Date;
+  snoozeEnabled?: boolean;
 }) {
   if (input.channelFilter && input.channel !== input.channelFilter) return false;
   if (input.filter === "closed") return input.status === "closed";
   if (input.status === "closed") return false;
+  if (input.snoozeEnabled) {
+    const active = isSnoozeActive(input.snoozedUntil, input.now ?? new Date());
+    if (input.filter === "snoozed") return active;
+    if (active) return false;
+  }
   if (input.filter === "mine") return Boolean(input.userId) && input.assignedUserId === input.userId;
   if (input.filter === "unassigned") return input.assignedUserId == null;
   return input.status === "open" || input.status === "pending";

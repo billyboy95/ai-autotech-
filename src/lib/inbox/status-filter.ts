@@ -34,7 +34,8 @@ export function inboxFilterLabel(filter: InboxFilter) {
   if (filter === "open") return "Open";
   if (filter === "mine") return "Mine";
   if (filter === "unassigned") return "Unassigned";
-  return "Closed";
+  if (filter === "closed") return "Closed";
+  return "Snoozed";
 }
 
 export type ConversationListPlan = {

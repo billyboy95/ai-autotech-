@@ -244,6 +244,10 @@ function conversationFromRow(row: Record<string, unknown>, previous: InboxListIt
     windowExpiresAt: "wa_window_expires_at" in row
       ? (row.wa_window_expires_at ? String(row.wa_window_expires_at) : null)
       : previous?.windowExpiresAt ?? null,
+    snoozedUntil: "snoozed_until" in row
+      ? (row.snoozed_until ? String(row.snoozed_until) : null)
+      : previous?.snoozedUntil ?? null,
+    snoozeLabel: previous?.snoozeLabel ?? null,
     contactName: previous?.contactName || "New message",
     preview: previous?.preview || "",
     phone: previous?.phone ?? "",

@@ -34,7 +34,8 @@ import {
   WA_METER_TIMEZONE,
   type ServiceSendRow,
 } from "@/lib/inbox/wa-metering";
-import { contactLookup, parseInboxChannel } from "@/lib/inbox/rules";
+import { contactLookup, matchesInboxList, parseInboxChannel, parseInboxFilter } from "@/lib/inbox/rules";
+import { activeSnoozeLabel, inboxSnoozeEnabled, missingSnoozeColumn, SNOOZE_COLUMN_MISSING } from "@/lib/inbox/snooze";
 import { conversationListQuery, inboxStatusAssigneeFiltersEnabled, parseStatusAssigneeFilter } from "@/lib/inbox/status-filter";
 import { previewInbox } from "@/lib/inbox/preview";
 import type { InboxConsent, InboxContact, InboxData, InboxListItem, InboxMessage, InboxNote, InboxThread } from "@/lib/inbox/types";
@@ -97,7 +98,10 @@ export async function loadInbox(query: {
   notice?: string | null;
 }): Promise<InboxData> {
   const statusFiltersEnabled = inboxStatusAssigneeFiltersEnabled();
-  const filter = parseStatusAssigneeFilter(query.filter, statusFiltersEnabled);
+  const snoozeEnabled = inboxSnoozeEnabled();
+  const filter = query.filter === "snoozed"
+    ? parseInboxFilter(query.filter, { snoozeEnabled })
+    : parseStatusAssigneeFilter(query.filter, statusFiltersEnabled);
   const channel = parseInboxChannel(query.channel);
   const multiNumber = inboxMultiNumberEnabled();
   const waWindowEnabled = inboxWaWindowEnabled();
@@ -116,6 +120,7 @@ export async function loadInbox(query: {
       ...query,
       filter,
       statusFilters: statusFiltersEnabled,
+      snoozeEnabled,
       channel,
       notice: query.notice,
       brandSlug: tenant.brandLocked ? tenant.active.slug : null,
@@ -135,6 +140,7 @@ export async function loadInbox(query: {
     sendingEnabled: tenant.active.sendingEnabled,
     filter,
     statusFiltersEnabled,
+    snoozeEnabled,
     channel,
     multiNumber,
     number: "",
@@ -236,9 +242,10 @@ export async function loadInbox(query: {
   }
 
   const listPlan = conversationListQuery({ enabled: statusFiltersEnabled, filter: query.filter, userId });
+  const listColumns = inboxListSelect(base.search, base.tagFilter) + (snoozeEnabled ? ", snoozed_until" : "");
   let listed = supabase
     .from("conversations")
-    .select(inboxListSelect(base.search, base.tagFilter))
+    .select(listColumns)
     .eq("org_id", tenant.active.id)
     .order("last_message_at", { ascending: false })
     .limit(100);
@@ -263,6 +270,9 @@ export async function loadInbox(query: {
     await attachWaMeters(supabase, tenant.active.id, base);
     if (missingInboxTable(conversations.error.message)) {
       return { ...base, notice: "Inbox tables are not in this database yet. Apply phase 2e before using the inbox. Nothing was sent." };
+    }
+    if (snoozeEnabled && missingSnoozeColumn(conversations.error.message)) {
+      return { ...base, notice: SNOOZE_COLUMN_MISSING };
     }
     return { ...base, notice: conversations.error.message };
   }
@@ -295,6 +305,8 @@ export async function loadInbox(query: {
       unread: Number(row.unread_count || 0),
       lastMessageAt: row.last_message_at ? String(row.last_message_at) : null,
       windowExpiresAt: row.wa_window_expires_at ? String(row.wa_window_expires_at) : null,
+      snoozedUntil: snoozeEnabled && "snoozed_until" in row && row.snoozed_until ? String(row.snoozed_until) : null,
+      snoozeLabel: snoozeEnabled ? activeSnoozeLabel("snoozed_until" in row && row.snoozed_until ? String(row.snoozed_until) : null, new Date()) : null,
       contactName: name || "Unknown contact",
       preview: "",
       phone: address.phone,
@@ -311,6 +323,16 @@ export async function loadInbox(query: {
     assignedUserId: item.assignedUserId,
     channel: item.channel,
     haystack: item.contactName,
+  })).filter((item) => matchesInboxList({
+    status: item.status,
+    assignedUserId: item.assignedUserId,
+    channel: item.channel,
+    filter,
+    channelFilter: channel,
+    userId,
+    snoozedUntil: item.snoozedUntil,
+    now: new Date(),
+    snoozeEnabled,
   }));
   const tagged = await attachInboxLeadTags(supabase, tenant.active.id, mapped, base.tagFilter);
   base.conversations = tagged.map(publishedListItem);
@@ -321,7 +343,7 @@ export async function loadInbox(query: {
     ? selectInboxThreadId(scope, query.id, visibleIds)
     : (query.id && visibleIds.includes(query.id) ? query.id : visibleIds[0]);
   if (selected) {
-    const thread = await loadThread(supabase, tenant.active.id, selected, base.contactPanel, base.internalNotes, base.media);
+    const thread = await loadThread(supabase, tenant.active.id, selected, base.contactPanel, base.internalNotes, base.media, snoozeEnabled);
     if (thread && (!inboxAssignedOnlyEnabled() || conversationVisible(scope, { assignedUserId: thread.assignedUserId }, userId))) {
       base.thread = thread;
     }
@@ -579,6 +601,8 @@ function publishedListItem(row: InboxListItem & { leadId: string }): InboxListIt
     unread: row.unread,
     lastMessageAt: row.lastMessageAt,
     windowExpiresAt: row.windowExpiresAt,
+    snoozedUntil: row.snoozedUntil,
+    snoozeLabel: row.snoozeLabel,
     contactName: row.contactName,
     preview: row.preview,
     phone: row.phone,
@@ -619,10 +643,11 @@ async function loadThread(
   contactPanel = false,
   internalNotes = false,
   mediaEnabled = false,
+  snoozeEnabled = false,
 ): Promise<InboxThread | null> {
   const conversation = await supabase
     .from("conversations")
-    .select("id, channel, status, assigned_user_id, channel_connection_id, wa_window_expires_at, contact_id, crm_contacts(id, first_name, last_name, email, phone_e164, whatsapp_e164, company, tags, lead_id)")
+    .select(`id, channel, status, assigned_user_id, channel_connection_id, wa_window_expires_at, contact_id${snoozeEnabled ? ", snoozed_until" : ""}, crm_contacts(id, first_name, last_name, email, phone_e164, whatsapp_e164, company, tags, lead_id)`)
     .eq("id", id)
     .eq("org_id", orgId)
     .maybeSingle();
@@ -681,6 +706,8 @@ async function loadThread(
     assignedUserId: row.assigned_user_id ? String(row.assigned_user_id) : null,
     connectionId: row.channel_connection_id ? String(row.channel_connection_id) : null,
     windowExpiresAt: row.wa_window_expires_at ? String(row.wa_window_expires_at) : null,
+    snoozedUntil: "snoozed_until" in row && row.snoozed_until ? String(row.snoozed_until) : null,
+    snoozeLabel: snoozeEnabled ? activeSnoozeLabel("snoozed_until" in row && row.snoozed_until ? String(row.snoozed_until) : null, new Date()) : null,
     contact,
     messages: messages.rows.map((row) => mapMessage(row, messages.withMedia)),
     notes: ((notes.error ? [] : notes.data ?? []) as Record<string, unknown>[]).map(mapNote),

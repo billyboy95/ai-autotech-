@@ -12,7 +12,7 @@ This list filter is separate from the WhatsApp number filter on draft [#94](http
 
 ## What you are reviewing
 
-Draft pull request titled **Draft: flag-gated inbox open/mine/unassigned filters**. Branch `cursor/inbox-status-assignee-filters-e53d`. The base is `main`. It is not stacked on #94–#107. The Files tab is only this filter. It is not the inbox stack.
+Draft [#108](https://github.com/billyboy95/ai-autotech-/pull/108). Branch `cursor/inbox-status-assignee-filters-e53d`. The base is `main`. It is not stacked on #94–#107. The Files tab is only this filter. It is not the inbox stack.
 
 When the flag is the exact string `true`:
 
@@ -29,7 +29,7 @@ When the flag is the exact string `true`:
 On the phone:
 
 1. Open GitHub and sign in as the account that can see `billyboy95/ai-autotech-`.
-2. Open the draft titled **Draft: flag-gated inbox open/mine/unassigned filters**. The branch is `cursor/inbox-status-assignee-filters-e53d`.
+2. Open https://github.com/billyboy95/ai-autotech-/pull/108 . The branch is `cursor/inbox-status-assignee-filters-e53d`.
 3. Read the title and the base branch. The base is `main`. If the base is an inbox stack branch (`cursor/inbox-multi-number-6d2e` or any later inbox branch), stop. Do not merge it into that stack from here.
 4. Open Files changed. Pass when the diff is the status-filter flag, the Closed chip, tests, and this note. Fail and stop if the diff turns `sending_enabled` on, calls Meta, changes consent, assigns or closes from the chip, queues the outbox, adds a migration, or sends WhatsApp, email, or SMS.
 5. Leave the draft as a draft. Do not tap Merge on this visit unless Billy says yes to this pull request on its own.

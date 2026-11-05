@@ -5,6 +5,7 @@ import { inboxBulkActionsEnabled } from "@/lib/inbox/bulk";
 import { inboxContactPanelEnabled } from "@/lib/inbox/contact-panel";
 import { inboxInternalNotesEnabled } from "@/lib/inbox/internal-notes";
 import { inboxSearchEnabled, INBOX_SEARCH_PREVIEW_CAP, latestMessagePreviews, searchListFields, withMessagePreviews } from "@/lib/inbox/search";
+import { INBOX_MESSAGE_COLUMNS, INBOX_MESSAGE_COLUMNS_WITH_MEDIA, inboxMediaEnabled, parseMessageMedia } from "@/lib/inbox/media";
 import { inboxListSelect, inboxTagFilterEnabled, leadIdsForTagLookup, listTagFields, mergeLeadTags } from "@/lib/inbox/tag-filter";
 import { inboxTemplatesPickerEnabled } from "@/lib/inbox/templates-picker";
 import { displayPhoneFromConfig, inboxMultiNumberEnabled, parseInboxNumber, resolveInboxNumber, whatsappNumberParts } from "@/lib/inbox/numbers";
@@ -103,6 +104,7 @@ export async function loadInbox(query: {
     templatesPicker: inboxTemplatesPickerEnabled(),
     search: inboxSearchEnabled(),
     tagFilter: inboxTagFilterEnabled(),
+    media: inboxMediaEnabled(),
     quickReplies: [],
     presence: [],
     loadedAt,
@@ -220,7 +222,7 @@ export async function loadInbox(query: {
   base.conversations = await attachInboxSearchPreviews(supabase, tenant.active.id, base.conversations, base.search);
 
   const selected = query.id && base.conversations.some((item) => item.id === query.id) ? query.id : base.conversations[0]?.id;
-  if (selected) base.thread = await loadThread(supabase, tenant.active.id, selected, base.contactPanel, base.internalNotes);
+  if (selected) base.thread = await loadThread(supabase, tenant.active.id, selected, base.contactPanel, base.internalNotes, base.media);
 
   const [templates, members] = await Promise.all([
     supabase.from("message_templates").select("id, name, channel, subject, body, wa_category, wa_status, active").eq("org_id", tenant.active.id).eq("active", true),
@@ -513,6 +515,7 @@ async function loadThread(
   id: string,
   contactPanel = false,
   internalNotes = false,
+  mediaEnabled = false,
 ): Promise<InboxThread | null> {
   const conversation = await supabase
     .from("conversations")
@@ -561,7 +564,7 @@ async function loadThread(
     : null;
 
   const [messages, notes, consents] = await Promise.all([
-    supabase.from("messages").select("id, direction, body, status, channel, wa_category, cost_cents, provider_message_id, created_at").eq("conversation_id", id).order("created_at", { ascending: true }),
+    loadThreadMessages(supabase, id, mediaEnabled),
     internalNotes
       ? supabase.from("conversation_notes").select("id, body, created_at, author_user_id").eq("conversation_id", id).eq("org_id", orgId).order("created_at", { ascending: true })
       : Promise.resolve({ data: [], error: null }),
@@ -576,13 +579,32 @@ async function loadThread(
     connectionId: row.channel_connection_id ? String(row.channel_connection_id) : null,
     windowExpiresAt: row.wa_window_expires_at ? String(row.wa_window_expires_at) : null,
     contact,
-    messages: ((messages.data ?? []) as Record<string, unknown>[]).map(mapMessage),
+    messages: messages.rows.map((row) => mapMessage(row, messages.withMedia)),
     notes: ((notes.error ? [] : notes.data ?? []) as Record<string, unknown>[]).map(mapNote),
     consents: consentRows(consents.data),
   };
 }
 
-function mapMessage(row: Record<string, unknown>): InboxMessage {
+async function loadThreadMessages(
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  id: string,
+  mediaEnabled: boolean,
+) {
+  const listed = mediaEnabled
+    ? await supabase.from("messages").select(INBOX_MESSAGE_COLUMNS_WITH_MEDIA).eq("conversation_id", id).order("created_at", { ascending: true })
+    : await supabase.from("messages").select(INBOX_MESSAGE_COLUMNS).eq("conversation_id", id).order("created_at", { ascending: true });
+  if (mediaEnabled && listed.error) {
+    const plain = await supabase.from("messages").select(INBOX_MESSAGE_COLUMNS).eq("conversation_id", id).order("created_at", { ascending: true });
+    return { rows: messageRows(plain.data), withMedia: false };
+  }
+  return { rows: messageRows(listed.data), withMedia: mediaEnabled && !listed.error };
+}
+
+function messageRows(data: unknown) {
+  return (Array.isArray(data) ? data : []) as Record<string, unknown>[];
+}
+
+function mapMessage(row: Record<string, unknown>, withMedia: boolean): InboxMessage {
   return {
     id: String(row.id),
     direction: row.direction === "out" ? "out" : "in",
@@ -593,6 +615,7 @@ function mapMessage(row: Record<string, unknown>): InboxMessage {
     costCents: Number(row.cost_cents || 0),
     providerMessageId: String(row.provider_message_id || ""),
     createdAt: String(row.created_at || ""),
+    media: withMedia ? parseMessageMedia(row.media) : [],
   };
 }
 

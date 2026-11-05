@@ -41,6 +41,7 @@ test("inbox, conversation AI, calendars, reviews, referrals, and public pages re
       INBOX_TEMPLATES_PICKER_ENABLED: "",
       INBOX_SEARCH_ENABLED: "",
       INBOX_TAG_FILTER_ENABLED: "",
+      INBOX_MEDIA_ENABLED: "",
       RESEND_API_KEY: "",
       SMTP_HOST: "",
       SMTP_PASS: "",
@@ -138,6 +139,13 @@ test("inbox, conversation AI, calendars, reviews, referrals, and public pages re
     assert.doesNotMatch(inboxHtml, /inbox-tag-chip/);
     assert.doesNotMatch(inboxHtml, /No conversations match these tags/);
     assert.doesNotMatch(inboxHtml, /Clear tags/);
+    assert.doesNotMatch(inboxHtml, /data-testid="inbox-message-media"/);
+    assert.doesNotMatch(inboxHtml, /data-media="on"/);
+    assert.doesNotMatch(inboxHtml, /inbox-media-thumb/);
+    assert.doesNotMatch(inboxHtml, /inbox-media-file/);
+    assert.doesNotMatch(inboxHtml, /inbox-media-fallback/);
+    assert.doesNotMatch(inboxHtml, /lerato-id\.png/);
+    assert.doesNotMatch(inboxHtml, /october-intake\.pdf/);
 
     const settings = await fetch(`http://127.0.0.1:${port}/command-centre/ai-replies`, { redirect: "manual" });
     assert.equal(settings.status, 200);

@@ -2,6 +2,7 @@ import { inboxBulkActionsEnabled } from "@/lib/inbox/bulk";
 import { inboxContactPanelEnabled } from "@/lib/inbox/contact-panel";
 import { inboxInternalNotesEnabled } from "@/lib/inbox/internal-notes";
 import { inboxSearchEnabled, searchListFields } from "@/lib/inbox/search";
+import { inboxMediaEnabled, parseMessageMedia, PREVIEW_MESSAGE_MEDIA } from "@/lib/inbox/media";
 import { inboxTagFilterEnabled, listTagFields } from "@/lib/inbox/tag-filter";
 import { inboxTemplatesPickerEnabled } from "@/lib/inbox/templates-picker";
 import { inboxMultiNumberEnabled, matchesInboxNumber, parseInboxNumber, resolveInboxNumber, whatsappNumberParts } from "@/lib/inbox/numbers";
@@ -65,6 +66,7 @@ const threads: Record<string, InboxThread> = {
         costCents: 0,
         providerMessageId: "wamid.preview",
         createdAt: now.toISOString(),
+        media: [],
       },
       {
         id: "preview-out",
@@ -76,6 +78,7 @@ const threads: Record<string, InboxThread> = {
         costCents: 0,
         providerMessageId: "outbox:msg_preview",
         createdAt: now.toISOString(),
+        media: [],
       },
     ],
     notes: [{
@@ -119,6 +122,7 @@ const threads: Record<string, InboxThread> = {
         costCents: 0,
         providerMessageId: "sms.preview",
         createdAt: now.toISOString(),
+        media: [],
       },
     ],
     notes: [],
@@ -154,6 +158,7 @@ const threads: Record<string, InboxThread> = {
         costCents: 0,
         providerMessageId: "wamid.old",
         createdAt: new Date(now.getTime() - 26 * 60 * 60 * 1000).toISOString(),
+        media: [],
       },
     ],
     notes: [],
@@ -188,6 +193,7 @@ const threads: Record<string, InboxThread> = {
         costCents: 0,
         providerMessageId: "wamid.desk",
         createdAt: now.toISOString(),
+        media: [],
       },
     ],
     notes: [],
@@ -219,6 +225,8 @@ export function previewInbox(query: {
   search?: boolean;
   /** Explicit override. Omit to follow INBOX_TAG_FILTER_ENABLED. */
   tagFilter?: boolean;
+  /** Explicit override. Omit to follow INBOX_MEDIA_ENABLED. */
+  media?: boolean;
   /** Explicit override. Omit to follow INBOX_WA_METERING_ENABLED. */
   waMetering?: boolean;
   notice?: string | null;
@@ -236,6 +244,7 @@ export function previewInbox(query: {
   const templatesPicker = query.templatesPicker ?? inboxTemplatesPickerEnabled();
   const search = query.search ?? inboxSearchEnabled();
   const tagFilter = query.tagFilter ?? inboxTagFilterEnabled();
+  const media = query.media ?? inboxMediaEnabled();
   const waMeteringEnabled = query.waMetering ?? inboxWaMeteringEnabled();
   const whatsappNumbers = multiNumber ? previewNumbers : [];
   const number = multiNumber
@@ -300,7 +309,7 @@ export function previewInbox(query: {
         leadTags: listedTags.leadTags,
       };
     }),
-    thread: threadForPreview(selected, internalNotes),
+    thread: threadForPreview(selected, internalNotes, media),
     templates: [
       {
         id: "preview-template",
@@ -336,6 +345,7 @@ export function previewInbox(query: {
     templatesPicker,
     search,
     tagFilter,
+    media,
     quickReplies: quickUx ? quickRepliesForWorkspace(null) : [],
     presence: quickUx ? previewInboxPresence(OPEN_WA, EXPIRED_WA) : [],
     loadedAt: now.toISOString(),
@@ -359,12 +369,18 @@ export function previewInbox(query: {
   };
 }
 
-function threadForPreview(id: string | undefined, internalNotes: boolean): InboxThread | null {
+function threadForPreview(id: string | undefined, internalNotes: boolean, mediaEnabled: boolean): InboxThread | null {
   if (!id) return null;
   const thread = threads[id];
   if (!thread) return null;
-  if (internalNotes) return thread;
-  return { ...thread, notes: [] };
+  return {
+    ...thread,
+    notes: internalNotes ? thread.notes : [],
+    messages: thread.messages.map((message) => ({
+      ...message,
+      media: mediaEnabled && message.id === "preview-in" ? parseMessageMedia(PREVIEW_MESSAGE_MEDIA) : [],
+    })),
+  };
 }
 
 function previewWaMetering(

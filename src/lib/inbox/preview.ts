@@ -1,6 +1,7 @@
 import { inboxBulkActionsEnabled } from "@/lib/inbox/bulk";
 import { inboxContactPanelEnabled } from "@/lib/inbox/contact-panel";
 import { inboxInternalNotesEnabled } from "@/lib/inbox/internal-notes";
+import { inboxTemplatesPickerEnabled } from "@/lib/inbox/templates-picker";
 import { inboxMultiNumberEnabled, matchesInboxNumber, parseInboxNumber, resolveInboxNumber, whatsappNumberParts } from "@/lib/inbox/numbers";
 import { matchesInboxList, parseInboxChannel, parseInboxFilter, windowExpiry } from "@/lib/inbox/rules";
 import { buildInboxTeamStats, inboxTeamStatsEnabled, type TeamStatsMessage } from "@/lib/inbox/team-stats";
@@ -210,6 +211,8 @@ export function previewInbox(query: {
   contactPanel?: boolean;
   /** Explicit override. Omit to follow INBOX_INTERNAL_NOTES_ENABLED. */
   internalNotes?: boolean;
+  /** Explicit override. Omit to follow INBOX_TEMPLATES_PICKER_ENABLED. */
+  templatesPicker?: boolean;
   /** Explicit override. Omit to follow INBOX_WA_METERING_ENABLED. */
   waMetering?: boolean;
   notice?: string | null;
@@ -224,6 +227,7 @@ export function previewInbox(query: {
   const bulkActions = query.bulkActions ?? inboxBulkActionsEnabled();
   const contactPanel = query.contactPanel ?? inboxContactPanelEnabled();
   const internalNotes = query.internalNotes ?? inboxInternalNotesEnabled();
+  const templatesPicker = query.templatesPicker ?? inboxTemplatesPickerEnabled();
   const waMeteringEnabled = query.waMetering ?? inboxWaMeteringEnabled();
   const whatsappNumbers = multiNumber ? previewNumbers : [];
   const number = multiNumber
@@ -312,6 +316,7 @@ export function previewInbox(query: {
     bulkActions,
     contactPanel,
     internalNotes,
+    templatesPicker,
     quickReplies: quickUx ? quickRepliesForWorkspace(null) : [],
     presence: quickUx ? previewInboxPresence(OPEN_WA, EXPIRED_WA) : [],
     loadedAt: now.toISOString(),

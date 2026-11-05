@@ -180,6 +180,8 @@ export type InboxData = {
   contactPanel: boolean;
   /** True only when INBOX_INTERNAL_NOTES_ENABLED is the string true. */
   internalNotes: boolean;
+  /** True only when INBOX_TEMPLATES_PICKER_ENABLED is the string true. */
+  templatesPicker: boolean;
   /** Empty unless INBOX_QUICK_UX_ENABLED is the string true. */
   quickReplies: InboxQuickReply[];
   /**

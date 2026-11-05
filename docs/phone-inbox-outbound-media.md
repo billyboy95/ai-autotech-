@@ -10,7 +10,7 @@ This is the reply box. It is separate from the image and document chips on draft
 
 ## What you are reviewing
 
-Draft on branch `cursor/inbox-outbound-media-dbde`. It stacks on draft [#107](https://github.com/billyboy95/ai-autotech-/pull/107) (`cursor/inbox-media-attachments-6195`). The Files tab on this draft is only the attach control. It is not the whole inbox stack.
+Draft [#109](https://github.com/billyboy95/ai-autotech-/pull/109). Branch `cursor/inbox-outbound-media-dbde`. It stacks on draft [#107](https://github.com/billyboy95/ai-autotech-/pull/107) (`cursor/inbox-media-attachments-6195`). The Files tab on #109 is only the attach control. It is not the whole inbox stack.
 
 When the flag is the exact string `true`:
 
@@ -24,7 +24,7 @@ When the flag is the exact string `true`:
 On the phone:
 
 1. Open GitHub and sign in as the account that can see `billyboy95/ai-autotech-`.
-2. Open the pull request for branch `cursor/inbox-outbound-media-dbde`.
+2. Open https://github.com/billyboy95/ai-autotech-/pull/109 . The branch is `cursor/inbox-outbound-media-dbde`.
 3. Read the title and the base branch. The base is `cursor/inbox-media-attachments-6195` (draft #107). If the base is `main`, stop. Do not merge it into main from here.
 4. Open Files changed. Pass when the diff is the attach flag, the reply-box chip, tests, and this note. Fail and stop if the diff turns `sending_enabled` on, calls Meta, changes consent, uploads a file, adds a migration, or sends WhatsApp, email, or SMS.
 5. Leave the draft as a draft. Do not tap Merge on this visit unless Billy says yes to the whole stack below, in that order.
@@ -45,7 +45,7 @@ Merge one pull request at a time, from the bottom of the stack. Wait until the n
 10. [#105](https://github.com/billyboy95/ai-autotech-/pull/105) — conversation search (`cursor/inbox-conversation-search-353d`). After #104 is on main.
 11. [#106](https://github.com/billyboy95/ai-autotech-/pull/106) — tag filter (`cursor/inbox-tag-filter-d936`). After #105 is on main.
 12. [#107](https://github.com/billyboy95/ai-autotech-/pull/107) — media on the open thread (`cursor/inbox-media-attachments-6195`). After #106 is on main.
-13. This draft — attach a file on the queued reply (`cursor/inbox-outbound-media-dbde`). After #107 is on main.
+13. [#109](https://github.com/billyboy95/ai-autotech-/pull/109) — attach a file on the queued reply (`cursor/inbox-outbound-media-dbde`). After #107 is on main.
 
 A yes to one pull request is not a yes to the next. A yes to merge is not a yes to the flag, and it is not a yes to send.
 

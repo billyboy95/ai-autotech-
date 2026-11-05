@@ -248,6 +248,10 @@ Do not apply by filename sort.
 
 Filename sort also places `20260926180000_zentrix_shopify.sql` before `outbound_channels` and `agency_tenancy`. Zentrix needs `organizations`, so it stays at step 5.
 
+## Inbox status and assignee filters
+
+`INBOX_STATUS_ASSIGNEE_FILTERS_ENABLED` does not add a migration. Open, Mine, and Unassigned already read `conversations.status` and `conversations.assigned_user_id` from step 12 (`supabase/migrations/20261018120000_phase2e_inbox.sql`). Status is `open`, `pending`, or `closed`. That step is already live. Do not paste it again. The existing indexes on `(org_id, status, last_message_at)` and `(org_id, assigned_user_id)` cover the list. With the flag unset, the inbox list stays as it is today: those three chips stay, closed threads stay out of the list, and `filter=closed` is ignored. With the flag the exact string `true`, Closed is an extra chip and lists rows whose status is `closed`. Leave the flag unset until Billy says yes. The phone checklist is `docs/phone-inbox-status-assignee-filters.md`. Choosing a chip does not assign, does not close, does not change consent, does not queue `crm_outbox`, does not send, and does not turn `sending_enabled` on.
+
 ## Inbox internal notes
 
 `INBOX_INTERNAL_NOTES_ENABLED` does not add a migration. Staff notes use `conversation_notes` from step 12 (`supabase/migrations/20261018120000_phase2e_inbox.sql`). That step is already live. Do not paste it again. Leave the flag unset until Billy says yes. The phone checklist is `docs/phone-inbox-internal-notes.md`. This flag does not turn `sending_enabled` on and it does not send.

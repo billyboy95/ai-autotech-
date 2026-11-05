@@ -130,6 +130,12 @@ import {
   outboundWaMessageMeter,
   zonedMonthStart,
 } from "@/lib/inbox/wa-metering";
+import {
+  conversationListQuery,
+  inboxFilterHref,
+  inboxStatusAssigneeFiltersEnabled,
+  inboxStatusFilterChips,
+} from "@/lib/inbox/status-filter";
 import type { InboxData, InboxTemplateOption } from "@/lib/inbox/types";
 import {
   acceptRealtimeRow,
@@ -254,6 +260,103 @@ test("list filters keep open, mine, and unassigned apart from channel", () => {
   assert.equal(matchesInboxList({ ...mine, filter: "unassigned" }), false);
   assert.equal(matchesInboxList({ ...mine, filter: "open", channelFilter: "sms" }), false);
   assert.equal(matchesInboxList({ status: "closed", assignedUserId: null, channel: "sms", filter: "unassigned", channelFilter: "", userId: "user-1" }), false);
+  assert.equal(matchesInboxList({ status: "pending", assignedUserId: null, channel: "sms", filter: "open", channelFilter: "", userId: "user-1" }), true);
+  assert.equal(matchesInboxList({ status: "closed", assignedUserId: "user-1", channel: "email", filter: "mine", channelFilter: "", userId: "user-1" }), false);
+  assert.equal(matchesInboxList({ status: "closed", assignedUserId: "user-1", channel: "email", filter: "closed", channelFilter: "", userId: "user-1" }), true);
+  assert.equal(matchesInboxList({ status: "open", assignedUserId: null, channel: "sms", filter: "closed", channelFilter: "", userId: "user-1" }), false);
+  assert.equal(matchesInboxList({ status: "closed", assignedUserId: null, channel: "email", filter: "closed", channelFilter: "sms", userId: "user-1" }), false);
+});
+
+const OPEN_NAMES = ["Lerato Mokoena", "Thabo Ndlovu", "Amina Patel"];
+
+test("status assignee flag is off unless the value is the exact string true", () => {
+  assert.equal(inboxStatusAssigneeFiltersEnabled({} as NodeJS.ProcessEnv), false);
+  assert.equal(inboxStatusAssigneeFiltersEnabled({ INBOX_STATUS_ASSIGNEE_FILTERS_ENABLED: "" } as NodeJS.ProcessEnv), false);
+  assert.equal(inboxStatusAssigneeFiltersEnabled({ INBOX_STATUS_ASSIGNEE_FILTERS_ENABLED: "false" } as NodeJS.ProcessEnv), false);
+  assert.equal(inboxStatusAssigneeFiltersEnabled({ INBOX_STATUS_ASSIGNEE_FILTERS_ENABLED: "True" } as NodeJS.ProcessEnv), false);
+  assert.equal(inboxStatusAssigneeFiltersEnabled({ INBOX_STATUS_ASSIGNEE_FILTERS_ENABLED: "TRUE" } as NodeJS.ProcessEnv), false);
+  assert.equal(inboxStatusAssigneeFiltersEnabled({ INBOX_STATUS_ASSIGNEE_FILTERS_ENABLED: "1" } as NodeJS.ProcessEnv), false);
+  assert.equal(inboxStatusAssigneeFiltersEnabled({ INBOX_STATUS_ASSIGNEE_FILTERS_ENABLED: "yes" } as NodeJS.ProcessEnv), false);
+  assert.equal(inboxStatusAssigneeFiltersEnabled({ INBOX_STATUS_ASSIGNEE_FILTERS_ENABLED: " true " } as NodeJS.ProcessEnv), true);
+  assert.equal(inboxStatusAssigneeFiltersEnabled({ INBOX_STATUS_ASSIGNEE_FILTERS_ENABLED: "true" } as NodeJS.ProcessEnv), true);
+  assert.deepEqual(inboxStatusFilterChips(false), ["open", "mine", "unassigned"]);
+  assert.deepEqual(inboxStatusFilterChips(true), ["open", "mine", "unassigned", "closed"]);
+});
+
+test("flag off keeps today's inbox list and does not add a closed query", () => {
+  const open = previewInbox({ statusFilters: false });
+  assert.equal(open.statusFiltersEnabled, false);
+  assert.equal(open.sendingEnabled, false);
+  assert.equal(open.filter, "open");
+  assert.deepEqual(open.conversations.map((item) => item.contactName), OPEN_NAMES);
+  assert.equal(JSON.stringify(open).includes("Nomsa"), false);
+  const closedQuery = previewInbox({ filter: "closed", statusFilters: false });
+  assert.equal(closedQuery.filter, "open");
+  assert.deepEqual(closedQuery.conversations.map((item) => item.contactName), OPEN_NAMES);
+  const mine = previewInbox({ filter: "mine", statusFilters: false });
+  assert.deepEqual(mine.conversations.map((item) => item.contactName), ["Lerato Mokoena"]);
+  const unassigned = previewInbox({ filter: "unassigned", statusFilters: false });
+  assert.deepEqual(unassigned.conversations.map((item) => item.contactName), ["Thabo Ndlovu", "Amina Patel"]);
+  assert.equal(inboxFilterHref({ orgSlug: "preview", filter: "closed", channel: "", statusFiltersEnabled: false }), "/command-centre/inbox");
+  assert.equal(inboxFilterHref({ orgSlug: "preview", filter: "mine", channel: "", statusFiltersEnabled: false }), "/command-centre/inbox?filter=mine");
+  const plan = conversationListQuery({ enabled: false, filter: "closed", userId: "user-1" });
+  assert.equal(plan.filter, "open");
+  assert.equal(plan.excludeClosed, true);
+  assert.equal(plan.onlyClosed, false);
+  assert.equal(plan.assignedUserId, null);
+  assert.equal(plan.unassigned, false);
+});
+
+test("flag on narrows open, mine, unassigned, and closed from fixtures", () => {
+  const open = previewInbox({ statusFilters: true });
+  assert.equal(open.statusFiltersEnabled, true);
+  assert.equal(open.sendingEnabled, false);
+  assert.deepEqual(open.conversations.map((item) => item.contactName), OPEN_NAMES);
+  const mine = previewInbox({ filter: "mine", statusFilters: true });
+  assert.deepEqual(mine.conversations.map((item) => item.contactName), ["Lerato Mokoena"]);
+  assert.equal(mine.conversations.every((item) => item.assignedUserId === mine.userId && item.status !== "closed"), true);
+  const unassigned = previewInbox({ filter: "unassigned", statusFilters: true });
+  assert.deepEqual(unassigned.conversations.map((item) => item.contactName), ["Thabo Ndlovu", "Amina Patel"]);
+  assert.equal(unassigned.conversations.every((item) => item.assignedUserId == null), true);
+  const closed = previewInbox({ filter: "closed", statusFilters: true });
+  assert.equal(closed.filter, "closed");
+  assert.deepEqual(closed.conversations.map((item) => item.contactName), ["Nomsa Khumalo"]);
+  assert.equal(closed.conversations[0]?.status, "closed");
+  assert.equal(closed.thread?.status, "closed");
+  assert.equal(closed.sendingEnabled, false);
+  const closedOtherChannel = previewInbox({ filter: "closed", channel: "whatsapp", statusFilters: true });
+  assert.deepEqual(closedOtherChannel.conversations, []);
+  const minePlan = conversationListQuery({ enabled: true, filter: "mine", userId: "user-1" });
+  assert.equal(minePlan.excludeClosed, true);
+  assert.equal(minePlan.assignedUserId, "user-1");
+  assert.equal(minePlan.unassigned, false);
+  const unassignedPlan = conversationListQuery({ enabled: true, filter: "unassigned", userId: "user-1" });
+  assert.equal(unassignedPlan.unassigned, true);
+  assert.equal(unassignedPlan.assignedUserId, null);
+  assert.equal(unassignedPlan.excludeClosed, true);
+  const closedPlan = conversationListQuery({ enabled: true, filter: "closed", userId: "user-1" });
+  assert.equal(closedPlan.onlyClosed, true);
+  assert.equal(closedPlan.excludeClosed, false);
+  assert.equal(closedPlan.assignedUserId, null);
+  assert.equal(closedPlan.unassigned, false);
+  assert.equal(
+    inboxFilterHref({ orgSlug: "ai-autotech", filter: "closed", channel: "", statusFiltersEnabled: true }),
+    "/command-centre/inbox?org=ai-autotech&filter=closed",
+  );
+  assert.equal(conversationListQuery({ enabled: true, filter: "mine", userId: null }).assignedUserId, null);
+});
+
+test("status filters do not queue the outbox or call a provider", () => {
+  const source = readFileSync(new URL("./status-filter.ts", import.meta.url), "utf8");
+  const view = readFileSync(new URL("../../components/inbox/inbox-view.tsx", import.meta.url), "utf8");
+  const load = readFileSync(new URL("./load.ts", import.meta.url), "utf8");
+  assert.equal(/from\(["']crm_outbox|\.insert\(|graph\.facebook|sending_enabled\s*=\s*true/i.test(source), false);
+  assert.match(view, /inboxStatusFilterChips\(data\.statusFiltersEnabled\)/);
+  assert.match(load, /conversationListQuery/);
+  assert.equal(/crm_outbox|\.insert\(/i.test(load), false);
+  const closed = previewInbox({ filter: "closed", statusFilters: true });
+  assert.equal(JSON.stringify(closed).includes("\"status\":\"queued\""), false);
+  assert.equal(JSON.stringify(closed).includes("\"status\":\"sent\""), false);
 });
 
 test("an inbound message feeds message.inbound and refreshes the WhatsApp window", () => {

@@ -23,7 +23,8 @@ import {
   WA_METER_TIMEZONE,
   type ServiceSendRow,
 } from "@/lib/inbox/wa-metering";
-import { contactLookup, parseInboxChannel, parseInboxFilter } from "@/lib/inbox/rules";
+import { contactLookup, parseInboxChannel } from "@/lib/inbox/rules";
+import { conversationListQuery, inboxStatusAssigneeFiltersEnabled, parseStatusAssigneeFilter } from "@/lib/inbox/status-filter";
 import { previewInbox } from "@/lib/inbox/preview";
 import type { InboxConsent, InboxContact, InboxData, InboxListItem, InboxMessage, InboxNote, InboxThread } from "@/lib/inbox/types";
 
@@ -49,7 +50,8 @@ export async function loadInbox(query: {
   number?: string;
   notice?: string | null;
 }): Promise<InboxData> {
-  const filter = parseInboxFilter(query.filter);
+  const statusFiltersEnabled = inboxStatusAssigneeFiltersEnabled();
+  const filter = parseStatusAssigneeFilter(query.filter, statusFiltersEnabled);
   const channel = parseInboxChannel(query.channel);
   const multiNumber = inboxMultiNumberEnabled();
   const waWindowEnabled = inboxWaWindowEnabled();
@@ -67,6 +69,7 @@ export async function loadInbox(query: {
     return previewInbox({
       ...query,
       filter,
+      statusFilters: statusFiltersEnabled,
       channel,
       notice: query.notice,
       brandSlug: tenant.brandLocked ? tenant.active.slug : null,
@@ -84,6 +87,7 @@ export async function loadInbox(query: {
     assignedOnly: false,
     sendingEnabled: tenant.active.sendingEnabled,
     filter,
+    statusFiltersEnabled,
     channel,
     multiNumber,
     number: "",
@@ -162,15 +166,17 @@ export async function loadInbox(query: {
     }
   }
 
+  const listPlan = conversationListQuery({ enabled: statusFiltersEnabled, filter: query.filter, userId });
   let listed = supabase
     .from("conversations")
     .select(inboxListSelect(base.search, base.tagFilter))
     .eq("org_id", tenant.active.id)
-    .neq("status", "closed")
     .order("last_message_at", { ascending: false })
     .limit(100);
-  if (filter === "mine" && userId) listed = listed.eq("assigned_user_id", userId);
-  if (filter === "unassigned") listed = listed.is("assigned_user_id", null);
+  if (listPlan.onlyClosed) listed = listed.eq("status", "closed");
+  if (listPlan.excludeClosed) listed = listed.neq("status", "closed");
+  if (listPlan.assignedUserId) listed = listed.eq("assigned_user_id", listPlan.assignedUserId);
+  if (listPlan.unassigned) listed = listed.is("assigned_user_id", null);
   if (channel) listed = listed.eq("channel", channel);
   if (base.number) listed = listed.eq("channel", "whatsapp").eq("channel_connection_id", base.number);
   const conversations = await listed;

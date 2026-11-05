@@ -7,7 +7,8 @@ import { inboxOutboundMediaEnabled } from "@/lib/inbox/outbound-media";
 import { inboxTagFilterEnabled, listTagFields } from "@/lib/inbox/tag-filter";
 import { inboxTemplatesPickerEnabled } from "@/lib/inbox/templates-picker";
 import { inboxMultiNumberEnabled, matchesInboxNumber, parseInboxNumber, resolveInboxNumber, whatsappNumberParts } from "@/lib/inbox/numbers";
-import { matchesInboxList, parseInboxChannel, parseInboxFilter, windowExpiry } from "@/lib/inbox/rules";
+import { matchesInboxList, parseInboxChannel, windowExpiry } from "@/lib/inbox/rules";
+import { inboxStatusAssigneeFiltersEnabled, parseStatusAssigneeFilter } from "@/lib/inbox/status-filter";
 import { buildInboxTeamStats, inboxTeamStatsEnabled, type TeamStatsMessage } from "@/lib/inbox/team-stats";
 import { inboxQuickUxEnabled, previewInboxPresence, quickRepliesForWorkspace } from "@/lib/inbox/quick-ux";
 import { inboxWaWindowEnabled } from "@/lib/inbox/wa-window";
@@ -27,6 +28,7 @@ const OPEN_WA = "00000000-0000-4000-8000-000000000001";
 const OPEN_SMS = "00000000-0000-4000-8000-000000000002";
 const EXPIRED_WA = "00000000-0000-4000-8000-000000000003";
 const DESK_WA = "00000000-0000-4000-8000-000000000004";
+const CLOSED_EMAIL = "00000000-0000-4000-8000-000000000014";
 const PREVIEW_WA = "preview-wa";
 const PREVIEW_WA_DESK = "preview-wa-desk";
 
@@ -200,6 +202,41 @@ const threads: Record<string, InboxThread> = {
     notes: [],
     consents: [{ channel: "whatsapp", purpose: "service", status: "opted_in" }],
   },
+  [CLOSED_EMAIL]: {
+    id: CLOSED_EMAIL,
+    channel: "email",
+    status: "closed",
+    assignedUserId: PREVIEW_USER,
+    connectionId: null,
+    windowExpiresAt: null,
+    contact: {
+      id: "preview-closed",
+      name: "Nomsa Khumalo",
+      email: "nomsa@example.com",
+      phone: "",
+      whatsapp: "",
+      company: "",
+      tags: [],
+      stage: "Won",
+      leadId: null,
+    },
+    messages: [
+      {
+        id: "preview-closed-in",
+        direction: "in",
+        body: "Thanks, that is all for now.",
+        status: "received",
+        channel: "email",
+        waCategory: "",
+        costCents: 0,
+        providerMessageId: "email.preview.closed",
+        createdAt: now.toISOString(),
+        media: [],
+      },
+    ],
+    notes: [],
+    consents: [],
+  },
 };
 
 export function previewInbox(query: {
@@ -234,8 +271,10 @@ export function previewInbox(query: {
   waMetering?: boolean;
   notice?: string | null;
   brandSlug?: string | null;
+  statusFilters?: boolean;
 }): InboxData {
-  const filter = parseInboxFilter(query.filter);
+  const statusFiltersEnabled = query.statusFilters ?? inboxStatusAssigneeFiltersEnabled();
+  const filter = parseStatusAssigneeFilter(query.filter, statusFiltersEnabled);
   const channel = parseInboxChannel(query.channel);
   const multiNumber = query.multiNumber ?? inboxMultiNumberEnabled();
   const teamStatsOn = query.teamStats ?? inboxTeamStatsEnabled();
@@ -258,6 +297,7 @@ export function previewInbox(query: {
     { id: OPEN_WA, connectionId: PREVIEW_WA, channel: "whatsapp", status: "open", assignedUserId: PREVIEW_USER, unread: 1, preview: "Can I still apply for the October intake?", name: "Lerato Mokoena", window: threads[OPEN_WA].windowExpiresAt },
     { id: OPEN_SMS, connectionId: null, channel: "sms", status: "open", assignedUserId: null, unread: 0, preview: "Please call the practice.", name: "Thabo Ndlovu", window: null },
     { id: EXPIRED_WA, connectionId: PREVIEW_WA, channel: "whatsapp", status: "open", assignedUserId: null, unread: 2, preview: "Thanks, I will think about it.", name: "Amina Patel", window: threads[EXPIRED_WA].windowExpiresAt },
+    { id: CLOSED_EMAIL, connectionId: null, channel: "email", status: "closed", assignedUserId: PREVIEW_USER, unread: 0, preview: "Thanks, that is all for now.", name: "Nomsa Khumalo", window: null },
     ...(multiNumber
       ? [{ id: DESK_WA, connectionId: PREVIEW_WA_DESK, channel: "whatsapp", status: "open", assignedUserId: null, unread: 1, preview: "The bakkie is ready for collection.", name: "Sipho Dlamini", window: threads[DESK_WA].windowExpiresAt }]
       : []),
@@ -288,6 +328,7 @@ export function previewInbox(query: {
     assignedOnly: false,
     sendingEnabled: false,
     filter,
+    statusFiltersEnabled,
     channel,
     multiNumber,
     number,

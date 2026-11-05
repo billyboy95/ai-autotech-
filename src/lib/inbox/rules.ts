@@ -5,7 +5,7 @@ import { DEFAULT_UNIT_COST_CENTS, usageForSend } from "@/lib/compliance/usage";
 
 export const INBOX_CHANNELS = ["whatsapp", "sms", "email", "facebook", "instagram"] as const;
 export type InboxChannel = (typeof INBOX_CHANNELS)[number];
-export type InboxFilter = "open" | "mine" | "unassigned";
+export type InboxFilter = "open" | "mine" | "unassigned" | "closed";
 export type WaCategory = "" | "marketing" | "utility" | "authentication" | "service";
 
 const ORG_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -31,6 +31,7 @@ export function matchesInboxList(input: {
   userId: string | null;
 }) {
   if (input.channelFilter && input.channel !== input.channelFilter) return false;
+  if (input.filter === "closed") return input.status === "closed";
   if (input.status === "closed") return false;
   if (input.filter === "mine") return Boolean(input.userId) && input.assignedUserId === input.userId;
   if (input.filter === "unassigned") return input.assignedUserId == null;

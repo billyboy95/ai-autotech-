@@ -31,6 +31,7 @@ import { formatInboxCost, inboxCost, realtimeOrgFilter, acceptRealtimeRow, servi
 import { inboxListForSearch, searchApplyDelay } from "@/lib/inbox/search";
 import { inboxListForTags, tagFilterChoices, toggleTagSelection } from "@/lib/inbox/tag-filter";
 import { pickTemplateIntoComposer } from "@/lib/inbox/templates-picker";
+import { inboxFilterLabel, inboxStatusFilterChips } from "@/lib/inbox/status-filter";
 import { waCareState } from "@/lib/inbox/wa-window";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import type { InboxData, InboxListItem, InboxPresencePeer } from "@/lib/inbox/types";
@@ -231,13 +232,14 @@ export function InboxView({ data, banner, bannerTone }: { data: InboxData; banne
         </p>
       ) : null}
       <div className={layout.filters}>
-        {(["open", "mine", "unassigned"] as const).map((filter) => (
+        {inboxStatusFilterChips(data.statusFiltersEnabled).map((filter) => (
           <Link
             key={filter}
             href={inboxHref({ ...data, filter, id: thread?.id })}
+            {...(filter === "closed" ? { "data-testid": "inbox-filter-closed" } : {})}
             className={`${layout.chip} ${data.filter === filter ? "bg-[#0B1F3A] text-white" : "bg-white text-slate-700 ring-1 ring-slate-200"}`}
           >
-            {filter === "open" ? "Open" : filter === "mine" ? "Mine" : "Unassigned"}
+            {inboxFilterLabel(filter)}
           </Link>
         ))}
         <Link href={inboxHref({ ...data, channel: "", id: thread?.id })} className={`${layout.chip} ${data.channel === "" ? "bg-[#2563EB] text-white" : "bg-white text-slate-700 ring-1 ring-slate-200"}`}>

@@ -162,6 +162,8 @@ export type InboxData = {
   assignedOnly: boolean;
   sendingEnabled: boolean;
   filter: InboxFilter;
+  /** Closed chip and filter=closed. Open, Mine, and Unassigned stay either way. */
+  statusFiltersEnabled: boolean;
   channel: string;
   /** True only when INBOX_MULTI_NUMBER_ENABLED is the string true. */
   multiNumber: boolean;

@@ -2,6 +2,7 @@ import { inboxBulkActionsEnabled } from "@/lib/inbox/bulk";
 import { inboxContactPanelEnabled } from "@/lib/inbox/contact-panel";
 import { inboxInternalNotesEnabled } from "@/lib/inbox/internal-notes";
 import { inboxSearchEnabled, searchListFields } from "@/lib/inbox/search";
+import { inboxTagFilterEnabled, listTagFields } from "@/lib/inbox/tag-filter";
 import { inboxTemplatesPickerEnabled } from "@/lib/inbox/templates-picker";
 import { inboxMultiNumberEnabled, matchesInboxNumber, parseInboxNumber, resolveInboxNumber, whatsappNumberParts } from "@/lib/inbox/numbers";
 import { matchesInboxList, parseInboxChannel, parseInboxFilter, windowExpiry } from "@/lib/inbox/rules";
@@ -216,6 +217,8 @@ export function previewInbox(query: {
   templatesPicker?: boolean;
   /** Explicit override. Omit to follow INBOX_SEARCH_ENABLED. */
   search?: boolean;
+  /** Explicit override. Omit to follow INBOX_TAG_FILTER_ENABLED. */
+  tagFilter?: boolean;
   /** Explicit override. Omit to follow INBOX_WA_METERING_ENABLED. */
   waMetering?: boolean;
   notice?: string | null;
@@ -232,6 +235,7 @@ export function previewInbox(query: {
   const internalNotes = query.internalNotes ?? inboxInternalNotesEnabled();
   const templatesPicker = query.templatesPicker ?? inboxTemplatesPickerEnabled();
   const search = query.search ?? inboxSearchEnabled();
+  const tagFilter = query.tagFilter ?? inboxTagFilterEnabled();
   const waMeteringEnabled = query.waMetering ?? inboxWaMeteringEnabled();
   const whatsappNumbers = multiNumber ? previewNumbers : [];
   const number = multiNumber
@@ -276,7 +280,9 @@ export function previewInbox(query: {
     number,
     whatsappNumbers,
     conversations: list.map((item) => {
-      const address = searchListFields(threads[item.id]?.contact, search);
+      const contact = threads[item.id]?.contact;
+      const address = searchListFields(contact, search);
+      const listedTags = listTagFields(contact, tagFilter);
       return {
         id: item.id,
         channel: item.channel,
@@ -290,6 +296,8 @@ export function previewInbox(query: {
         preview: item.preview,
         phone: address.phone,
         email: address.email,
+        tags: listedTags.tags,
+        leadTags: listedTags.leadTags,
       };
     }),
     thread: threadForPreview(selected, internalNotes),
@@ -327,6 +335,7 @@ export function previewInbox(query: {
     internalNotes,
     templatesPicker,
     search,
+    tagFilter,
     quickReplies: quickUx ? quickRepliesForWorkspace(null) : [],
     presence: quickUx ? previewInboxPresence(OPEN_WA, EXPIRED_WA) : [],
     loadedAt: now.toISOString(),

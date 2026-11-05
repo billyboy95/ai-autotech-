@@ -2,7 +2,7 @@
 
 Billy reviews this on a phone. The draft adds snooze on `/command-centre/inbox` when `INBOX_SNOOZE_ENABLED` is the exact string `true` after trimming spaces. `True`, `TRUE`, `1`, `yes`, blank, and unset keep today's inbox. Open, Mine, and Unassigned stay on the page. No Snooze buttons and no Snoozed chip appear until that exact string is saved.
 
-This page does not merge a pull request, does not set the flag, does not send, and does not spend. `sending_enabled` stays false. Nothing is sent. Meta is not called. One new SQL file is in this change: `supabase/migrations/20261117120000_inbox_snooze.sql`. It adds nullable `conversations.snoozed_until`. It is not a step in `supabase/APPLY-ORDER.md`. Do not paste it until Billy says yes. Do not apply it on this visit. `supabase/APPLY-ORDER.md` names the file and says it waits. Steps 1 through 19 stay already live. Steps 20 through 36 stay unapplied.
+This page does not merge a pull request, does not set the flag, does not send, and does not spend. `sending_enabled` stays false. Nothing is sent. Meta is not called. One new SQL file is in this change: `supabase/migrations/20261117120100_inbox_snooze.sql`. It adds nullable `conversations.snoozed_until`. Draft #101 uses a different file, `supabase/migrations/20261117120000_team_seat_billing.sql`. The later timestamp on this page is the snooze file only. `supabase/APPLY-ORDER.md` names this file on its own, apart from #101, and says it waits. It is not one of steps 1 through 36. Do not paste it until Billy says yes. Do not apply it on this visit. Steps 1 through 19 stay already live. Steps 20 through 36 stay unapplied.
 
 Snooze hides a thread until a time. It does not assign a thread. It does not change consent. It does not queue a reply. It does not insert `crm_outbox`. It does not call a provider. This is not a yes to send.
 
@@ -44,7 +44,7 @@ A yes to merge is not a yes to the SQL, not a yes to the flag, and it is not a y
 
 ## Paste the SQL, only after Billy says yes
 
-Do this only when Billy says yes to `supabase/migrations/20261117120000_inbox_snooze.sql` on its own. A yes to merge is not this yes.
+Do this only when Billy says yes to `supabase/migrations/20261117120100_inbox_snooze.sql` on its own. A yes to merge is not this yes. A yes to draft #101 `supabase/migrations/20261117120000_team_seat_billing.sql` is not this yes.
 
 1. Open the Supabase SQL editor for project `fnysxlswzufdnlbhndxc`.
 2. Paste that one file whole. Run it once. Expect `Success. No rows returned`.

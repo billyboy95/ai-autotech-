@@ -48,7 +48,7 @@ async function asUser(db, userId, sql, params = []) {
 }
 
 test("inbox snooze column does not send and can be cleared", async () => {
-  const sql = migration("20261117120000_inbox_snooze.sql");
+  const sql = migration("20261117120100_inbox_snooze.sql");
   assert.equal(/sending_enabled\s*=\s*true/i.test(sql), false);
   assert.equal(/insert\s+into\s+public\.crm_outbox/i.test(sql), false);
   assert.equal(/\bcrm_outbox\b/i.test(sql), false);

@@ -11,10 +11,10 @@ import { formatWhen } from "@/lib/automation/ids";
 
 export const INBOX_SNOOZE_FLAG = "INBOX_SNOOZE_ENABLED";
 
-export const INBOX_SNOOZE_MIGRATION = "supabase/migrations/20261117120000_inbox_snooze.sql";
+export const INBOX_SNOOZE_MIGRATION = "supabase/migrations/20261117120100_inbox_snooze.sql";
 
 export const SNOOZE_COLUMN_MISSING =
-  "Snooze needs conversations.snoozed_until. Apply supabase/migrations/20261117120000_inbox_snooze.sql after Billy says yes. Nothing was sent.";
+  "Snooze needs conversations.snoozed_until. Apply supabase/migrations/20261117120100_inbox_snooze.sql after Billy says yes. Nothing was sent.";
 
 export const INBOX_SNOOZE_SIDE_EFFECTS = {
   sends: false,

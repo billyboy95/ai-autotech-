@@ -1,4 +1,6 @@
--- Inbox snooze. Additive. Not a step in supabase/APPLY-ORDER.md.
+-- Inbox snooze. Additive. Not a numbered step in supabase/APPLY-ORDER.md.
+-- Timestamp 20261117120100 is later than draft #101 team seat billing
+-- (20261117120000_team_seat_billing.sql). The two files do not share a timestamp.
 -- Do not paste this until Billy says yes. Do not apply it from this change.
 -- Adds conversations.snoozed_until. Null means the thread is not snoozed.
 -- A future timestamp hides the thread from the Open list until that time.

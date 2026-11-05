@@ -10,7 +10,7 @@ This is the open thread. It is separate from the Templates button on draft [#104
 
 ## What you are reviewing
 
-Draft for branch `cursor/inbox-media-attachments-6195`. It stacks on draft [#106](https://github.com/billyboy95/ai-autotech-/pull/106) (`cursor/inbox-tag-filter-d936`). The Files tab on this draft is only the media viewer. It is not the whole inbox stack.
+Draft [#107](https://github.com/billyboy95/ai-autotech-/pull/107). Branch `cursor/inbox-media-attachments-6195`. It stacks on draft [#106](https://github.com/billyboy95/ai-autotech-/pull/106) (`cursor/inbox-tag-filter-d936`). The Files tab on #107 is only the media viewer. It is not the whole inbox stack.
 
 When the flag is the string `true`:
 
@@ -25,7 +25,7 @@ When the flag is the string `true`:
 On the phone:
 
 1. Open GitHub and sign in as the account that can see `billyboy95/ai-autotech-`.
-2. Open the pull request for branch `cursor/inbox-media-attachments-6195`.
+2. Open https://github.com/billyboy95/ai-autotech-/pull/107 . The branch is `cursor/inbox-media-attachments-6195`.
 3. Read the title and the base branch. The base is `cursor/inbox-tag-filter-d936` (draft #106). If the base is `main`, stop. Do not merge it into main from here.
 4. Open Files changed. Pass when the diff is the media flag, the thread chips, tests, and this note. Fail and stop if the diff turns `sending_enabled` on, calls Meta, changes consent, queues the outbox, uploads a file, adds a migration, or sends WhatsApp, email, or SMS.
 5. Leave the draft as a draft. Do not tap Merge on this visit unless Billy says yes to the whole stack below, in that order.
@@ -45,7 +45,7 @@ Merge one pull request at a time, from the bottom of the stack. Wait until the n
 9. [#104](https://github.com/billyboy95/ai-autotech-/pull/104) — templates picker (`cursor/inbox-templates-picker-2e3d`). After #102 is on main.
 10. [#105](https://github.com/billyboy95/ai-autotech-/pull/105) — conversation search (`cursor/inbox-conversation-search-353d`). After #104 is on main.
 11. [#106](https://github.com/billyboy95/ai-autotech-/pull/106) — tag filter (`cursor/inbox-tag-filter-d936`). After #105 is on main.
-12. This draft — media on the open thread (`cursor/inbox-media-attachments-6195`). After #106 is on main.
+12. [#107](https://github.com/billyboy95/ai-autotech-/pull/107) — media on the open thread (`cursor/inbox-media-attachments-6195`). After #106 is on main.
 
 A yes to one pull request is not a yes to the next. A yes to merge is not a yes to the flag, and it is not a yes to send.
 

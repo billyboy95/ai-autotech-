@@ -10,7 +10,7 @@ This list is the named templates stored for the workspace. WhatsApp rows are the
 
 ## What you are reviewing
 
-Draft on branch `cursor/inbox-templates-picker-2e3d`. It stacks on draft [#102](https://github.com/billyboy95/ai-autotech-/pull/102) (`cursor/inbox-internal-notes-ca4e`). The Files tab is only the templates picker. It is not the whole inbox stack.
+Draft [#104](https://github.com/billyboy95/ai-autotech-/pull/104). Branch `cursor/inbox-templates-picker-2e3d`. It stacks on draft [#102](https://github.com/billyboy95/ai-autotech-/pull/102) (`cursor/inbox-internal-notes-ca4e`). The Files tab on #104 is only the templates picker. It is not the whole inbox stack.
 
 When the flag is the string `true`:
 
@@ -26,7 +26,7 @@ When the flag is the string `true`:
 On the phone:
 
 1. Open GitHub and sign in as the account that can see `billyboy95/ai-autotech-`.
-2. Open the pull request for branch `cursor/inbox-templates-picker-2e3d`.
+2. Open https://github.com/billyboy95/ai-autotech-/pull/104 . The branch is `cursor/inbox-templates-picker-2e3d`.
 3. Read the title and the base branch. The base is `cursor/inbox-internal-notes-ca4e` (draft #102). If the base is `main`, stop. Do not merge it into main from here.
 4. Open Files changed. Pass when the diff is the templates-picker flag, the Templates button, tests, and this note. Fail and stop if the diff turns `sending_enabled` on, calls Meta, changes consent, queues the outbox, adds a migration, or sends WhatsApp, email, or SMS.
 5. Leave the draft as a draft. Do not tap Merge on this visit unless Billy says yes to the whole stack below, in that order.
@@ -43,7 +43,7 @@ Merge one pull request at a time, from the bottom of the stack. Wait until the n
 6. [#99](https://github.com/billyboy95/ai-autotech-/pull/99) — select several threads, then assign, close, or mark read. After #98 is on main.
 7. [#100](https://github.com/billyboy95/ai-autotech-/pull/100) — contact side panel (`cursor/inbox-contact-panel-85fc`). After #99 is on main.
 8. [#102](https://github.com/billyboy95/ai-autotech-/pull/102) — internal notes (`cursor/inbox-internal-notes-ca4e`). After #100 is on main.
-9. This draft — templates picker (`cursor/inbox-templates-picker-2e3d`). After #102 is on main.
+9. [#104](https://github.com/billyboy95/ai-autotech-/pull/104) — templates picker (`cursor/inbox-templates-picker-2e3d`). After #102 is on main.
 
 A yes to one pull request is not a yes to the next. A yes to merge is not a yes to the flag, and it is not a yes to send.
 

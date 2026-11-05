@@ -39,6 +39,7 @@ test("inbox, conversation AI, calendars, reviews, referrals, and public pages re
       INBOX_CONTACT_PANEL_ENABLED: "",
       INBOX_INTERNAL_NOTES_ENABLED: "",
       INBOX_TEMPLATES_PICKER_ENABLED: "",
+      INBOX_SEARCH_ENABLED: "",
       RESEND_API_KEY: "",
       SMTP_HOST: "",
       SMTP_PASS: "",
@@ -127,6 +128,10 @@ test("inbox, conversation AI, calendars, reviews, referrals, and public pages re
     assert.doesNotMatch(inboxHtml, /inbox-templates-picker/);
     assert.doesNotMatch(inboxHtml, /data-templates-picker="on"/);
     assert.doesNotMatch(inboxHtml, /No templates for this workspace/);
+    assert.doesNotMatch(inboxHtml, /data-testid="inbox-search"/);
+    assert.doesNotMatch(inboxHtml, /data-search="on"/);
+    assert.doesNotMatch(inboxHtml, /No conversations match this search/);
+    assert.doesNotMatch(inboxHtml, /Search conversations/);
 
     const settings = await fetch(`http://127.0.0.1:${port}/command-centre/ai-replies`, { redirect: "manual" });
     assert.equal(settings.status, 200);

@@ -4,6 +4,7 @@ import { safeResolveWorkspace } from "@/lib/tenant/context";
 import { inboxBulkActionsEnabled } from "@/lib/inbox/bulk";
 import { inboxContactPanelEnabled } from "@/lib/inbox/contact-panel";
 import { inboxInternalNotesEnabled } from "@/lib/inbox/internal-notes";
+import { inboxSearchEnabled, INBOX_SEARCH_PREVIEW_CAP, latestMessagePreviews, searchListFields, withMessagePreviews } from "@/lib/inbox/search";
 import { inboxTemplatesPickerEnabled } from "@/lib/inbox/templates-picker";
 import { displayPhoneFromConfig, inboxMultiNumberEnabled, parseInboxNumber, resolveInboxNumber, whatsappNumberParts } from "@/lib/inbox/numbers";
 import { INBOX_TEAM_STATS_MESSAGE_CAP, buildInboxTeamStats, inboxTeamStatsEnabled, type TeamStatsMessage } from "@/lib/inbox/team-stats";
@@ -99,6 +100,7 @@ export async function loadInbox(query: {
     contactPanel: inboxContactPanelEnabled(),
     internalNotes: inboxInternalNotesEnabled(),
     templatesPicker: inboxTemplatesPickerEnabled(),
+    search: inboxSearchEnabled(),
     quickReplies: [],
     presence: [],
     loadedAt,
@@ -156,7 +158,9 @@ export async function loadInbox(query: {
 
   let listed = supabase
     .from("conversations")
-    .select("id, channel, status, assigned_user_id, unread_count, last_message_at, wa_window_expires_at, contact_id, channel_connection_id, crm_contacts(first_name, last_name)")
+    .select(base.search
+      ? "id, channel, status, assigned_user_id, unread_count, last_message_at, wa_window_expires_at, contact_id, channel_connection_id, crm_contacts(first_name, last_name, email, phone_e164, whatsapp_e164)"
+      : "id, channel, status, assigned_user_id, unread_count, last_message_at, wa_window_expires_at, contact_id, channel_connection_id, crm_contacts(first_name, last_name)")
     .eq("org_id", tenant.active.id)
     .neq("status", "closed")
     .order("last_message_at", { ascending: false })
@@ -175,8 +179,18 @@ export async function loadInbox(query: {
   }
 
   base.conversations = (conversations.data ?? []).map((row) => {
-    const contact = one(row.crm_contacts) as { first_name?: string; last_name?: string } | null;
+    const contact = one(row.crm_contacts) as {
+      first_name?: string;
+      last_name?: string;
+      email?: string;
+      phone_e164?: string;
+      whatsapp_e164?: string;
+    } | null;
     const name = [contact?.first_name, contact?.last_name].filter(Boolean).join(" ");
+    const address = searchListFields(
+      base.search ? { email: contact?.email, phone: contact?.phone_e164, whatsapp: contact?.whatsapp_e164 } : null,
+      base.search,
+    );
     return {
       id: String(row.id),
       channel: String(row.channel),
@@ -188,8 +202,11 @@ export async function loadInbox(query: {
       windowExpiresAt: row.wa_window_expires_at ? String(row.wa_window_expires_at) : null,
       contactName: name || "Unknown contact",
       preview: "",
+      phone: address.phone,
+      email: address.email,
     } satisfies InboxListItem;
   });
+  base.conversations = await attachInboxSearchPreviews(supabase, tenant.active.id, base.conversations, base.search);
 
   const selected = query.id && base.conversations.some((item) => item.id === query.id) ? query.id : base.conversations[0]?.id;
   if (selected) base.thread = await loadThread(supabase, tenant.active.id, selected, base.contactPanel, base.internalNotes);
@@ -416,6 +433,30 @@ async function loadInboxTeamStats(
     messagesLoaded,
     truncated,
   });
+}
+
+async function attachInboxSearchPreviews(
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  orgId: string,
+  conversations: InboxListItem[],
+  enabled: boolean,
+) {
+  if (!enabled) return conversations;
+  const ids = conversations.map((item) => item.id).filter(isUuid);
+  if (!isUuid(orgId) || ids.length === 0) return conversations;
+  try {
+    const listed = await supabase
+      .from("messages")
+      .select("conversation_id, body, created_at")
+      .eq("org_id", orgId)
+      .in("conversation_id", ids)
+      .order("created_at", { ascending: false })
+      .limit(INBOX_SEARCH_PREVIEW_CAP);
+    if (listed.error || !listed.data) return conversations;
+    return withMessagePreviews(conversations, latestMessagePreviews(listed.data));
+  } catch {
+    return conversations;
+  }
 }
 
 async function loadThread(

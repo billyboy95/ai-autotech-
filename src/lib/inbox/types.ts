@@ -12,6 +12,10 @@ export type InboxListItem = {
   windowExpiresAt: string | null;
   contactName: string;
   preview: string;
+  /** Phone or WhatsApp from the list contact. Empty unless INBOX_SEARCH_ENABLED is the string true. */
+  phone: string;
+  /** Email from the list contact. Empty unless INBOX_SEARCH_ENABLED is the string true. */
+  email: string;
 };
 
 export type InboxMessage = {
@@ -182,6 +186,8 @@ export type InboxData = {
   internalNotes: boolean;
   /** True only when INBOX_TEMPLATES_PICKER_ENABLED is the string true. */
   templatesPicker: boolean;
+  /** True only when INBOX_SEARCH_ENABLED is the string true. */
+  search: boolean;
   /** Empty unless INBOX_QUICK_UX_ENABLED is the string true. */
   quickReplies: InboxQuickReply[];
   /**

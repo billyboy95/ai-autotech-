@@ -47,6 +47,7 @@ test("inbox, conversation AI, calendars, reviews, referrals, and public pages re
       PAYFAST_PASSPHRASE: "",
       SUPABASE_DB_URL: "",
       AUTOMATION_SEND_ENABLED: "",
+      INBOX_STATUS_ASSIGNEE_FILTERS_ENABLED: "",
       BILLING_SANDBOX: "",
       CRON_SECRET: "",
       PAYFAST_MERCHANT_ID: "",
@@ -88,6 +89,11 @@ test("inbox, conversation AI, calendars, reviews, referrals, and public pages re
     const inboxHtml = await inbox.text();
     assert.match(inboxHtml, /Inbox/);
     assert.match(inboxHtml, /Draft with AI/);
+    assert.match(inboxHtml, /Unassigned/);
+    assert.match(inboxHtml, /filter=mine/);
+    assert.equal(inboxHtml.includes("filter=closed"), false);
+    assert.equal(inboxHtml.includes("inbox-filter-closed"), false);
+    assert.equal(/\bClosed\b/.test(inboxHtml), false);
 
     const settings = await fetch(`http://127.0.0.1:${port}/command-centre/ai-replies`, { redirect: "manual" });
     assert.equal(settings.status, 200);

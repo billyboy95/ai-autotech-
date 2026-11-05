@@ -1,7 +1,8 @@
 import { missingAiTable, parseAiDraft, parseAiReplySettings } from "@/lib/ai-reply/types";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { safeResolveWorkspace } from "@/lib/tenant/context";
-import { contactLookup, parseInboxChannel, parseInboxFilter } from "@/lib/inbox/rules";
+import { contactLookup, parseInboxChannel } from "@/lib/inbox/rules";
+import { conversationListQuery, inboxStatusAssigneeFiltersEnabled, parseStatusAssigneeFilter } from "@/lib/inbox/status-filter";
 import { previewInbox } from "@/lib/inbox/preview";
 import type { InboxConsent, InboxContact, InboxData, InboxListItem, InboxMessage, InboxNote, InboxThread } from "@/lib/inbox/types";
 
@@ -26,7 +27,8 @@ export async function loadInbox(query: {
   id?: string;
   notice?: string | null;
 }): Promise<InboxData> {
-  const filter = parseInboxFilter(query.filter);
+  const statusFiltersEnabled = inboxStatusAssigneeFiltersEnabled();
+  const filter = parseStatusAssigneeFilter(query.filter, statusFiltersEnabled);
   const channel = parseInboxChannel(query.channel);
   const tenant = await safeResolveWorkspace(query.org);
   if (
@@ -40,6 +42,7 @@ export async function loadInbox(query: {
     return previewInbox({
       ...query,
       filter,
+      statusFilters: statusFiltersEnabled,
       channel,
       notice: query.notice,
       brandSlug: tenant.brandLocked ? tenant.active.slug : null,
@@ -57,6 +60,7 @@ export async function loadInbox(query: {
     assignedOnly: false,
     sendingEnabled: tenant.active.sendingEnabled,
     filter,
+    statusFiltersEnabled,
     channel,
     conversations: [],
     thread: null,
@@ -81,15 +85,17 @@ export async function loadInbox(query: {
     if (!membership.error && membership.data) base.assignedOnly = Boolean(membership.data.assigned_only);
   }
 
+  const listPlan = conversationListQuery({ enabled: statusFiltersEnabled, filter: query.filter, userId });
   let listed = supabase
     .from("conversations")
     .select("id, channel, status, assigned_user_id, unread_count, last_message_at, wa_window_expires_at, contact_id, channel_connection_id, crm_contacts(first_name, last_name)")
     .eq("org_id", tenant.active.id)
-    .neq("status", "closed")
     .order("last_message_at", { ascending: false })
     .limit(100);
-  if (filter === "mine" && userId) listed = listed.eq("assigned_user_id", userId);
-  if (filter === "unassigned") listed = listed.is("assigned_user_id", null);
+  if (listPlan.onlyClosed) listed = listed.eq("status", "closed");
+  if (listPlan.excludeClosed) listed = listed.neq("status", "closed");
+  if (listPlan.assignedUserId) listed = listed.eq("assigned_user_id", listPlan.assignedUserId);
+  if (listPlan.unassigned) listed = listed.is("assigned_user_id", null);
   if (channel) listed = listed.eq("channel", channel);
   const conversations = await listed;
   if (conversations.error) {

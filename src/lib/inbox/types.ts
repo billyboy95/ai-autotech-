@@ -9,6 +9,8 @@ export type InboxListItem = {
   unread: number;
   lastMessageAt: string | null;
   windowExpiresAt: string | null;
+  snoozedUntil: string | null;
+  snoozeLabel: string | null;
   contactName: string;
   preview: string;
 };
@@ -56,6 +58,8 @@ export type InboxThread = {
   assignedUserId: string | null;
   connectionId: string | null;
   windowExpiresAt: string | null;
+  snoozedUntil: string | null;
+  snoozeLabel: string | null;
   contact: InboxContact | null;
   messages: InboxMessage[];
   notes: InboxNote[];
@@ -91,6 +95,7 @@ export type InboxData = {
   assignedOnly: boolean;
   sendingEnabled: boolean;
   filter: InboxFilter;
+  snoozeEnabled: boolean;
   channel: string;
   conversations: InboxListItem[];
   thread: InboxThread | null;

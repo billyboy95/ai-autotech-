@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { addInboxNote, assignInboxConversation, markInboxRead, sendInboxReply, setInboxStatus } from "@/app/actions/inbox";
+import { addInboxNote, assignInboxConversation, markInboxRead, sendInboxReply, setInboxStatus, snoozeInboxConversation } from "@/app/actions/inbox";
+import { SNOOZE_PRESETS } from "@/lib/inbox/snooze";
 import { AiDraftPanel } from "@/components/inbox/ai-draft-panel";
 import { formatInboxCost, inboxCost, realtimeOrgFilter, acceptRealtimeRow, serviceAllowanceLabel, whatsappComposeGate, windowCountdown, type InboxChannel } from "@/lib/inbox/rules";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
@@ -92,13 +93,14 @@ export function InboxView({ data, banner, bannerTone }: { data: InboxData; banne
         </p>
       ) : null}
       <div className="flex flex-wrap gap-2">
-        {(["open", "mine", "unassigned"] as const).map((filter) => (
+        {(data.snoozeEnabled ? (["open", "mine", "unassigned", "snoozed"] as const) : (["open", "mine", "unassigned"] as const)).map((filter) => (
           <Link
             key={filter}
             href={href({ ...data, filter, channel: data.channel, id: thread?.id })}
+            data-testid={filter === "snoozed" ? "inbox-filter-snoozed" : undefined}
             className={`inline-flex h-9 items-center rounded-full px-3 text-sm font-semibold ${data.filter === filter ? "bg-[#0B1F3A] text-white" : "bg-white text-slate-700 ring-1 ring-slate-200"}`}
           >
-            {filter === "open" ? "Open" : filter === "mine" ? "Mine" : "Unassigned"}
+            {filter === "open" ? "Open" : filter === "mine" ? "Mine" : filter === "unassigned" ? "Unassigned" : "Snoozed"}
           </Link>
         ))}
         <Link href={href({ ...data, channel: "", id: thread?.id })} className={`inline-flex h-9 items-center rounded-full px-3 text-sm font-semibold ${data.channel === "" ? "bg-[#2563EB] text-white" : "bg-white text-slate-700 ring-1 ring-slate-200"}`}>
@@ -131,6 +133,7 @@ export function InboxView({ data, banner, bannerTone }: { data: InboxData; banne
               </span>
               <span className="mt-1 block text-xs uppercase tracking-wide text-slate-500">{item.channel} · {item.status}</span>
               <span className="mt-1 block truncate text-sm text-slate-600">{item.preview || "Open the thread"}</span>
+              {item.snoozeLabel ? <span className="mt-1 block text-xs text-slate-500">Snoozed until {item.snoozeLabel}</span> : null}
             </Link>
           ))}
         </section>
@@ -152,6 +155,18 @@ export function InboxView({ data, banner, bannerTone }: { data: InboxData; banne
                     </button>
                   </form>
                 </div>
+                {data.snoozeEnabled ? (
+                  <form action={snoozeInboxConversation} data-testid="inbox-snooze" className="flex flex-wrap items-center gap-2">
+                    <Hidden data={data} id={thread.id} />
+                    {thread.snoozeLabel ? <p className="w-full text-sm text-slate-600">Snoozed until {thread.snoozeLabel}. Nothing is sent.</p> : null}
+                    <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Snooze</span>
+                    {SNOOZE_PRESETS.map((preset) => (
+                      <button key={preset.id} name="preset" value={preset.id} className="h-9 rounded-md border border-slate-200 px-3 text-sm font-semibold text-[#0B1F3A]">
+                        {preset.label}
+                      </button>
+                    ))}
+                  </form>
+                ) : null}
               </div>
               <div className="grid max-h-[28rem] gap-2 overflow-y-auto">
                 {thread.messages.map((message) => (

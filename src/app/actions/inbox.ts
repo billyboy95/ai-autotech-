@@ -6,6 +6,7 @@ import { workspaceWriteBlock } from "@/lib/billing/guard";
 import { usageForSend } from "@/lib/compliance/usage";
 import type { ConsentStatus } from "@/lib/compliance/send-gate";
 import { contactLookup, outboxRow, parseInboxChannel, planInboxReply, type InboxTemplateChoice, type WaCategory } from "@/lib/inbox/rules";
+import { inboxSnoozeEnabled, missingSnoozeColumn, planInboxSnooze, SNOOZE_COLUMN_MISSING } from "@/lib/inbox/snooze";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 function text(formData: FormData, key: string) {
@@ -204,6 +205,28 @@ export async function setInboxStatus(formData: FormData) {
   if (saved.error) back(formData, { error: saved.error.message });
   revalidatePath("/command-centre/inbox");
   back(formData, { notice: status === "closed" ? "Conversation closed." : "Conversation reopened." });
+}
+
+export async function snoozeInboxConversation(formData: FormData) {
+  if (!inboxSnoozeEnabled()) back(formData, { error: "Snooze is off." });
+  const id = text(formData, "id");
+  if (!id) back(formData, { error: "Choose a conversation first." });
+  const plan = planInboxSnooze({ preset: text(formData, "preset"), now: new Date() });
+  if (!plan.ok) back(formData, { error: plan.message });
+  const supabase = await createSupabaseServerClient();
+  const user = await supabase.auth.getUser();
+  if (!user.data.user) redirect("/login?next=/command-centre/inbox");
+  const saved = await supabase
+    .from("conversations")
+    .update({ snoozed_until: plan.snoozedUntil })
+    .eq("id", id)
+    .select("id");
+  if (saved.error) {
+    back(formData, { error: missingSnoozeColumn(saved.error.message) ? SNOOZE_COLUMN_MISSING : saved.error.message });
+  }
+  if (!saved.data?.length) back(formData, { error: "That conversation is not in this workspace." });
+  revalidatePath("/command-centre/inbox");
+  back(formData, { notice: plan.notice });
 }
 
 export async function markInboxRead(conversationId: string) {

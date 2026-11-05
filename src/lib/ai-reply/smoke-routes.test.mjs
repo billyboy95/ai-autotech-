@@ -47,6 +47,7 @@ test("inbox, conversation AI, calendars, reviews, referrals, and public pages re
       PAYFAST_PASSPHRASE: "",
       SUPABASE_DB_URL: "",
       AUTOMATION_SEND_ENABLED: "",
+      INBOX_REALTIME_ENABLED: "",
       BILLING_SANDBOX: "",
       CRON_SECRET: "",
       PAYFAST_MERCHANT_ID: "",

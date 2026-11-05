@@ -1,28 +1,43 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { addInboxNote, assignInboxConversation, markInboxRead, sendInboxReply, setInboxStatus } from "@/app/actions/inbox";
 import { AiDraftPanel } from "@/components/inbox/ai-draft-panel";
+import { applyInboxRealtimeChange, attachInboxRealtime, liveInboxFromData, liveUnreadCount, type RealtimeSocket } from "@/lib/inbox/realtime";
 import { formatInboxCost, inboxCost, realtimeOrgFilter, acceptRealtimeRow, serviceAllowanceLabel, whatsappComposeGate, windowCountdown, type InboxChannel } from "@/lib/inbox/rules";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import type { InboxData } from "@/lib/inbox/types";
 
 const CHANNELS: InboxChannel[] = ["whatsapp", "sms", "email", "facebook", "instagram"];
 
-export function InboxView({ data, banner, bannerTone }: { data: InboxData; banner?: string | null; bannerTone?: "error" | "ok" }) {
+export function InboxView({
+  data,
+  banner,
+  bannerTone,
+  realtimeEnabled = false,
+}: {
+  data: InboxData;
+  banner?: string | null;
+  bannerTone?: "error" | "ok";
+  realtimeEnabled?: boolean;
+}) {
   const router = useRouter();
   const thread = data.thread;
+  const dataRef = useRef(data);
+  dataRef.current = data;
+  const [live, setLive] = useState<ReturnType<typeof liveInboxFromData> | null>(null);
   const [channel, setChannel] = useState(thread?.channel || "whatsapp");
   const [templateId, setTemplateId] = useState("");
   const [body, setBody] = useState("");
   const now = useMemo(() => new Date(), []);
+  const shownWindow = realtimeEnabled && live && thread && live.threadId === thread.id ? live.threadWindow : thread?.windowExpiresAt ?? null;
   const template = data.templates.find((item) => item.id === templateId) || null;
   const gate = whatsappComposeGate({
     channel,
     now,
-    windowExpiresAt: channel === thread?.channel ? thread.windowExpiresAt : null,
+    windowExpiresAt: channel === thread?.channel ? shownWindow : null,
     template: template ? { approved: template.approved } : null,
   });
   const cost = inboxCost({
@@ -32,7 +47,10 @@ export function InboxView({ data, banner, bannerTone }: { data: InboxData; banne
     serviceSendsThisMonth: data.serviceUsed,
   });
   const connectionId = data.connections.find((item) => item.channel === channel)?.id || thread?.connectionId || "";
-  const unread = data.conversations.reduce((sum, item) => sum + item.unread, 0);
+  const rows = realtimeEnabled && live ? live.conversations : data.conversations;
+  const unread = rows.reduce((sum, item) => sum + item.unread, 0);
+  const shownMessages = realtimeEnabled && live && thread && live.threadId === thread.id ? live.messages : thread?.messages ?? [];
+  const shownStatus = realtimeEnabled && live && thread && live.threadId === thread.id && live.threadStatus ? live.threadStatus : thread?.status;
 
   const threadId = thread?.id ?? "";
   const threadChannel = thread?.channel ?? "whatsapp";
@@ -47,6 +65,7 @@ export function InboxView({ data, banner, bannerTone }: { data: InboxData; banne
   }, [threadId, data.preview]);
 
   useEffect(() => {
+    if (realtimeEnabled) return;
     if (data.preview || !process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) return;
     let filter = "";
     try {
@@ -70,7 +89,53 @@ export function InboxView({ data, banner, bannerTone }: { data: InboxData; banne
     return () => {
       void supabase.removeChannel(channelName);
     };
-  }, [data.orgId, data.preview, router]);
+  }, [realtimeEnabled, data.orgId, data.preview, router]);
+
+  useEffect(() => {
+    if (!realtimeEnabled) {
+      setLive(null);
+      return;
+    }
+    const next = snapshotFrom(data);
+    setLive((current) => {
+      if (!current || current.orgId !== next.orgId) return next;
+      return {
+        ...next,
+        previews: current.previews,
+        conversations: next.conversations.map((item) => ({
+          ...item,
+          preview: item.preview || current.previews[item.id]?.body || current.conversations.find((row) => row.id === item.id)?.preview || "",
+        })),
+      };
+    });
+  }, [realtimeEnabled, data]);
+
+  useEffect(() => {
+    if (!realtimeEnabled || data.preview) return;
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) return;
+    let socket: RealtimeSocket;
+    try {
+      socket = browserRealtimeSocket();
+    } catch {
+      return;
+    }
+    const attached = attachInboxRealtime({
+      enabled: true,
+      orgId: data.orgId,
+      preview: false,
+      supabaseConfigured: true,
+      client: socket,
+      onChange: (change) => {
+        setLive((current) => {
+          const latest = dataRef.current;
+          const base = current ?? snapshotFrom(latest);
+          return applyInboxRealtimeChange(base, change).state;
+        });
+        router.refresh();
+      },
+    });
+    return () => attached.detach();
+  }, [realtimeEnabled, data.preview, data.orgId, router]);
 
   return (
     <div data-testid="inbox" className="grid gap-4">
@@ -80,6 +145,7 @@ export function InboxView({ data, banner, bannerTone }: { data: InboxData; banne
           <p className="text-sm text-slate-500">
             {unread} unread in this view. Replies stay in the outbox until sending is switched on.
           </p>
+          {realtimeEnabled ? <p className="text-xs text-slate-500">Live for this workspace. Nothing is sent.</p> : null}
         </div>
         {data.assignedOnly ? (
           <p className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">You only see conversations assigned to you.</p>
@@ -116,23 +182,28 @@ export function InboxView({ data, banner, bannerTone }: { data: InboxData; banne
       </div>
       <div className="grid items-start gap-4 lg:grid-cols-[280px_minmax(0,1fr)_280px]">
         <section className="grid gap-2">
-          {data.conversations.length === 0 ? (
+          {rows.length === 0 ? (
             <p className="rounded-xl border border-dashed border-slate-300 bg-white p-4 text-sm text-slate-500">No conversations in this filter.</p>
           ) : null}
-          {data.conversations.map((item) => (
-            <Link
-              key={item.id}
-              href={href({ ...data, id: item.id })}
-              className={`rounded-xl border bg-white p-3 shadow-sm ${thread?.id === item.id ? "border-[#2563EB]" : "border-slate-200"}`}
-            >
-              <span className="flex items-center justify-between gap-2">
-                <span className="text-sm font-semibold text-[#0B1F3A]">{item.contactName}</span>
-                {item.unread > 0 ? <span className="rounded-full bg-[#2563EB] px-2 py-0.5 text-xs font-semibold text-white">{item.unread}</span> : null}
-              </span>
-              <span className="mt-1 block text-xs uppercase tracking-wide text-slate-500">{item.channel} · {item.status}</span>
-              <span className="mt-1 block truncate text-sm text-slate-600">{item.preview || "Open the thread"}</span>
-            </Link>
-          ))}
+          {rows.map((item) => {
+            const liveBadge = realtimeEnabled ? liveUnreadCount(true, item.unread) : null;
+            return (
+              <Link
+                key={item.id}
+                href={href({ ...data, id: item.id })}
+                className={`rounded-xl border bg-white p-3 shadow-sm ${thread?.id === item.id ? "border-[#2563EB]" : "border-slate-200"}`}
+              >
+                <span className="flex items-center justify-between gap-2">
+                  <span className="text-sm font-semibold text-[#0B1F3A]">{item.contactName}</span>
+                  {realtimeEnabled
+                    ? (liveBadge != null ? <span data-testid="inbox-live-unread" className="rounded-full bg-[#2563EB] px-2 py-0.5 text-xs font-semibold text-white">{liveBadge}</span> : null)
+                    : (item.unread > 0 ? <span className="rounded-full bg-[#2563EB] px-2 py-0.5 text-xs font-semibold text-white">{item.unread}</span> : null)}
+                </span>
+                <span className="mt-1 block text-xs uppercase tracking-wide text-slate-500">{item.channel} · {item.status}</span>
+                <span className="mt-1 block truncate text-sm text-slate-600">{item.preview || "Open the thread"}</span>
+              </Link>
+            );
+          })}
         </section>
         <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
           {thread ? (
@@ -140,21 +211,21 @@ export function InboxView({ data, banner, bannerTone }: { data: InboxData; banne
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <h2 className="font-semibold text-[#0B1F3A]">{thread.contact?.name || "Conversation"}</h2>
-                  <p className="text-xs uppercase tracking-wide text-slate-500">{thread.channel} · {thread.status}</p>
-                  {thread.channel === "whatsapp" ? <WindowLine expiresAt={thread.windowExpiresAt} /> : null}
+                  <p className="text-xs uppercase tracking-wide text-slate-500">{thread.channel} · {shownStatus}</p>
+                  {thread.channel === "whatsapp" ? <WindowLine expiresAt={shownWindow} /> : null}
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <form action={setInboxStatus}>
                     <Hidden data={data} id={thread.id} />
-                    <input type="hidden" name="status" value={thread.status === "closed" ? "open" : "closed"} />
+                    <input type="hidden" name="status" value={shownStatus === "closed" ? "open" : "closed"} />
                     <button className="h-9 rounded-md border border-slate-200 px-3 text-sm font-semibold text-[#0B1F3A]">
-                      {thread.status === "closed" ? "Reopen" : "Close"}
+                      {shownStatus === "closed" ? "Reopen" : "Close"}
                     </button>
                   </form>
                 </div>
               </div>
               <div className="grid max-h-[28rem] gap-2 overflow-y-auto">
-                {thread.messages.map((message) => (
+                {shownMessages.map((message) => (
                   <article key={message.id} className={`max-w-[36rem] rounded-xl px-3 py-2 text-sm ${message.direction === "out" ? "ml-auto bg-[#0B1F3A] text-white" : "bg-slate-100 text-slate-800"}`}>
                     <p className="whitespace-pre-wrap">{message.body}</p>
                     <p className={`mt-1 text-xs ${message.direction === "out" ? "text-slate-200" : "text-slate-500"}`}>
@@ -280,6 +351,57 @@ export function InboxView({ data, banner, bannerTone }: { data: InboxData; banne
       </div>
     </div>
   );
+}
+
+function snapshotFrom(data: InboxData) {
+  return liveInboxFromData({
+    orgId: data.orgId,
+    filter: data.filter,
+    channel: data.channel,
+    userId: data.userId,
+    assignedOnly: data.assignedOnly,
+    conversations: data.conversations,
+    thread: data.thread
+      ? {
+          id: data.thread.id,
+          status: data.thread.status,
+          windowExpiresAt: data.thread.windowExpiresAt,
+          messages: data.thread.messages,
+        }
+      : null,
+  });
+}
+
+function browserRealtimeSocket(): RealtimeSocket {
+  const supabase = createSupabaseBrowserClient();
+  return {
+    channel(name) {
+      const channel = supabase.channel(name);
+      return {
+        on(table, filter, listener) {
+          channel.on(
+            "postgres_changes",
+            { event: "*", schema: "public", table, filter },
+            (payload) => {
+              const next = payload.new && typeof payload.new === "object" ? payload.new as Record<string, unknown> : null;
+              const prev = payload.old && typeof payload.old === "object" ? payload.old as Record<string, unknown> : null;
+              listener({
+                eventType: payload.eventType,
+                new: next && Object.keys(next).length ? next : null,
+                old: prev && Object.keys(prev).length ? prev : null,
+              });
+            },
+          );
+        },
+        subscribe() {
+          channel.subscribe();
+        },
+        unsubscribe() {
+          void supabase.removeChannel(channel);
+        },
+      };
+    },
+  };
 }
 
 function WindowLine({ expiresAt }: { expiresAt: string | null }) {

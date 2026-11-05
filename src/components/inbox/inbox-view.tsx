@@ -5,7 +5,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { addInboxNote, assignInboxConversation, markInboxRead, sendInboxReply, setInboxStatus } from "@/app/actions/inbox";
 import { AiDraftPanel } from "@/components/inbox/ai-draft-panel";
-import { formatInboxCost, inboxCost, realtimeOrgFilter, acceptRealtimeRow, serviceAllowanceLabel, whatsappComposeGate, windowCountdown, type InboxChannel } from "@/lib/inbox/rules";
+import { acceptInboxRealtime, inboxFilterChips, inboxScopeFromKind } from "@/lib/inbox/assigned-only";
+import { formatInboxCost, inboxCost, realtimeOrgFilter, serviceAllowanceLabel, whatsappComposeGate, windowCountdown, type InboxChannel } from "@/lib/inbox/rules";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import type { InboxData } from "@/lib/inbox/types";
 
@@ -46,8 +47,10 @@ export function InboxView({ data, banner, bannerTone }: { data: InboxData; banne
     void markInboxRead(threadId);
   }, [threadId, data.preview]);
 
+  const scope = useMemo(() => inboxScopeFromKind(data.inboxScope, data.userId), [data.inboxScope, data.userId]);
+  const filters = inboxFilterChips(scope);
   useEffect(() => {
-    if (data.preview || !process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) return;
+    if (data.preview || data.inboxScope === "closed" || !process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) return;
     let filter = "";
     try {
       filter = realtimeOrgFilter(data.orgId);
@@ -56,21 +59,28 @@ export function InboxView({ data, banner, bannerTone }: { data: InboxData; banne
     }
     const supabase = createSupabaseBrowserClient();
     const channelName = supabase.channel(`inbox-${data.orgId}`);
-    const refresh = (row: { org_id?: string } | null | undefined) => {
-      if (!acceptRealtimeRow(data.orgId, row?.org_id)) return;
+    const refresh = (table: "messages" | "conversations" | "conversation_notes", row: { org_id?: string; assigned_user_id?: string | null } | null | undefined) => {
+      if (!acceptInboxRealtime({
+        scope,
+        sessionOrgId: data.orgId,
+        rowOrgId: row?.org_id,
+        table,
+        assignedUserId: row?.assigned_user_id,
+        userId: data.userId,
+      })) return;
       router.refresh();
     };
     for (const table of ["messages", "conversations", "conversation_notes"] as const) {
       channelName.on("postgres_changes", { event: "*", schema: "public", table, filter }, (payload) => {
-        const next = (payload.new && Object.keys(payload.new).length ? payload.new : payload.old) as { org_id?: string };
-        refresh(next);
+        const next = (payload.new && Object.keys(payload.new).length ? payload.new : payload.old) as { org_id?: string; assigned_user_id?: string | null };
+        refresh(table, next);
       });
     }
     channelName.subscribe();
     return () => {
       void supabase.removeChannel(channelName);
     };
-  }, [data.orgId, data.preview, router]);
+  }, [data.orgId, data.preview, data.inboxScope, data.userId, router, scope]);
 
   return (
     <div data-testid="inbox" className="grid gap-4">
@@ -92,7 +102,7 @@ export function InboxView({ data, banner, bannerTone }: { data: InboxData; banne
         </p>
       ) : null}
       <div className="flex flex-wrap gap-2">
-        {(["open", "mine", "unassigned"] as const).map((filter) => (
+        {filters.map((filter) => (
           <Link
             key={filter}
             href={href({ ...data, filter, channel: data.channel, id: thread?.id })}

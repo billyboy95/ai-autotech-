@@ -162,6 +162,7 @@ export function previewInbox(query: {
     orgSlug: "preview",
     userId: PREVIEW_USER,
     assignedOnly: false,
+    inboxScope: "main",
     sendingEnabled: false,
     filter,
     channel,

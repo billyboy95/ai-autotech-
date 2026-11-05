@@ -8,6 +8,7 @@ import { AiDraftPanel } from "@/components/inbox/ai-draft-panel";
 import { InboxBulkChrome } from "@/components/inbox/inbox-bulk";
 import { InboxContactPanel } from "@/components/inbox/inbox-contact-panel";
 import { InboxInternalNotes } from "@/components/inbox/inbox-internal-notes";
+import { InboxTemplatesPicker } from "@/components/inbox/inbox-templates-picker";
 import { InboxCollisionBanner, InboxQuickFrame, InboxQuickReplies } from "@/components/inbox/inbox-quick-ux";
 import { InboxTeamStatsPanel } from "@/components/inbox/inbox-team-stats";
 import { InboxWaMessageMeter, InboxWaMetering } from "@/components/inbox/inbox-wa-metering";
@@ -22,6 +23,7 @@ import {
   viewerPresenceName,
 } from "@/lib/inbox/quick-ux";
 import { formatInboxCost, inboxCost, realtimeOrgFilter, acceptRealtimeRow, serviceAllowanceLabel, type InboxChannel } from "@/lib/inbox/rules";
+import { pickTemplateIntoComposer } from "@/lib/inbox/templates-picker";
 import { waCareState } from "@/lib/inbox/wa-window";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import type { InboxData, InboxListItem, InboxPresencePeer } from "@/lib/inbox/types";
@@ -34,6 +36,7 @@ export function InboxView({ data, banner, bannerTone }: { data: InboxData; banne
   const [channel, setChannel] = useState(thread?.channel || "whatsapp");
   const [templateId, setTemplateId] = useState("");
   const [body, setBody] = useState("");
+  const [templatesOpen, setTemplatesOpen] = useState(false);
   const [livePeers, setLivePeers] = useState<InboxPresencePeer[] | null>(null);
   const presenceChannel = useRef<{ track: (payload: Record<string, string>) => Promise<unknown> } | null>(null);
   const bodyRef = useRef(body);
@@ -72,6 +75,7 @@ export function InboxView({ data, banner, bannerTone }: { data: InboxData; banne
     setChannel(threadChannel);
     setTemplateId("");
     setBody("");
+    setTemplatesOpen(false);
   }, [threadId, threadChannel]);
   useEffect(() => {
     setWindowNow(new Date(data.loadedAt));
@@ -172,7 +176,7 @@ export function InboxView({ data, banner, bannerTone }: { data: InboxData; banne
   }, [body, data.preview, data.quickUx, data.userId, threadId, viewerName]);
 
   return (
-    <div data-testid="inbox" data-quick-ux={data.quickUx ? "on" : undefined} data-contact-panel={data.contactPanel ? "on" : undefined} data-internal-notes={data.internalNotes ? "on" : undefined} className={layout.shell}>
+    <div data-testid="inbox" data-quick-ux={data.quickUx ? "on" : undefined} data-contact-panel={data.contactPanel ? "on" : undefined} data-internal-notes={data.internalNotes ? "on" : undefined} data-templates-picker={data.templatesPicker ? "on" : undefined} className={layout.shell}>
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="font-display text-2xl font-bold text-[#0B1F3A]">Inbox</h1>
@@ -381,6 +385,18 @@ export function InboxView({ data, banner, bannerTone }: { data: InboxData; banne
                   <InboxQuickReplies
                     replies={data.quickReplies}
                     onInsert={(reply) => setBody((current) => insertQuickReply(current, reply))}
+                  />
+                ) : null}
+                {data.templatesPicker ? (
+                  <InboxTemplatesPicker
+                    enabled
+                    templates={data.templates}
+                    open={templatesOpen}
+                    onToggle={() => setTemplatesOpen((current) => !current)}
+                    onPick={(template) => {
+                      setBody(pickTemplateIntoComposer({ body, templateId }, template).body);
+                      setTemplatesOpen(false);
+                    }}
                   />
                 ) : null}
                 <InboxWaReplyFields blocked={blocked} body={body} onBody={setBody} />

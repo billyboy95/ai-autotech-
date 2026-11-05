@@ -37,6 +37,8 @@ test("inbox, conversation AI, calendars, reviews, referrals, and public pages re
       INBOX_QUICK_UX_ENABLED: "",
       INBOX_BULK_ACTIONS_ENABLED: "",
       INBOX_CONTACT_PANEL_ENABLED: "",
+      INBOX_INTERNAL_NOTES_ENABLED: "",
+      INBOX_TEMPLATES_PICKER_ENABLED: "",
       RESEND_API_KEY: "",
       SMTP_HOST: "",
       SMTP_PASS: "",
@@ -121,6 +123,10 @@ test("inbox, conversation AI, calendars, reviews, referrals, and public pages re
     assert.doesNotMatch(inboxHtml, /data-internal-notes="on"/);
     assert.doesNotMatch(inboxHtml, /Asked for the prospectus/);
     assert.doesNotMatch(inboxHtml, /Save note/);
+    assert.match(inboxHtml, /Free-form/);
+    assert.doesNotMatch(inboxHtml, /inbox-templates-picker/);
+    assert.doesNotMatch(inboxHtml, /data-templates-picker="on"/);
+    assert.doesNotMatch(inboxHtml, /No templates for this workspace/);
 
     const settings = await fetch(`http://127.0.0.1:${port}/command-centre/ai-replies`, { redirect: "manual" });
     assert.equal(settings.status, 200);

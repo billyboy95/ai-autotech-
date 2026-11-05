@@ -91,6 +91,8 @@ export type InboxData = {
   assignedOnly: boolean;
   sendingEnabled: boolean;
   filter: InboxFilter;
+  /** Closed chip and filter=closed. Open, Mine, and Unassigned stay either way. */
+  statusFiltersEnabled: boolean;
   channel: string;
   conversations: InboxListItem[];
   thread: InboxThread | null;

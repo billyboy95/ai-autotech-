@@ -1,4 +1,5 @@
-import { matchesInboxList, parseInboxChannel, parseInboxFilter, windowExpiry } from "@/lib/inbox/rules";
+import { matchesInboxList, parseInboxChannel, windowExpiry } from "@/lib/inbox/rules";
+import { inboxStatusAssigneeFiltersEnabled, parseStatusAssigneeFilter } from "@/lib/inbox/status-filter";
 import type { InboxData, InboxThread } from "@/lib/inbox/types";
 
 const PREVIEW_ORG = "00000000-0000-4000-8000-0000000000aa";
@@ -6,6 +7,7 @@ const PREVIEW_USER = "00000000-0000-4000-8000-0000000000bb";
 const OPEN_WA = "00000000-0000-4000-8000-000000000001";
 const OPEN_SMS = "00000000-0000-4000-8000-000000000002";
 const EXPIRED_WA = "00000000-0000-4000-8000-000000000003";
+const CLOSED_EMAIL = "00000000-0000-4000-8000-000000000004";
 
 const now = new Date("2026-09-26T12:00:00.000Z");
 
@@ -127,6 +129,40 @@ const threads: Record<string, InboxThread> = {
     notes: [],
     consents: [],
   },
+  [CLOSED_EMAIL]: {
+    id: CLOSED_EMAIL,
+    channel: "email",
+    status: "closed",
+    assignedUserId: PREVIEW_USER,
+    connectionId: null,
+    windowExpiresAt: null,
+    contact: {
+      id: "preview-closed",
+      name: "Nomsa Khumalo",
+      email: "nomsa@example.com",
+      phone: "",
+      whatsapp: "",
+      company: "",
+      tags: [],
+      stage: "Won",
+      leadId: null,
+    },
+    messages: [
+      {
+        id: "preview-closed-in",
+        direction: "in",
+        body: "Thanks, that is all for now.",
+        status: "received",
+        channel: "email",
+        waCategory: "",
+        costCents: 0,
+        providerMessageId: "email.preview.closed",
+        createdAt: now.toISOString(),
+      },
+    ],
+    notes: [],
+    consents: [],
+  },
 };
 
 export function previewInbox(query: {
@@ -135,13 +171,16 @@ export function previewInbox(query: {
   id?: string;
   notice?: string | null;
   brandSlug?: string | null;
+  statusFilters?: boolean;
 }): InboxData {
-  const filter = parseInboxFilter(query.filter);
+  const statusFiltersEnabled = query.statusFilters ?? inboxStatusAssigneeFiltersEnabled();
+  const filter = parseStatusAssigneeFilter(query.filter, statusFiltersEnabled);
   const channel = parseInboxChannel(query.channel);
   const list = [
     { id: OPEN_WA, channel: "whatsapp", status: "open", assignedUserId: PREVIEW_USER, unread: 1, preview: "Can I still apply for the October intake?", name: "Lerato Mokoena", window: threads[OPEN_WA].windowExpiresAt },
     { id: OPEN_SMS, channel: "sms", status: "open", assignedUserId: null, unread: 0, preview: "Please call the practice.", name: "Thabo Ndlovu", window: null },
     { id: EXPIRED_WA, channel: "whatsapp", status: "open", assignedUserId: null, unread: 2, preview: "Thanks, I will think about it.", name: "Amina Patel", window: threads[EXPIRED_WA].windowExpiresAt },
+    { id: CLOSED_EMAIL, channel: "email", status: "closed", assignedUserId: PREVIEW_USER, unread: 0, preview: "Thanks, that is all for now.", name: "Nomsa Khumalo", window: null },
   ].filter((item) => {
     if (!query.brandSlug || query.brandSlug === "ai-autotech") return true;
     const company = threads[item.id]?.contact?.company ?? "";
@@ -164,6 +203,7 @@ export function previewInbox(query: {
     assignedOnly: false,
     sendingEnabled: false,
     filter,
+    statusFiltersEnabled,
     channel,
     conversations: list.map((item) => ({
       id: item.id,

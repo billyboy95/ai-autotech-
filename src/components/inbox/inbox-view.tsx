@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { addInboxNote, assignInboxConversation, markInboxRead, sendInboxReply, setInboxStatus } from "@/app/actions/inbox";
 import { AiDraftPanel } from "@/components/inbox/ai-draft-panel";
 import { formatInboxCost, inboxCost, realtimeOrgFilter, acceptRealtimeRow, serviceAllowanceLabel, whatsappComposeGate, windowCountdown, type InboxChannel } from "@/lib/inbox/rules";
+import { inboxFilterHref, inboxFilterLabel, inboxStatusFilterChips } from "@/lib/inbox/status-filter";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import type { InboxData } from "@/lib/inbox/types";
 
@@ -92,13 +93,14 @@ export function InboxView({ data, banner, bannerTone }: { data: InboxData; banne
         </p>
       ) : null}
       <div className="flex flex-wrap gap-2">
-        {(["open", "mine", "unassigned"] as const).map((filter) => (
+        {inboxStatusFilterChips(data.statusFiltersEnabled).map((filter) => (
           <Link
             key={filter}
             href={href({ ...data, filter, channel: data.channel, id: thread?.id })}
+            {...(filter === "closed" ? { "data-testid": "inbox-filter-closed" } : {})}
             className={`inline-flex h-9 items-center rounded-full px-3 text-sm font-semibold ${data.filter === filter ? "bg-[#0B1F3A] text-white" : "bg-white text-slate-700 ring-1 ring-slate-200"}`}
           >
-            {filter === "open" ? "Open" : filter === "mine" ? "Mine" : "Unassigned"}
+            {inboxFilterLabel(filter)}
           </Link>
         ))}
         <Link href={href({ ...data, channel: "", id: thread?.id })} className={`inline-flex h-9 items-center rounded-full px-3 text-sm font-semibold ${data.channel === "" ? "bg-[#2563EB] text-white" : "bg-white text-slate-700 ring-1 ring-slate-200"}`}>
@@ -306,12 +308,12 @@ function Hidden({ data, id }: { data: InboxData; id: string }) {
   );
 }
 
-function href(input: { orgSlug: string; filter: string; channel: string; id?: string }) {
-  const params = new URLSearchParams();
-  if (input.orgSlug && input.orgSlug !== "preview") params.set("org", input.orgSlug);
-  if (input.filter && input.filter !== "open") params.set("filter", input.filter);
-  if (input.channel) params.set("channel", input.channel);
-  if (input.id) params.set("id", input.id);
-  const qs = params.toString();
-  return qs ? `/command-centre/inbox?${qs}` : "/command-centre/inbox";
+function href(input: { orgSlug: string; filter: string; channel: string; id?: string; statusFiltersEnabled?: boolean }) {
+  return inboxFilterHref({
+    orgSlug: input.orgSlug,
+    filter: input.filter,
+    channel: input.channel,
+    id: input.id,
+    statusFiltersEnabled: input.statusFiltersEnabled === true,
+  });
 }

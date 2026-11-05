@@ -246,6 +246,10 @@ Do not apply by filename sort.
 
 Filename sort also places `20260926180000_zentrix_shopify.sql` before `outbound_channels` and `agency_tenancy`. Zentrix needs `organizations`, so it stays at step 5.
 
+## Inbox status and assignee filters
+
+`INBOX_STATUS_ASSIGNEE_FILTERS_ENABLED` does not add a migration. Open, Mine, and Unassigned already read `conversations.status` and `conversations.assigned_user_id` from step 12 (`supabase/migrations/20261018120000_phase2e_inbox.sql`). Status is `open`, `pending`, or `closed`. That step is already live. Do not paste it again. The existing indexes on `(org_id, status, last_message_at)` and `(org_id, assigned_user_id)` cover the list. With the flag unset, the inbox list stays as it is today: those three chips stay, closed threads stay out of the list, and `filter=closed` is ignored. With the flag the exact string `true`, Closed is an extra chip and lists rows whose status is `closed`. Leave the flag unset until Billy says yes. The phone checklist is `docs/phone-inbox-status-assignee-filters.md`. Choosing a chip does not assign, does not close, does not change consent, does not queue `crm_outbox`, does not send, and does not turn `sending_enabled` on.
+
 ## Not part of this apply
 
 `supabase/owner-bootstrap.sql` is not a migration. Run it only after steps 20 through 36 have succeeded, and only after the agency owner exists in Supabase Auth. Steps 1 through 19 are already live and are not a reason to paste this file. The phone checklist is `docs/phone-owner-auth-bootstrap.md` (Phone-first unblock, step 4 in `docs/GO-LIVE-RUNBOOK.md`). Do not paste `supabase/owner-bootstrap.sql` on that visit. Do not paste it until both of those gates are true. `supabase/schema.sql` is the classic Command Centre baseline, not one of the unapplied files. Do not turn sending on while applying steps 20 through 36.

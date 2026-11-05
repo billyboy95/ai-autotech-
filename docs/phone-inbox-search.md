@@ -10,7 +10,7 @@ This is the conversation list. It is separate from the Templates button on draft
 
 ## What you are reviewing
 
-This draft. Branch `cursor/inbox-conversation-search-353d`. It stacks on draft [#104](https://github.com/billyboy95/ai-autotech-/pull/104) (`cursor/inbox-templates-picker-2e3d`). The Files tab is only the conversation search. It is not the whole inbox stack.
+Draft [#105](https://github.com/billyboy95/ai-autotech-/pull/105). Branch `cursor/inbox-conversation-search-353d`. It stacks on draft [#104](https://github.com/billyboy95/ai-autotech-/pull/104) (`cursor/inbox-templates-picker-2e3d`). The Files tab on #105 is only the conversation search. It is not the whole inbox stack.
 
 When the flag is the string `true`:
 
@@ -26,7 +26,7 @@ When the flag is the string `true`:
 On the phone:
 
 1. Open GitHub and sign in as the account that can see `billyboy95/ai-autotech-`.
-2. Open the pull request for branch `cursor/inbox-conversation-search-353d`.
+2. Open https://github.com/billyboy95/ai-autotech-/pull/105 . The branch is `cursor/inbox-conversation-search-353d`.
 3. Read the title and the base branch. The base is `cursor/inbox-templates-picker-2e3d` (draft #104). If the base is `main`, stop. Do not merge it into main from here.
 4. Open Files changed. Pass when the diff is the search flag, the search box, tests, and this note. Fail and stop if the diff turns `sending_enabled` on, calls Meta, changes consent, queues the outbox, adds a migration, or sends WhatsApp, email, or SMS.
 5. Leave the draft as a draft. Do not tap Merge on this visit unless Billy says yes to the whole stack below, in that order.
@@ -44,7 +44,7 @@ Merge one pull request at a time, from the bottom of the stack. Wait until the n
 7. [#100](https://github.com/billyboy95/ai-autotech-/pull/100) — contact side panel (`cursor/inbox-contact-panel-85fc`). After #99 is on main.
 8. [#102](https://github.com/billyboy95/ai-autotech-/pull/102) — internal notes (`cursor/inbox-internal-notes-ca4e`). After #100 is on main.
 9. [#104](https://github.com/billyboy95/ai-autotech-/pull/104) — templates picker (`cursor/inbox-templates-picker-2e3d`). After #102 is on main.
-10. This draft — conversation search (`cursor/inbox-conversation-search-353d`). After #104 is on main.
+10. [#105](https://github.com/billyboy95/ai-autotech-/pull/105) — conversation search (`cursor/inbox-conversation-search-353d`). After #104 is on main.
 
 A yes to one pull request is not a yes to the next. A yes to merge is not a yes to the flag, and it is not a yes to send.
 

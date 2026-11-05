@@ -7,6 +7,7 @@ import { InboxBulkChrome } from "@/components/inbox/inbox-bulk";
 import { InboxContactPanel } from "@/components/inbox/inbox-contact-panel";
 import { InboxInternalNotes } from "@/components/inbox/inbox-internal-notes";
 import { InboxMessageMedia } from "@/components/inbox/inbox-media";
+import { InboxOutboundMedia } from "@/components/inbox/inbox-outbound-media";
 import { InboxConversationSearch, InboxSearchEmpty } from "@/components/inbox/inbox-search";
 import { InboxTagFilter, InboxTagFilterEmpty } from "@/components/inbox/inbox-tag-filter";
 import { InboxTemplatesPicker } from "@/components/inbox/inbox-templates-picker";
@@ -68,6 +69,15 @@ import {
   PREVIEW_MESSAGE_MEDIA,
   safeMediaUrl,
 } from "@/lib/inbox/media";
+import {
+  MAX_OUTBOUND_MEDIA_BYTES,
+  OUTBOUND_MEDIA_ACCEPT,
+  attachOutboundMedia,
+  inboxOutboundMediaEnabled,
+  queuedMessageMedia,
+  removeOutboundMedia,
+  safeOutboundPreviewUrl,
+} from "@/lib/inbox/outbound-media";
 import {
   conversationMatchesTags,
   filterInboxByTags,
@@ -541,6 +551,7 @@ function threadByName(data: InboxData, name: string) {
     search: data.search,
     tagFilter: data.tagFilter,
     media: data.media,
+    outboundMedia: data.outboundMedia,
     multiNumber: data.multiNumber,
     number: data.number,
     filter: data.filter,
@@ -2520,4 +2531,262 @@ test("inbox media is wired to the flag and does not queue, upload, or call a pro
   assert.match(media, /graph\.facebook\.com/);
   assert.equal(media.includes("access_token"), true);
   assert.equal(media.includes("fetch("), false);
+});
+
+test("outbound media stays off unless the flag is the exact string true", () => {
+  assert.equal(inboxOutboundMediaEnabled({} as NodeJS.ProcessEnv), false);
+  assert.equal(inboxOutboundMediaEnabled({ INBOX_OUTBOUND_MEDIA_ENABLED: "" } as NodeJS.ProcessEnv), false);
+  assert.equal(inboxOutboundMediaEnabled({ INBOX_OUTBOUND_MEDIA_ENABLED: "false" } as NodeJS.ProcessEnv), false);
+  assert.equal(inboxOutboundMediaEnabled({ INBOX_OUTBOUND_MEDIA_ENABLED: "yes" } as NodeJS.ProcessEnv), false);
+  assert.equal(inboxOutboundMediaEnabled({ INBOX_OUTBOUND_MEDIA_ENABLED: "1" } as NodeJS.ProcessEnv), false);
+  assert.equal(inboxOutboundMediaEnabled({ INBOX_OUTBOUND_MEDIA_ENABLED: "True" } as NodeJS.ProcessEnv), false);
+  assert.equal(inboxOutboundMediaEnabled({ INBOX_OUTBOUND_MEDIA_ENABLED: "TRUE" } as NodeJS.ProcessEnv), false);
+  assert.equal(inboxOutboundMediaEnabled({ INBOX_OUTBOUND_MEDIA_ENABLED: " true " } as NodeJS.ProcessEnv), true);
+  const off = previewInbox({ outboundMedia: false, media: true, tagFilter: true, search: true, templatesPicker: true, quickUx: true });
+  const on = previewInbox({ outboundMedia: true, media: true, tagFilter: true, search: true, templatesPicker: true, quickUx: true });
+  assert.equal(previewInbox({}).outboundMedia, inboxOutboundMediaEnabled());
+  assert.equal(off.outboundMedia, false);
+  assert.equal(on.outboundMedia, true);
+  assert.equal(on.media, true);
+  assert.equal(on.tagFilter, true);
+  assert.equal(on.search, true);
+  assert.equal(on.templatesPicker, true);
+  assert.equal(on.quickUx, true);
+  assert.equal(off.sendingEnabled, false);
+  assert.equal(on.sendingEnabled, false);
+  const pending = attachOutboundMedia({ name: "lerato-id.png", type: "image/png", size: 1200 });
+  assert.ok(pending);
+  const hidden = renderToStaticMarkup(createElement(InboxOutboundMedia, {
+    enabled: false,
+    pending,
+    onAttach: () => undefined,
+    onRemove: () => undefined,
+  }));
+  assert.equal(hidden, "");
+  assert.equal(hidden.includes("inbox-outbound-media"), false);
+  assert.equal(hidden.includes("type=\"file\""), false);
+  assert.equal(hidden.includes("lerato-id.png"), false);
+  const quiet = renderToStaticMarkup(createElement(InboxOutboundMedia, {
+    enabled: true,
+    pending: null,
+    onAttach: () => undefined,
+    onRemove: () => undefined,
+  }));
+  assert.match(quiet, /data-testid="inbox-outbound-media"/);
+  assert.match(quiet, /data-testid="inbox-outbound-media-input"/);
+  assert.match(quiet, /type="file"/);
+  assert.match(quiet, new RegExp(`accept="${OUTBOUND_MEDIA_ACCEPT.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}"`));
+  assert.equal(quiet.includes("multiple"), false);
+  assert.equal(quiet.includes("inbox-outbound-media-chip"), false);
+  assert.equal(quiet.includes("inbox-outbound-media-remove"), false);
+  assert.equal(quiet.includes("outboundMediaKind"), false);
+  assert.equal(quiet.includes("type=\"submit\""), false);
+  const fileInput = quiet.match(/<input[^>]*data-testid="inbox-outbound-media-input"[^>]*>/)?.[0]
+    ?? quiet.match(/<input[^>]*type="file"[^>]*>/)?.[0]
+    ?? "";
+  assert.match(fileInput, /type="file"/);
+  assert.equal(fileInput.includes("name="), false);
+});
+
+test("outbound media attach and remove stay on the queued reply and do not send", () => {
+  const image = attachOutboundMedia({ name: "lerato-id.png", type: "image/png", size: 1200 });
+  const document = attachOutboundMedia({ name: "october-intake.pdf", type: "application/pdf", size: 4000 });
+  assert.ok(image);
+  assert.ok(document);
+  assert.equal(image.kind, "image");
+  assert.equal(image.filename, "lerato-id.png");
+  assert.equal(image.mime, "image/png");
+  assert.equal(image.previewUrl, "");
+  assert.equal(document.kind, "document");
+  assert.equal(document.filename, "october-intake.pdf");
+  assert.equal(document.mime, "application/pdf");
+  const replaced = attachOutboundMedia({ name: "notes\\quote.pdf", type: "", size: 80 });
+  assert.equal(replaced?.filename, "quote.pdf");
+  assert.equal(replaced?.kind, "document");
+  assert.equal(replaced?.mime, "application/pdf");
+  assert.equal(removeOutboundMedia(), null);
+  assert.equal(attachOutboundMedia({ name: "run.exe", type: "application/octet-stream", size: 80 }), null);
+  assert.equal(attachOutboundMedia({ name: "mark.svg", type: "image/svg+xml", size: 80 }), null);
+  assert.equal(attachOutboundMedia({ name: "photo.png", type: "image/svg+xml", size: 80 }), null);
+  assert.equal(attachOutboundMedia({ name: "photo.png", type: "application/pdf", size: 80 }), null);
+  assert.equal(attachOutboundMedia({ name: "photo.png", type: "image/png", size: 0 }), null);
+  assert.equal(attachOutboundMedia({ name: "photo.png", type: "image/png", size: MAX_OUTBOUND_MEDIA_BYTES + 1 }), null);
+  assert.equal(attachOutboundMedia({ name: "https://cdn.example/photo.png", type: "image/png", size: 80 }), null);
+  assert.ok(attachOutboundMedia({ name: "photo.png", type: "image/png", size: MAX_OUTBOUND_MEDIA_BYTES }));
+  assert.equal(attachOutboundMedia({ name: "docs/lerato-id.png", type: "image/png", size: 80 })?.filename, "lerato-id.png");
+  assert.equal(safeOutboundPreviewUrl("javascript:alert(1)"), "");
+  assert.equal(safeOutboundPreviewUrl("https://graph.facebook.com/v20.0/123"), "");
+  assert.equal(safeOutboundPreviewUrl("blob:http://localhost/preview-1"), "blob:http://localhost/preview-1");
+  assert.equal(safeOutboundPreviewUrl("/icons/aios-192.png"), "/icons/aios-192.png");
+
+  const pending = { ...image, previewUrl: "/icons/aios-192.png" };
+  const chip = renderToStaticMarkup(createElement(InboxOutboundMedia, {
+    enabled: true,
+    pending,
+    onAttach: () => undefined,
+    onRemove: () => undefined,
+  }));
+  assert.match(chip, /data-testid="inbox-outbound-media-chip"/);
+  assert.match(chip, /data-kind="image"/);
+  assert.match(chip, /data-filename="lerato-id.png"/);
+  assert.match(chip, /data-mime="image\/png"/);
+  assert.match(chip, /data-testid="inbox-outbound-media-preview"/);
+  assert.match(chip, /src="\/icons\/aios-192\.png"/);
+  assert.match(chip, /data-testid="inbox-outbound-media-remove"/);
+  assert.match(chip, /type="button"/);
+  assert.match(chip, /name="outboundMediaKind" value="image"/);
+  assert.match(chip, /name="outboundMediaFilename" value="lerato-id.png"/);
+  assert.match(chip, /name="outboundMediaMime" value="image\/png"/);
+  assert.equal(chip.includes("type=\"submit\""), false);
+  assert.equal(chip.includes("crm_outbox"), false);
+  assert.equal(chip.includes("inbox-message-media"), false);
+  assert.equal(chip.includes("inbox-templates-picker"), false);
+  assert.equal(chip.includes("inbox-search"), false);
+  assert.equal(chip.includes("inbox-tag-filter"), false);
+  assert.equal(chip.includes("inbox-quick-replies"), false);
+  assert.equal((chip.match(/data-testid="inbox-outbound-media-chip"/g) ?? []).length, 1);
+
+  const removed = renderToStaticMarkup(createElement(InboxOutboundMedia, {
+    enabled: true,
+    pending: removeOutboundMedia(),
+    onAttach: () => undefined,
+    onRemove: () => undefined,
+  }));
+  assert.equal(removed.includes("inbox-outbound-media-chip"), false);
+  assert.equal(removed.includes("lerato-id.png"), false);
+  assert.match(removed, /data-testid="inbox-outbound-media-input"/);
+
+  const blockedPreview = renderToStaticMarkup(createElement(InboxOutboundMedia, {
+    enabled: true,
+    pending: { ...image, previewUrl: "javascript:alert(1)" },
+    onAttach: () => undefined,
+    onRemove: () => undefined,
+  }));
+  assert.equal(blockedPreview.includes("javascript:"), false);
+  assert.equal(blockedPreview.includes("inbox-outbound-media-preview"), false);
+  assert.match(blockedPreview, /lerato-id\.png/);
+
+  const storedImage = queuedMessageMedia(true, { kind: "image", filename: image.filename, mime: image.mime });
+  const storedDocument = queuedMessageMedia(true, { kind: "document", filename: document.filename, mime: document.mime });
+  assert.ok(storedImage);
+  assert.ok(storedDocument);
+  assert.equal(queuedMessageMedia(false, { kind: "image", filename: image.filename, mime: image.mime }), null);
+  assert.equal(queuedMessageMedia(true, { kind: "document", filename: image.filename, mime: image.mime }), null);
+  assert.equal("url" in storedImage.attachments[0], false);
+  const parsedImage = parseMessageMedia(storedImage);
+  const parsedDocument = parseMessageMedia(storedDocument);
+  assert.equal(parsedImage[0]?.kind, "image");
+  assert.equal(parsedImage[0]?.filename, "lerato-id.png");
+  assert.equal(parsedImage[0]?.mime, "image/png");
+  assert.equal(parsedImage[0]?.url, "");
+  assert.equal(parsedDocument[0]?.kind, "file");
+  assert.equal(parsedDocument[0]?.filename, "october-intake.pdf");
+  assert.equal(parsedDocument[0]?.mime, "application/pdf");
+  const viewer = renderToStaticMarkup(createElement(InboxMessageMedia, { enabled: true, attachments: parsedDocument }));
+  assert.match(viewer, /october-intake\.pdf/);
+  assert.match(viewer, /application\/pdf/);
+  assert.equal(viewer.includes("type=\"submit\""), false);
+
+  const reply = planInboxReply({
+    now: NOW,
+    sendingEnabled: false,
+    channel: "whatsapp",
+    body: "See the attached intake form.",
+    toAddress: "+27825550101",
+    conversationId: "conv-1",
+    contactId: "contact-1",
+    leadId: "lead-1",
+    connectionId: "conn-1",
+    userId: "user-1",
+    senderName: "EASTC",
+    windowExpiresAt: windowExpiry(NOW),
+    template: null,
+    suppressed: false,
+    consent: "opted_in",
+    serviceSendsThisMonth: 0,
+  });
+  assert.equal(reply.ok, true);
+  if (!reply.ok) return;
+  assert.equal(reply.outbox.status, "held");
+  assert.equal(reply.outbox.provider, "outbox");
+  assert.equal(reply.message.providerMessageId, `outbox:${reply.outbox.id}`);
+  assert.notEqual(reply.message.status, "sent");
+  assert.equal(reply.outbox.body.includes("lerato-id.png"), false);
+  assert.equal(reply.message.body.includes("See the attached intake form."), true);
+  assert.equal(reply.message.body.includes("reply STOP to opt out"), true);
+});
+
+test("outbound media queues filename metadata and does not call a provider", () => {
+  const view = readFileSync(new URL("../../components/inbox/inbox-view.tsx", import.meta.url), "utf8");
+  const load = readFileSync(new URL("./load.ts", import.meta.url), "utf8");
+  const actions = readFileSync(new URL("../../app/actions/inbox.ts", import.meta.url), "utf8");
+  const component = readFileSync(new URL("../../components/inbox/inbox-outbound-media.tsx", import.meta.url), "utf8");
+  const lib = readFileSync(new URL("./outbound-media.ts", import.meta.url), "utf8");
+  const example = readFileSync(new URL("../../../.env.example", import.meta.url), "utf8");
+  const phone = readFileSync(new URL("../../../docs/phone-inbox-outbound-media.md", import.meta.url), "utf8");
+  const order = readFileSync(new URL("../../../supabase/APPLY-ORDER.md", import.meta.url), "utf8");
+  assert.match(view, /data-outbound-media=\{data\.outboundMedia \? "on" : undefined\}/);
+  assert.match(view, /\{data\.outboundMedia \? \(/);
+  assert.match(view, /<InboxOutboundMedia/);
+  assert.match(view, /<InboxMessageMedia enabled=\{data\.media\} attachments=\{message\.media\} \/>/);
+  assert.match(view, /data\.templatesPicker \?/);
+  assert.match(view, /data\.quickUx \?/);
+  const attachStart = view.indexOf("{data.outboundMedia ? (");
+  const attachEnd = view.indexOf("<InboxWaReplyFields", attachStart);
+  assert.ok(attachStart > 0 && attachEnd > attachStart);
+  const block = view.slice(attachStart, attachEnd);
+  assert.match(block, /<InboxOutboundMedia/);
+  assert.equal(block.includes("fetch("), false);
+  assert.equal(block.includes("crm_outbox"), false);
+  assert.equal(block.includes("type=\"submit\""), false);
+  assert.match(load, /outboundMedia: inboxOutboundMediaEnabled\(\)/);
+  assert.match(load, /media: inboxMediaEnabled\(\)/);
+  const fnStart = actions.indexOf("export async function sendInboxReply");
+  const fnEnd = actions.indexOf("export async function addInboxNote");
+  assert.ok(fnStart > 0 && fnEnd > fnStart);
+  const fn = actions.slice(fnStart, fnEnd);
+  assert.match(fn, /const mediaColumn = queuedMessageMedia\(inboxOutboundMediaEnabled\(\)/);
+  assert.match(fn, /\.\.\.\(mediaColumn \? \{ media: mediaColumn \} : \{\}\)/);
+  assert.match(fn, /\.from\("crm_outbox"\)\.insert\(drafted\.row\)/);
+  assert.equal(fn.includes("fetch("), false);
+  assert.equal(fn.includes(".upload("), false);
+  assert.equal(/graph\.facebook|api\.whatsapp/i.test(fn), false);
+  assert.equal(/sending_enabled\s*=\s*true/i.test(fn), false);
+  assert.equal(fn.includes("provider: \"meta\""), false);
+  assert.equal(fn.includes("contact_consents"), false);
+  assert.equal(actions.includes("INBOX_MEDIA_ENABLED"), false);
+  assert.equal(actions.includes("inboxMediaEnabled"), false);
+  assert.equal(actions.includes("messages.media"), false);
+  assert.equal(component.includes("type=\"submit\""), false);
+  assert.equal(component.includes("name=\"file\""), false);
+  assert.equal(component.includes("fetch("), false);
+  assert.equal(component.includes("crm_outbox"), false);
+  assert.equal(component.includes("sendInboxReply"), false);
+  assert.equal(lib.includes("fetch("), false);
+  assert.equal(lib.includes(".insert("), false);
+  assert.equal(lib.includes(".from("), false);
+  assert.equal(lib.includes(".upload("), false);
+  assert.match(example, /^INBOX_OUTBOUND_MEDIA_ENABLED=$/m);
+  assert.equal(example.includes("INBOX_OUTBOUND_MEDIA_ENABLED=true"), false);
+  assert.match(phone, /INBOX_OUTBOUND_MEDIA_ENABLED/);
+  assert.match(phone, /not a yes to send/);
+  assert.match(phone, /sending_enabled/);
+  assert.match(phone, /cursor\/inbox-media-attachments-6195/);
+  const section = order.slice(order.indexOf("## Inbox outbound media"));
+  assert.match(section, /INBOX_OUTBOUND_MEDIA_ENABLED/);
+  assert.match(section, /does not add a migration/);
+  assert.match(section, /does not turn `sending_enabled` on/);
+  const checked = [
+    "src/lib/inbox/outbound-media.ts",
+    "src/components/inbox/inbox-outbound-media.tsx",
+    "src/components/inbox/inbox-view.tsx",
+    "src/lib/inbox/preview.ts",
+    "src/lib/inbox/load.ts",
+    "src/app/actions/inbox.ts",
+  ];
+  for (const file of checked) {
+    const text = readFileSync(new URL(`../../../${file}`, import.meta.url), "utf8");
+    assert.equal(/sending_enabled\s*=\s*true/i.test(text), false, file);
+    assert.equal(/graph\.facebook|api\.whatsapp/i.test(text), false, file);
+  }
 });

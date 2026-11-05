@@ -6,6 +6,7 @@ import { inboxContactPanelEnabled } from "@/lib/inbox/contact-panel";
 import { inboxInternalNotesEnabled } from "@/lib/inbox/internal-notes";
 import { inboxSearchEnabled, INBOX_SEARCH_PREVIEW_CAP, latestMessagePreviews, searchListFields, withMessagePreviews } from "@/lib/inbox/search";
 import { INBOX_MESSAGE_COLUMNS, INBOX_MESSAGE_COLUMNS_WITH_MEDIA, inboxMediaEnabled, parseMessageMedia } from "@/lib/inbox/media";
+import { inboxOutboundMediaEnabled } from "@/lib/inbox/outbound-media";
 import { inboxListSelect, inboxTagFilterEnabled, leadIdsForTagLookup, listTagFields, mergeLeadTags } from "@/lib/inbox/tag-filter";
 import { inboxTemplatesPickerEnabled } from "@/lib/inbox/templates-picker";
 import { displayPhoneFromConfig, inboxMultiNumberEnabled, parseInboxNumber, resolveInboxNumber, whatsappNumberParts } from "@/lib/inbox/numbers";
@@ -105,6 +106,7 @@ export async function loadInbox(query: {
     search: inboxSearchEnabled(),
     tagFilter: inboxTagFilterEnabled(),
     media: inboxMediaEnabled(),
+    outboundMedia: inboxOutboundMediaEnabled(),
     quickReplies: [],
     presence: [],
     loadedAt,

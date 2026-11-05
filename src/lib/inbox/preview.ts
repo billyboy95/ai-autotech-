@@ -3,6 +3,7 @@ import { inboxContactPanelEnabled } from "@/lib/inbox/contact-panel";
 import { inboxInternalNotesEnabled } from "@/lib/inbox/internal-notes";
 import { inboxSearchEnabled, searchListFields } from "@/lib/inbox/search";
 import { inboxMediaEnabled, parseMessageMedia, PREVIEW_MESSAGE_MEDIA } from "@/lib/inbox/media";
+import { inboxOutboundMediaEnabled } from "@/lib/inbox/outbound-media";
 import { inboxTagFilterEnabled, listTagFields } from "@/lib/inbox/tag-filter";
 import { inboxTemplatesPickerEnabled } from "@/lib/inbox/templates-picker";
 import { inboxMultiNumberEnabled, matchesInboxNumber, parseInboxNumber, resolveInboxNumber, whatsappNumberParts } from "@/lib/inbox/numbers";
@@ -227,6 +228,8 @@ export function previewInbox(query: {
   tagFilter?: boolean;
   /** Explicit override. Omit to follow INBOX_MEDIA_ENABLED. */
   media?: boolean;
+  /** Explicit override. Omit to follow INBOX_OUTBOUND_MEDIA_ENABLED. */
+  outboundMedia?: boolean;
   /** Explicit override. Omit to follow INBOX_WA_METERING_ENABLED. */
   waMetering?: boolean;
   notice?: string | null;
@@ -245,6 +248,7 @@ export function previewInbox(query: {
   const search = query.search ?? inboxSearchEnabled();
   const tagFilter = query.tagFilter ?? inboxTagFilterEnabled();
   const media = query.media ?? inboxMediaEnabled();
+  const outboundMedia = query.outboundMedia ?? inboxOutboundMediaEnabled();
   const waMeteringEnabled = query.waMetering ?? inboxWaMeteringEnabled();
   const whatsappNumbers = multiNumber ? previewNumbers : [];
   const number = multiNumber
@@ -346,6 +350,7 @@ export function previewInbox(query: {
     search,
     tagFilter,
     media,
+    outboundMedia,
     quickReplies: quickUx ? quickRepliesForWorkspace(null) : [],
     presence: quickUx ? previewInboxPresence(OPEN_WA, EXPIRED_WA) : [],
     loadedAt: now.toISOString(),

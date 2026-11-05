@@ -24,6 +24,7 @@ import {
   planBulkAssign,
 } from "@/lib/inbox/bulk";
 import { inboxMultiNumberEnabled, parseInboxNumber } from "@/lib/inbox/numbers";
+import { inboxOutboundMediaEnabled, queuedMessageMedia } from "@/lib/inbox/outbound-media";
 import { contactLookup, outboxRow, parseInboxChannel, planInboxReply, type InboxTemplateChoice, type WaCategory } from "@/lib/inbox/rules";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { safeResolveWorkspace } from "@/lib/tenant/context";
@@ -135,6 +136,11 @@ export async function sendInboxReply(formData: FormData) {
   const outbox = await supabase.from("crm_outbox").insert(drafted.row);
   if (outbox.error) back(formData, { id: conversationId, error: outbox.error.message });
 
+  const mediaColumn = queuedMessageMedia(inboxOutboundMediaEnabled(), {
+    kind: text(formData, "outboundMediaKind"),
+    filename: text(formData, "outboundMediaFilename"),
+    mime: text(formData, "outboundMediaMime"),
+  });
   const message = await supabase.from("messages").insert({
     org_id: current.org_id,
     conversation_id: plan.message.conversationId,
@@ -148,6 +154,7 @@ export async function sendInboxReply(formData: FormData) {
     cost_cents: plan.message.costCents,
     sent_by_user_id: plan.message.sentByUserId,
     outbox_id: plan.message.outboxId,
+    ...(mediaColumn ? { media: mediaColumn } : {}),
   });
   if (message.error) {
     const prompt = /use template/i.test(message.error.message) ? "Free-form WhatsApp is outside the 24-hour window. Use an approved template." : message.error.message;

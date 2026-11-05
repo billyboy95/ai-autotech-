@@ -9,6 +9,7 @@ import { InboxBulkChrome } from "@/components/inbox/inbox-bulk";
 import { InboxContactPanel } from "@/components/inbox/inbox-contact-panel";
 import { InboxInternalNotes } from "@/components/inbox/inbox-internal-notes";
 import { InboxMessageMedia } from "@/components/inbox/inbox-media";
+import { InboxOutboundMedia } from "@/components/inbox/inbox-outbound-media";
 import { InboxConversationSearch, InboxSearchEmpty } from "@/components/inbox/inbox-search";
 import { InboxTagFilter, InboxTagFilterEmpty } from "@/components/inbox/inbox-tag-filter";
 import { InboxTemplatesPicker } from "@/components/inbox/inbox-templates-picker";
@@ -17,6 +18,7 @@ import { InboxTeamStatsPanel } from "@/components/inbox/inbox-team-stats";
 import { InboxWaMessageMeter, InboxWaMetering } from "@/components/inbox/inbox-wa-metering";
 import { InboxWaReplyFields, InboxWaWindow } from "@/components/inbox/inbox-wa-window";
 import { inboxHref } from "@/lib/inbox/numbers";
+import { revokeOutboundPreview, type OutboundMediaDraft } from "@/lib/inbox/outbound-media";
 import {
   collisionBanner,
   inboxQuickClasses,
@@ -45,6 +47,7 @@ export function InboxView({ data, banner, bannerTone }: { data: InboxData; banne
   const [searchQuery, setSearchQuery] = useState("");
   const [appliedSearch, setAppliedSearch] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [outboundAttachment, setOutboundAttachment] = useState<OutboundMediaDraft | null>(null);
   const [livePeers, setLivePeers] = useState<InboxPresencePeer[] | null>(null);
   const presenceChannel = useRef<{ track: (payload: Record<string, string>) => Promise<unknown> } | null>(null);
   const bodyRef = useRef(body);
@@ -92,6 +95,10 @@ export function InboxView({ data, banner, bannerTone }: { data: InboxData; banne
     setTemplateId("");
     setBody("");
     setTemplatesOpen(false);
+    setOutboundAttachment((current) => {
+      revokeOutboundPreview(current);
+      return null;
+    });
   }, [threadId, threadChannel]);
   useEffect(() => {
     if (!data.search) return;
@@ -202,7 +209,7 @@ export function InboxView({ data, banner, bannerTone }: { data: InboxData; banne
   }, [body, data.preview, data.quickUx, data.userId, threadId, viewerName]);
 
   return (
-    <div data-testid="inbox" data-quick-ux={data.quickUx ? "on" : undefined} data-contact-panel={data.contactPanel ? "on" : undefined} data-internal-notes={data.internalNotes ? "on" : undefined} data-templates-picker={data.templatesPicker ? "on" : undefined} data-search={data.search ? "on" : undefined} data-tag-filter={data.tagFilter ? "on" : undefined} data-media={data.media ? "on" : undefined} className={layout.shell}>
+    <div data-testid="inbox" data-quick-ux={data.quickUx ? "on" : undefined} data-contact-panel={data.contactPanel ? "on" : undefined} data-internal-notes={data.internalNotes ? "on" : undefined} data-templates-picker={data.templatesPicker ? "on" : undefined} data-search={data.search ? "on" : undefined} data-tag-filter={data.tagFilter ? "on" : undefined} data-media={data.media ? "on" : undefined} data-outbound-media={data.outboundMedia ? "on" : undefined} className={layout.shell}>
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="font-display text-2xl font-bold text-[#0B1F3A]">Inbox</h1>
@@ -433,6 +440,25 @@ export function InboxView({ data, banner, bannerTone }: { data: InboxData; banne
                     onPick={(template) => {
                       setBody(pickTemplateIntoComposer({ body, templateId }, template).body);
                       setTemplatesOpen(false);
+                    }}
+                  />
+                ) : null}
+                {data.outboundMedia ? (
+                  <InboxOutboundMedia
+                    key={thread.id}
+                    enabled
+                    pending={outboundAttachment}
+                    onAttach={(next) => {
+                      setOutboundAttachment((current) => {
+                        if (current?.previewUrl !== next.previewUrl) revokeOutboundPreview(current);
+                        return next;
+                      });
+                    }}
+                    onRemove={() => {
+                      setOutboundAttachment((current) => {
+                        revokeOutboundPreview(current);
+                        return null;
+                      });
                     }}
                   />
                 ) : null}

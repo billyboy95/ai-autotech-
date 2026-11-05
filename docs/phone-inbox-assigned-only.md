@@ -10,7 +10,7 @@ This scope is separate from the WhatsApp number filter on draft [#94](https://gi
 
 ## What you are reviewing
 
-The pull request number is written here after GitHub opens the draft. Branch `cursor/inbox-assigned-only-44de`. The base is `main`. It is not stacked on #94–#110. The Files tab is only this scope. It is not the inbox stack.
+Draft [#111](https://github.com/billyboy95/ai-autotech-/pull/111). Branch `cursor/inbox-assigned-only-44de`. The base is `main`. It is not stacked on #94–#110. The Files tab is only this scope. It is not the inbox stack.
 
 When the flag is the exact string `true`:
 
@@ -29,7 +29,7 @@ When the flag is unset, the preview inbox and the signed-in inbox match main. Un
 On the phone:
 
 1. Open GitHub and sign in as the account that can see `billyboy95/ai-autotech-`.
-2. Open the draft pull request for branch `cursor/inbox-assigned-only-44de`. The base is `main`.
+2. Open https://github.com/billyboy95/ai-autotech-/pull/111 . The branch is `cursor/inbox-assigned-only-44de`. The base is `main`.
 3. Read the title and the base branch. If the base is an inbox stack branch (`cursor/inbox-multi-number-6d2e` or any later inbox branch, including realtime), stop. Do not merge it into that stack from here.
 4. Open Files changed. Pass when the diff is the assigned-only flag, the list and thread scope, tests, and this note. Fail and stop if the diff turns `sending_enabled` on, calls Meta, changes consent, inserts `crm_outbox` from the scope itself, adds a migration, sets another inbox flag, or sends WhatsApp, email, or SMS.
 5. Leave the draft as a draft. Do not tap Merge on this visit unless Billy says yes to this pull request on its own.

@@ -6,6 +6,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { InboxBulkChrome } from "@/components/inbox/inbox-bulk";
 import { InboxContactPanel } from "@/components/inbox/inbox-contact-panel";
 import { InboxInternalNotes } from "@/components/inbox/inbox-internal-notes";
+import { InboxTemplatesPicker } from "@/components/inbox/inbox-templates-picker";
 import {
   bulkAssignNotice,
   bulkIdsInWorkspace,
@@ -43,6 +44,12 @@ import {
   planInternalNoteSave,
   saveInternalNote,
 } from "@/lib/inbox/internal-notes";
+import {
+  fillComposerFromTemplate,
+  inboxTemplatesPickerEnabled,
+  pickTemplateIntoComposer,
+  templatesForPicker,
+} from "@/lib/inbox/templates-picker";
 import { previewInbox } from "@/lib/inbox/preview";
 import {
   collisionBanner,
@@ -76,7 +83,7 @@ import {
   outboundWaMessageMeter,
   zonedMonthStart,
 } from "@/lib/inbox/wa-metering";
-import type { InboxData } from "@/lib/inbox/types";
+import type { InboxData, InboxTemplateOption } from "@/lib/inbox/types";
 import {
   acceptRealtimeRow,
   formatInboxCost,
@@ -493,6 +500,7 @@ function threadByName(data: InboxData, name: string) {
     bulkActions: data.bulkActions,
     contactPanel: data.contactPanel,
     internalNotes: data.internalNotes,
+    templatesPicker: data.templatesPicker,
     multiNumber: data.multiNumber,
     number: data.number,
     filter: data.filter,
@@ -1687,6 +1695,215 @@ test("internal notes wiring writes conversation_notes and does not send", () => 
     "src/components/inbox/inbox-internal-notes.tsx",
     "src/components/inbox/inbox-view.tsx",
     "src/app/actions/inbox.ts",
+    "src/lib/inbox/preview.ts",
+    "src/lib/inbox/load.ts",
+  ];
+  for (const file of files) {
+    const text = readFileSync(new URL(`../../../${file}`, import.meta.url), "utf8");
+    assert.equal(/sending_enabled\s*=\s*true/i.test(text), false, file);
+    assert.equal(/graph\.facebook|api\.whatsapp/i.test(text), false, file);
+  }
+});
+
+function pickerTemplate(partial: Partial<InboxTemplateOption> & Pick<InboxTemplateOption, "id" | "name" | "channel" | "body">): InboxTemplateOption {
+  return {
+    subject: "",
+    waCategory: "",
+    approved: partial.channel === "whatsapp" ? false : true,
+    ...partial,
+  };
+}
+
+function optionHtml(html: string, id: string) {
+  return html.match(new RegExp(`<button[^>]*data-template="${id}"[\\s\\S]*?</button>`))?.[0] ?? "";
+}
+
+test("the templates picker stays off unless the flag is the string true", () => {
+  assert.equal(inboxTemplatesPickerEnabled({} as NodeJS.ProcessEnv), false);
+  assert.equal(inboxTemplatesPickerEnabled({ INBOX_TEMPLATES_PICKER_ENABLED: "" } as NodeJS.ProcessEnv), false);
+  assert.equal(inboxTemplatesPickerEnabled({ INBOX_TEMPLATES_PICKER_ENABLED: "false" } as NodeJS.ProcessEnv), false);
+  assert.equal(inboxTemplatesPickerEnabled({ INBOX_TEMPLATES_PICKER_ENABLED: "yes" } as NodeJS.ProcessEnv), false);
+  assert.equal(inboxTemplatesPickerEnabled({ INBOX_TEMPLATES_PICKER_ENABLED: "1" } as NodeJS.ProcessEnv), false);
+  assert.equal(inboxTemplatesPickerEnabled({ INBOX_TEMPLATES_PICKER_ENABLED: "TRUE" } as NodeJS.ProcessEnv), true);
+  assert.equal(inboxTemplatesPickerEnabled({ INBOX_TEMPLATES_PICKER_ENABLED: " true " } as NodeJS.ProcessEnv), true);
+  const off = previewInbox({ templatesPicker: false, quickUx: true, waWindow: true });
+  const on = previewInbox({ templatesPicker: true, quickUx: true, waWindow: true });
+  assert.equal(previewInbox({}).templatesPicker, inboxTemplatesPickerEnabled());
+  assert.equal(off.templatesPicker, false);
+  assert.equal(on.templatesPicker, true);
+  assert.equal(off.sendingEnabled, false);
+  assert.equal(on.sendingEnabled, false);
+  assert.equal(off.quickUx, true);
+  assert.equal(on.waWindowEnabled, true);
+  assert.equal(off.templates.length > 0, true);
+  const hidden = renderToStaticMarkup(createElement(InboxTemplatesPicker, {
+    enabled: false,
+    templates: on.templates,
+    open: true,
+    onToggle: () => undefined,
+    onPick: () => undefined,
+  }));
+  assert.equal(hidden, "");
+  assert.equal(hidden.includes("inbox-templates-picker"), false);
+  assert.equal(hidden.includes("Enrolment follow-up"), false);
+  assert.equal(hidden.includes("Templates"), false);
+  const closed = threadByName(on, "Amina Patel");
+  assert.equal(closed.templatesPicker, true);
+  assert.equal(closed.sendingEnabled, false);
+  const approved = closed.templates.find((item) => item.id === "preview-template");
+  assert.ok(approved);
+  const picked = pickTemplateIntoComposer({ body: "", templateId: "" }, approved);
+  const gate = waCareState({
+    enabled: closed.waWindowEnabled,
+    threadChannel: closed.thread?.channel ?? "",
+    replyChannel: "whatsapp",
+    messages: closed.thread?.messages ?? [],
+    now: new Date(closed.loadedAt),
+    template: picked.templateId ? { approved: true, waCategory: "utility" } : null,
+  });
+  assert.equal(gate.blocked, true);
+  assert.match(gate.prompt, /use an approved template/i);
+  const fields = renderToStaticMarkup(createElement(InboxWaReplyFields, { blocked: gate.blocked, body: picked.body }));
+  assert.match(fields, /Hi \{\{name\}\}/);
+  assert.equal(replyFieldsBlocked(fields), true);
+});
+
+test("picking a named template fills the composer and does not send", () => {
+  const approved = pickerTemplate({
+    id: "wa-ok",
+    name: "Enrolment follow-up",
+    channel: "whatsapp",
+    body: "Hi {{name}}, your application is still open. Reply YES and we will send the next step.",
+    waCategory: "utility",
+    approved: true,
+  });
+  const draft = pickerTemplate({
+    id: "wa-draft",
+    name: "Open day invite",
+    channel: "whatsapp",
+    body: "Join us on campus this Saturday.",
+    waCategory: "marketing",
+    approved: false,
+  });
+  const email = pickerTemplate({
+    id: "mail",
+    name: "Receipt",
+    channel: "email",
+    subject: "Your {{company}} receipt",
+    body: "Hi {{firstName}}, this note is only in the reply box.",
+    waCategory: "",
+    approved: true,
+  });
+  const blank = pickerTemplate({
+    id: "blank",
+    name: "Empty",
+    channel: "sms",
+    body: "   ",
+    approved: true,
+  });
+  const rows = templatesForPicker([draft, email, blank, approved]);
+  assert.deepEqual(rows.map((item) => item.name), ["Enrolment follow-up", "Receipt"]);
+  assert.equal(rows.some((item) => item.id === "hours"), false);
+  assert.equal(fillComposerFromTemplate(approved), approved.body);
+  assert.match(fillComposerFromTemplate(approved), /\{\{name\}\}/);
+  assert.match(fillComposerFromTemplate(email), /\{\{firstName\}\}/);
+  const kept = pickTemplateIntoComposer({ body: "Keep this until a real template is chosen.", templateId: "already" }, draft);
+  assert.equal(kept.body, "Keep this until a real template is chosen.");
+  assert.equal(kept.templateId, "already");
+  const filled = pickTemplateIntoComposer({ body: "Thanks Lerato.", templateId: "" }, approved);
+  assert.equal(filled.body, approved.body);
+  assert.equal(filled.templateId, "");
+  assert.equal(filled.body.includes("crm_outbox"), false);
+  const on = previewInbox({ templatesPicker: true });
+  assert.equal(on.sendingEnabled, false);
+  let composer = { body: "Thanks Lerato.", templateId: "" };
+  const html = renderToStaticMarkup(createElement(InboxTemplatesPicker, {
+    enabled: true,
+    templates: [draft, email, blank, approved],
+    open: true,
+    onToggle: () => undefined,
+    onPick: (template) => {
+      composer = pickTemplateIntoComposer(composer, template);
+    },
+  }));
+  assert.match(html, /data-testid="inbox-templates-picker"/);
+  assert.match(html, /data-testid="inbox-templates-picker-list"/);
+  assert.match(html, /data-open="true"/);
+  assert.equal(html.includes("inbox-quick-replies"), false);
+  assert.equal(html.includes("Quick replies"), false);
+  assert.equal(html.includes("Open day invite"), false);
+  assert.equal(html.includes("type=\"submit\""), false);
+  assert.match(html, /type="button"/);
+  assert.match(html, /Nothing is queued and nothing is sent/);
+  assert.equal(/graph\.facebook|api\.whatsapp/i.test(html), false);
+  const whatsapp = optionHtml(html, "wa-ok");
+  const receipt = optionHtml(html, "mail");
+  assert.match(whatsapp, /Enrolment follow-up/);
+  assert.match(whatsapp, /whatsapp/);
+  assert.match(whatsapp, /utility/);
+  assert.match(receipt, /Receipt/);
+  assert.match(receipt, /email/);
+  assert.equal(receipt.includes("inbox-template-category"), false);
+  composer = pickTemplateIntoComposer(composer, approved);
+  assert.equal(composer.body, approved.body);
+  assert.equal(composer.templateId, "");
+  const empty = renderToStaticMarkup(createElement(InboxTemplatesPicker, {
+    enabled: true,
+    templates: [draft, blank],
+    open: true,
+    onToggle: () => undefined,
+    onPick: () => undefined,
+  }));
+  assert.match(empty, /data-testid="inbox-templates-picker-empty"/);
+  assert.match(empty, /No templates for this workspace/);
+  assert.equal(empty.includes("inbox-templates-picker-list"), false);
+  const shut = renderToStaticMarkup(createElement(InboxTemplatesPicker, {
+    enabled: true,
+    templates: [approved],
+    open: false,
+    onToggle: () => undefined,
+    onPick: () => undefined,
+  }));
+  assert.match(shut, /data-testid="inbox-templates-picker-toggle"/);
+  assert.match(shut, /aria-expanded="false"/);
+  assert.equal(shut.includes("inbox-templates-picker-list"), false);
+  assert.equal(shut.includes("Enrolment follow-up"), false);
+  const component = readFileSync(new URL("../../components/inbox/inbox-templates-picker.tsx", import.meta.url), "utf8");
+  assert.match(component, /type="button"/);
+  assert.equal(component.includes("type=\"submit\""), false);
+  assert.equal(component.includes("sendInboxReply"), false);
+  assert.equal(component.includes("crm_outbox"), false);
+  assert.equal(component.includes("fetch("), false);
+  assert.equal(/graph\.facebook|api\.whatsapp/i.test(component), false);
+});
+
+test("the templates picker is wired to the flag and does not queue or call a provider", () => {
+  const view = readFileSync(new URL("../../components/inbox/inbox-view.tsx", import.meta.url), "utf8");
+  const load = readFileSync(new URL("./load.ts", import.meta.url), "utf8");
+  const picker = readFileSync(new URL("./templates-picker.ts", import.meta.url), "utf8");
+  const actions = readFileSync(new URL("../../app/actions/inbox.ts", import.meta.url), "utf8");
+  assert.match(view, /data\.templatesPicker \? \(/);
+  assert.match(view, /<InboxTemplatesPicker/);
+  assert.match(view, /pickTemplateIntoComposer\(\{ body, templateId \}, template\)\.body/);
+  assert.match(view, /data-templates-picker=\{data\.templatesPicker \? "on" : undefined\}/);
+  assert.match(view, /<option value="">Free-form<\/option>/);
+  const pickStart = view.indexOf("<InboxTemplatesPicker");
+  const pickEnd = view.indexOf("<InboxWaReplyFields", pickStart);
+  const pick = view.slice(pickStart, pickEnd);
+  assert.equal(pick.includes("setTemplateId"), false);
+  assert.equal(pick.includes("sendInboxReply"), false);
+  assert.match(load, /templatesPicker: inboxTemplatesPickerEnabled\(\)/);
+  assert.equal(load.split('from("message_templates")').length, 2);
+  assert.match(load, /eq\("org_id", tenant\.active\.id\)/);
+  assert.equal(picker.includes(".from("), false);
+  assert.equal(picker.includes(".insert("), false);
+  assert.equal(picker.includes("fetch("), false);
+  assert.equal(picker.includes("renderTemplate"), false);
+  assert.equal(actions.includes("inboxTemplatesPickerEnabled"), false);
+  const files = [
+    "src/lib/inbox/templates-picker.ts",
+    "src/components/inbox/inbox-templates-picker.tsx",
+    "src/components/inbox/inbox-view.tsx",
     "src/lib/inbox/preview.ts",
     "src/lib/inbox/load.ts",
   ];

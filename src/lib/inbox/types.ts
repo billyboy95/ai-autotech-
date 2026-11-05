@@ -16,6 +16,10 @@ export type InboxListItem = {
   phone: string;
   /** Email from the list contact. Empty unless INBOX_SEARCH_ENABLED is the string true. */
   email: string;
+  /** Contact tags for the list filter. Empty unless INBOX_TAG_FILTER_ENABLED is the string true. */
+  tags: string[];
+  /** Lead tags for the list filter. Empty unless that flag is on. Used only when the contact has none. */
+  leadTags: string[];
 };
 
 export type InboxMessage = {
@@ -188,6 +192,8 @@ export type InboxData = {
   templatesPicker: boolean;
   /** True only when INBOX_SEARCH_ENABLED is the string true. */
   search: boolean;
+  /** True only when INBOX_TAG_FILTER_ENABLED is the string true. */
+  tagFilter: boolean;
   /** Empty unless INBOX_QUICK_UX_ENABLED is the string true. */
   quickReplies: InboxQuickReply[];
   /**

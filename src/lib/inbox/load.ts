@@ -5,6 +5,7 @@ import { inboxBulkActionsEnabled } from "@/lib/inbox/bulk";
 import { inboxContactPanelEnabled } from "@/lib/inbox/contact-panel";
 import { inboxInternalNotesEnabled } from "@/lib/inbox/internal-notes";
 import { inboxSearchEnabled, INBOX_SEARCH_PREVIEW_CAP, latestMessagePreviews, searchListFields, withMessagePreviews } from "@/lib/inbox/search";
+import { inboxListSelect, inboxTagFilterEnabled, leadIdsForTagLookup, listTagFields, mergeLeadTags } from "@/lib/inbox/tag-filter";
 import { inboxTemplatesPickerEnabled } from "@/lib/inbox/templates-picker";
 import { displayPhoneFromConfig, inboxMultiNumberEnabled, parseInboxNumber, resolveInboxNumber, whatsappNumberParts } from "@/lib/inbox/numbers";
 import { INBOX_TEAM_STATS_MESSAGE_CAP, buildInboxTeamStats, inboxTeamStatsEnabled, type TeamStatsMessage } from "@/lib/inbox/team-stats";
@@ -101,6 +102,7 @@ export async function loadInbox(query: {
     internalNotes: inboxInternalNotesEnabled(),
     templatesPicker: inboxTemplatesPickerEnabled(),
     search: inboxSearchEnabled(),
+    tagFilter: inboxTagFilterEnabled(),
     quickReplies: [],
     presence: [],
     loadedAt,
@@ -158,9 +160,7 @@ export async function loadInbox(query: {
 
   let listed = supabase
     .from("conversations")
-    .select(base.search
-      ? "id, channel, status, assigned_user_id, unread_count, last_message_at, wa_window_expires_at, contact_id, channel_connection_id, crm_contacts(first_name, last_name, email, phone_e164, whatsapp_e164)"
-      : "id, channel, status, assigned_user_id, unread_count, last_message_at, wa_window_expires_at, contact_id, channel_connection_id, crm_contacts(first_name, last_name)")
+    .select(inboxListSelect(base.search, base.tagFilter))
     .eq("org_id", tenant.active.id)
     .neq("status", "closed")
     .order("last_message_at", { ascending: false })
@@ -178,18 +178,24 @@ export async function loadInbox(query: {
     return { ...base, notice: conversations.error.message };
   }
 
-  base.conversations = (conversations.data ?? []).map((row) => {
+  const mapped = (conversations.data ?? []).map((row) => {
     const contact = one(row.crm_contacts) as {
       first_name?: string;
       last_name?: string;
       email?: string;
       phone_e164?: string;
       whatsapp_e164?: string;
+      tags?: string[] | null;
+      lead_id?: string | null;
     } | null;
     const name = [contact?.first_name, contact?.last_name].filter(Boolean).join(" ");
     const address = searchListFields(
       base.search ? { email: contact?.email, phone: contact?.phone_e164, whatsapp: contact?.whatsapp_e164 } : null,
       base.search,
+    );
+    const listedTags = listTagFields(
+      base.tagFilter ? { tags: contact?.tags, leadTags: [] } : null,
+      base.tagFilter,
     );
     return {
       id: String(row.id),
@@ -204,8 +210,13 @@ export async function loadInbox(query: {
       preview: "",
       phone: address.phone,
       email: address.email,
-    } satisfies InboxListItem;
+      tags: listedTags.tags,
+      leadTags: listedTags.leadTags,
+      leadId: base.tagFilter && contact?.lead_id ? String(contact.lead_id) : "",
+    };
   });
+  const tagged = await attachInboxLeadTags(supabase, tenant.active.id, mapped, base.tagFilter);
+  base.conversations = tagged.map(publishedListItem);
   base.conversations = await attachInboxSearchPreviews(supabase, tenant.active.id, base.conversations, base.search);
 
   const selected = query.id && base.conversations.some((item) => item.id === query.id) ? query.id : base.conversations[0]?.id;
@@ -433,6 +444,43 @@ async function loadInboxTeamStats(
     messagesLoaded,
     truncated,
   });
+}
+
+async function attachInboxLeadTags(
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  orgId: string,
+  conversations: (InboxListItem & { leadId: string })[],
+  enabled: boolean,
+) {
+  if (!enabled) return conversations;
+  const ids = leadIdsForTagLookup(conversations);
+  if (!isUuid(orgId) || ids.length === 0) return conversations;
+  try {
+    const listed = await supabase.from("crm_leads").select("id, tags").eq("org_id", orgId).in("id", ids);
+    if (listed.error || !listed.data) return conversations;
+    return mergeLeadTags(conversations, listed.data);
+  } catch {
+    return conversations;
+  }
+}
+
+function publishedListItem(row: InboxListItem & { leadId: string }): InboxListItem {
+  return {
+    id: row.id,
+    channel: row.channel,
+    status: row.status,
+    assignedUserId: row.assignedUserId,
+    connectionId: row.connectionId,
+    unread: row.unread,
+    lastMessageAt: row.lastMessageAt,
+    windowExpiresAt: row.windowExpiresAt,
+    contactName: row.contactName,
+    preview: row.preview,
+    phone: row.phone,
+    email: row.email,
+    tags: row.tags,
+    leadTags: row.leadTags,
+  };
 }
 
 async function attachInboxSearchPreviews(

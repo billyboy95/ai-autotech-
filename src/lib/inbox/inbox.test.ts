@@ -6,6 +6,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { InboxBulkChrome } from "@/components/inbox/inbox-bulk";
 import { InboxContactPanel } from "@/components/inbox/inbox-contact-panel";
 import { InboxInternalNotes } from "@/components/inbox/inbox-internal-notes";
+import { InboxMessageMedia } from "@/components/inbox/inbox-media";
 import { InboxConversationSearch, InboxSearchEmpty } from "@/components/inbox/inbox-search";
 import { InboxTagFilter, InboxTagFilterEmpty } from "@/components/inbox/inbox-tag-filter";
 import { InboxTemplatesPicker } from "@/components/inbox/inbox-templates-picker";
@@ -59,6 +60,14 @@ import {
   INBOX_SEARCH_DEBOUNCE_MS,
   INBOX_SEARCH_PREVIEW_CAP,
 } from "@/lib/inbox/search";
+import {
+  INBOX_MESSAGE_COLUMNS,
+  INBOX_MESSAGE_COLUMNS_WITH_MEDIA,
+  inboxMediaEnabled,
+  parseMessageMedia,
+  PREVIEW_MESSAGE_MEDIA,
+  safeMediaUrl,
+} from "@/lib/inbox/media";
 import {
   conversationMatchesTags,
   filterInboxByTags,
@@ -531,6 +540,7 @@ function threadByName(data: InboxData, name: string) {
     templatesPicker: data.templatesPicker,
     search: data.search,
     tagFilter: data.tagFilter,
+    media: data.media,
     multiNumber: data.multiNumber,
     number: data.number,
     filter: data.filter,
@@ -2335,4 +2345,179 @@ test("inbox tag filter is wired to the flag and does not queue, send, or write t
     assert.equal(/sending_enabled\s*=\s*true/i.test(text), false, file);
     assert.equal(/graph\.facebook|api\.whatsapp/i.test(text), false, file);
   }
+});
+
+test("inbox media stays off unless the flag is the string true", () => {
+  assert.equal(inboxMediaEnabled({} as NodeJS.ProcessEnv), false);
+  assert.equal(inboxMediaEnabled({ INBOX_MEDIA_ENABLED: "" } as NodeJS.ProcessEnv), false);
+  assert.equal(inboxMediaEnabled({ INBOX_MEDIA_ENABLED: "false" } as NodeJS.ProcessEnv), false);
+  assert.equal(inboxMediaEnabled({ INBOX_MEDIA_ENABLED: "yes" } as NodeJS.ProcessEnv), false);
+  assert.equal(inboxMediaEnabled({ INBOX_MEDIA_ENABLED: "1" } as NodeJS.ProcessEnv), false);
+  assert.equal(inboxMediaEnabled({ INBOX_MEDIA_ENABLED: "TRUE" } as NodeJS.ProcessEnv), true);
+  assert.equal(inboxMediaEnabled({ INBOX_MEDIA_ENABLED: " true " } as NodeJS.ProcessEnv), true);
+  const off = previewInbox({ media: false, tagFilter: true, search: true, templatesPicker: true, quickUx: true });
+  const on = previewInbox({ media: true, tagFilter: true, search: true, templatesPicker: true, quickUx: true });
+  assert.equal(previewInbox({}).media, inboxMediaEnabled());
+  assert.equal(off.media, false);
+  assert.equal(on.media, true);
+  assert.equal(off.tagFilter, true);
+  assert.equal(on.search, true);
+  assert.equal(on.templatesPicker, true);
+  assert.equal(on.quickUx, true);
+  assert.equal(off.sendingEnabled, false);
+  assert.equal(on.sendingEnabled, false);
+  assert.equal(off.thread?.messages.every((message) => message.media.length === 0), true);
+  const hidden = renderToStaticMarkup(createElement(InboxMessageMedia, {
+    enabled: false,
+    attachments: parseMessageMedia(PREVIEW_MESSAGE_MEDIA),
+  }));
+  assert.equal(hidden, "");
+  assert.equal(hidden.includes("inbox-message-media"), false);
+  assert.equal(hidden.includes("inbox-media-thumb"), false);
+  assert.equal(hidden.includes("lerato-id.png"), false);
+  const quiet = renderToStaticMarkup(createElement(InboxMessageMedia, { enabled: true, attachments: [] }));
+  assert.equal(quiet, "");
+});
+
+test("inbox media renders stored images and documents and does not send", () => {
+  const on = previewInbox({ media: true });
+  assert.equal(on.sendingEnabled, false);
+  const inbound = on.thread?.messages.find((message) => message.id === "preview-in");
+  const outbound = on.thread?.messages.find((message) => message.id === "preview-out");
+  assert.ok(inbound);
+  assert.ok(outbound);
+  assert.equal(outbound.media.length, 0);
+  assert.equal(inbound.body, "Can I still apply for the October intake?");
+  assert.deepEqual(inbound.media.map((item) => item.filename), ["lerato-id.png", "october-intake.pdf", "blocked.jpg"]);
+  assert.equal(inbound.media[0]?.kind, "image");
+  assert.equal(inbound.media[0]?.url, "/icons/aios-192.png");
+  assert.equal(inbound.media[0]?.mime, "image/png");
+  assert.equal(inbound.media[1]?.kind, "file");
+  assert.equal(inbound.media[1]?.url, "https://example.com/october-intake.pdf");
+  assert.equal(inbound.media[1]?.mime, "application/pdf");
+  assert.equal(inbound.media[2]?.url, "");
+  const sms = previewInbox({ media: true, channel: "sms" });
+  assert.equal(sms.thread?.messages.every((message) => message.media.length === 0), true);
+  assert.deepEqual(parseMessageMedia(null), []);
+  assert.deepEqual(parseMessageMedia({}), []);
+  assert.deepEqual(parseMessageMedia([]), []);
+  assert.deepEqual(parseMessageMedia(""), []);
+  assert.deepEqual(parseMessageMedia({ type: "text", text: { body: "Hello" } }), []);
+  assert.deepEqual(parseMessageMedia({ name: "Lerato" }), []);
+  assert.equal(parseMessageMedia("not a link").length, 0);
+  const linked = parseMessageMedia("https://cdn.example/photo.jpg");
+  assert.equal(linked[0]?.kind, "image");
+  assert.equal(linked[0]?.url, "https://cdn.example/photo.jpg");
+  const stored = parseMessageMedia({
+    type: "image",
+    image: { id: "media-1", mime_type: "image/jpeg", link: "https://cdn.example/stored.jpg", caption: "Licence" },
+  });
+  assert.equal(stored[0]?.kind, "image");
+  assert.equal(stored[0]?.url, "https://cdn.example/stored.jpg");
+  assert.equal(stored[0]?.filename, "Licence");
+  assert.equal(stored[0]?.mime, "image/jpeg");
+  const documentOnly = parseMessageMedia({
+    type: "document",
+    document: { id: "media-2", filename: "quote.pdf", mime_type: "application/pdf" },
+  });
+  assert.equal(documentOnly[0]?.kind, "file");
+  assert.equal(documentOnly[0]?.url, "");
+  assert.equal(documentOnly[0]?.filename, "quote.pdf");
+  assert.equal(documentOnly[0]?.mime, "application/pdf");
+  assert.equal(safeMediaUrl("javascript:alert(1)"), "");
+  assert.equal(safeMediaUrl("data:image/png;base64,aaaa"), "");
+  assert.equal(safeMediaUrl("https://user:secret@cdn.example/a.jpg"), "");
+  assert.equal(safeMediaUrl("https://graph.facebook.com/v20.0/123"), "");
+  assert.equal(safeMediaUrl("https://cdn.example/a.jpg?access_token=secret"), "");
+  const blocked = parseMessageMedia({ type: "image", url: "https://graph.facebook.com/v20.0/123", filename: "remote.jpg" });
+  assert.equal(blocked[0]?.url, "");
+  const html = renderToStaticMarkup(createElement(InboxMessageMedia, { enabled: true, attachments: inbound.media }));
+  assert.match(html, /data-testid="inbox-message-media"/);
+  assert.match(html, /data-testid="inbox-media-thumb"/);
+  assert.match(html, /src="\/icons\/aios-192\.png"/);
+  assert.match(html, /aria-expanded="false"/);
+  assert.match(html, /Open image lerato-id\.png/);
+  assert.match(html, /lerato-id\.png · image\/png/);
+  assert.match(html, /data-testid="inbox-media-file"/);
+  assert.match(html, /data-filename="october-intake\.pdf"/);
+  assert.match(html, /data-mime="application\/pdf"/);
+  assert.match(html, /href="https:\/\/example\.com\/october-intake\.pdf"/);
+  assert.match(html, /rel="noopener noreferrer"/);
+  assert.equal(html.includes("download="), false);
+  assert.match(html, /data-testid="inbox-media-fallback"/);
+  assert.match(html, /Attachment unavailable · blocked\.jpg · image\/jpeg/);
+  assert.equal(html.includes("javascript:"), false);
+  assert.equal(/graph\.facebook|api\.whatsapp/i.test(html), false);
+  assert.equal(html.includes("type=\"submit\""), false);
+  assert.equal(html.includes("crm_outbox"), false);
+  assert.equal(html.includes("inbox-templates-picker"), false);
+  assert.equal(html.includes("inbox-search"), false);
+  assert.equal(html.includes("inbox-tag-filter"), false);
+  assert.equal(html.includes("inbox-quick-replies"), false);
+  const component = readFileSync(new URL("../../components/inbox/inbox-media.tsx", import.meta.url), "utf8");
+  assert.equal(component.includes("type=\"submit\""), false);
+  assert.equal(component.includes("sendInboxReply"), false);
+  assert.equal(component.includes("crm_outbox"), false);
+  assert.equal(component.includes("fetch("), false);
+  assert.equal(component.includes("download="), false);
+  assert.equal(/graph\.facebook|api\.whatsapp/i.test(component), false);
+});
+
+test("inbox media is wired to the flag and does not queue, upload, or call a provider", () => {
+  const view = readFileSync(new URL("../../components/inbox/inbox-view.tsx", import.meta.url), "utf8");
+  const load = readFileSync(new URL("./load.ts", import.meta.url), "utf8");
+  const media = readFileSync(new URL("./media.ts", import.meta.url), "utf8");
+  const actions = readFileSync(new URL("../../app/actions/inbox.ts", import.meta.url), "utf8");
+  assert.match(view, /<InboxMessageMedia enabled=\{data\.media\} attachments=\{message\.media\} \/>/);
+  assert.match(view, /data-media=\{data\.media \? "on" : undefined\}/);
+  assert.match(view, /<InboxTagFilter/);
+  assert.match(view, /<InboxConversationSearch enabled=\{data\.search\}/);
+  assert.match(view, /data\.templatesPicker \?/);
+  assert.match(view, /data\.quickUx \?/);
+  const mediaStart = view.indexOf("<InboxMessageMedia");
+  const mediaEnd = view.indexOf("message.direction === \"out\"", mediaStart);
+  const block = view.slice(mediaStart, mediaEnd);
+  assert.equal(block.includes("sendInboxReply"), false);
+  assert.equal(block.includes("crm_outbox"), false);
+  assert.equal(block.includes("fetch("), false);
+  assert.match(load, /media: inboxMediaEnabled\(\)/);
+  assert.match(load, /loadThreadMessages\(supabase, id, mediaEnabled\)/);
+  assert.equal(INBOX_MESSAGE_COLUMNS.includes("media"), false);
+  assert.match(INBOX_MESSAGE_COLUMNS_WITH_MEDIA, /, media$/);
+  const fnStart = load.indexOf("async function loadThreadMessages");
+  const fnEnd = load.indexOf("function mapMessage");
+  assert.ok(fnStart > 0 && fnEnd > fnStart);
+  const fn = load.slice(fnStart, fnEnd);
+  assert.match(fn, /if \(mediaEnabled && listed\.error\)/);
+  assert.match(fn, /INBOX_MESSAGE_COLUMNS_WITH_MEDIA/);
+  assert.match(fn, /INBOX_MESSAGE_COLUMNS/);
+  assert.equal(fn.includes(".insert("), false);
+  assert.equal(fn.includes(".update("), false);
+  assert.equal(fn.includes("crm_outbox"), false);
+  assert.equal(fn.includes("fetch("), false);
+  assert.match(load, /media: withMedia \? parseMessageMedia\(row\.media\) : \[\]/);
+  assert.equal(media.includes(".insert("), false);
+  assert.equal(media.includes(".update("), false);
+  assert.equal(media.includes(".from("), false);
+  assert.equal(media.includes("fetch("), false);
+  assert.equal(actions.includes("INBOX_MEDIA_ENABLED"), false);
+  assert.equal(actions.includes("inboxMediaEnabled"), false);
+  assert.equal(actions.includes("messages.media"), false);
+  const checked = [
+    "src/lib/inbox/media.ts",
+    "src/components/inbox/inbox-media.tsx",
+    "src/components/inbox/inbox-view.tsx",
+    "src/lib/inbox/preview.ts",
+    "src/lib/inbox/load.ts",
+  ];
+  for (const file of checked) {
+    const text = readFileSync(new URL(`../../../${file}`, import.meta.url), "utf8");
+    assert.equal(/sending_enabled\s*=\s*true/i.test(text), false, file);
+    if (file !== "src/lib/inbox/media.ts") {
+      assert.equal(/graph\.facebook|api\.whatsapp/i.test(text), false, file);
+    }
+  }
+  assert.match(media, /graph\.facebook\.com/);
+  assert.equal(media.includes("access_token"), true);
+  assert.equal(media.includes("fetch("), false);
 });

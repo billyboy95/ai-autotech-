@@ -8,6 +8,7 @@ import { AiDraftPanel } from "@/components/inbox/ai-draft-panel";
 import { InboxBulkChrome } from "@/components/inbox/inbox-bulk";
 import { InboxContactPanel } from "@/components/inbox/inbox-contact-panel";
 import { InboxInternalNotes } from "@/components/inbox/inbox-internal-notes";
+import { InboxMessageMedia } from "@/components/inbox/inbox-media";
 import { InboxConversationSearch, InboxSearchEmpty } from "@/components/inbox/inbox-search";
 import { InboxTagFilter, InboxTagFilterEmpty } from "@/components/inbox/inbox-tag-filter";
 import { InboxTemplatesPicker } from "@/components/inbox/inbox-templates-picker";
@@ -201,7 +202,7 @@ export function InboxView({ data, banner, bannerTone }: { data: InboxData; banne
   }, [body, data.preview, data.quickUx, data.userId, threadId, viewerName]);
 
   return (
-    <div data-testid="inbox" data-quick-ux={data.quickUx ? "on" : undefined} data-contact-panel={data.contactPanel ? "on" : undefined} data-internal-notes={data.internalNotes ? "on" : undefined} data-templates-picker={data.templatesPicker ? "on" : undefined} data-search={data.search ? "on" : undefined} data-tag-filter={data.tagFilter ? "on" : undefined} className={layout.shell}>
+    <div data-testid="inbox" data-quick-ux={data.quickUx ? "on" : undefined} data-contact-panel={data.contactPanel ? "on" : undefined} data-internal-notes={data.internalNotes ? "on" : undefined} data-templates-picker={data.templatesPicker ? "on" : undefined} data-search={data.search ? "on" : undefined} data-tag-filter={data.tagFilter ? "on" : undefined} data-media={data.media ? "on" : undefined} className={layout.shell}>
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="font-display text-2xl font-bold text-[#0B1F3A]">Inbox</h1>
@@ -352,6 +353,7 @@ export function InboxView({ data, banner, bannerTone }: { data: InboxData; banne
                 {thread.messages.map((message) => (
                   <article key={message.id} className={`${layout.bubble} ${message.direction === "out" ? "ml-auto bg-[#0B1F3A] text-white" : "bg-slate-100 text-slate-800"}`}>
                     <p className="whitespace-pre-wrap">{message.body}</p>
+                    <InboxMessageMedia enabled={data.media} attachments={message.media} />
                     <p className={`mt-1 text-xs ${message.direction === "out" ? "text-slate-200" : "text-slate-500"}`}>
                       {message.direction === "out" ? "Out" : "In"} · {message.status}
                       {message.channel === "whatsapp" && !data.waMeteringEnabled ? ` · ${formatInboxCost({ cents: message.costCents, label: message.waCategory || "service" })}` : ""}

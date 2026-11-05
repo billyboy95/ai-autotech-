@@ -19,6 +19,10 @@ test("inbox, conversation AI, calendars, reviews, referrals, and public pages re
       AI_REPLY_API_KEY: "",
       CAMPAIGN_DRY_RUN_ENABLED: "",
       META_CONNECT_STUB_ENABLED: "",
+      WHATSAPP_EMBEDDED_SIGNUP_ENABLED: "",
+      NEXT_PUBLIC_META_APP_ID: "",
+      META_APP_ID: "",
+      META_APP_SECRET: "",
       CAMPAIGN_CSV_IMPORT_ENABLED: "",
       EMAIL_SMS_CONNECT_STUB_ENABLED: "",
       SOCIAL_DRAFTS_ENABLED: "",
@@ -447,6 +451,8 @@ test("inbox, conversation AI, calendars, reviews, referrals, and public pages re
     assert.match(whatsappHtml, /Needs provider keys/);
     assert.match(whatsappHtml, /Send test/);
     assert.match(whatsappHtml, /Outbox queued: 0/);
+    assert.doesNotMatch(whatsappHtml, /Connect with Meta Embedded Signup/);
+    assert.doesNotMatch(whatsappHtml, /needs Meta Tech Provider/);
     assert.doesNotMatch(whatsappHtml, /start with (these )?(3|three)/i);
 
     const emailStub = await fetch(`http://127.0.0.1:${port}/command-centre/connect-accounts/gmail`, { redirect: "manual" });
@@ -697,6 +703,7 @@ test("inbox, conversation AI, calendars, reviews, referrals, and public pages re
     const settingsPageHtml = await settingsPage.text();
     assert.match(settingsPageHtml, /Install AIOS on your phone/);
     assert.match(settingsPageHtml, /Open install steps/);
+    assert.doesNotMatch(settingsPageHtml, /Connect with Meta Embedded Signup/);
 
     const manifest = await fetch(`http://127.0.0.1:${port}/manifest.webmanifest`, { redirect: "manual" });
     assert.equal(manifest.status, 200);

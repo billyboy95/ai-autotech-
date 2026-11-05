@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { ChannelStubForm } from "@/components/connect/channel-stub-form";
 import { MetaStubForm } from "@/components/connect/meta-stub-form";
 import { SocialStubForm } from "@/components/connect/social-stub-form";
+import { WhatsAppEmbeddedSignupSlot } from "@/components/connect/whatsapp-embedded-signup-slot";
 import { CommandShell } from "@/components/crm/command-shell";
 import { loadCommandData } from "@/lib/automation/page-data";
 import { accountByKey } from "@/lib/connect/accounts";
@@ -77,6 +78,7 @@ async function MetaConnectStub({ account }: { account: MetaStubAccount }) {
         ) : null}
         {data.notice ? <p className="rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-950" role="status">{data.notice}</p> : null}
         <MetaStubForm accountKey={account} orgSlug={tenant.active.slug} />
+        {account === "whatsapp" ? <WhatsAppEmbeddedSignupSlot surface="whatsapp" /> : null}
         <p className="text-sm text-slate-700">
           <Link href="/command-centre/connect-accounts" className="font-semibold text-[#2563EB]">Back to connect accounts</Link>. Nothing is sent.
         </p>

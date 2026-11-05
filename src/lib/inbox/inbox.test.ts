@@ -6,6 +6,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { InboxBulkChrome } from "@/components/inbox/inbox-bulk";
 import { InboxContactPanel } from "@/components/inbox/inbox-contact-panel";
 import { InboxInternalNotes } from "@/components/inbox/inbox-internal-notes";
+import { InboxConversationSearch, InboxSearchEmpty } from "@/components/inbox/inbox-search";
 import { InboxTemplatesPicker } from "@/components/inbox/inbox-templates-picker";
 import {
   bulkAssignNotice,
@@ -44,6 +45,19 @@ import {
   planInternalNoteSave,
   saveInternalNote,
 } from "@/lib/inbox/internal-notes";
+import {
+  conversationMatchesSearch,
+  filterInboxConversations,
+  inboxListForSearch,
+  inboxSearchEnabled,
+  latestMessagePreviews,
+  normalizeInboxSearchQuery,
+  searchApplyDelay,
+  searchListFields,
+  withMessagePreviews,
+  INBOX_SEARCH_DEBOUNCE_MS,
+  INBOX_SEARCH_PREVIEW_CAP,
+} from "@/lib/inbox/search";
 import {
   fillComposerFromTemplate,
   inboxTemplatesPickerEnabled,
@@ -501,6 +515,7 @@ function threadByName(data: InboxData, name: string) {
     contactPanel: data.contactPanel,
     internalNotes: data.internalNotes,
     templatesPicker: data.templatesPicker,
+    search: data.search,
     multiNumber: data.multiNumber,
     number: data.number,
     filter: data.filter,
@@ -1903,6 +1918,182 @@ test("the templates picker is wired to the flag and does not queue or call a pro
   const files = [
     "src/lib/inbox/templates-picker.ts",
     "src/components/inbox/inbox-templates-picker.tsx",
+    "src/components/inbox/inbox-view.tsx",
+    "src/lib/inbox/preview.ts",
+    "src/lib/inbox/load.ts",
+  ];
+  for (const file of files) {
+    const text = readFileSync(new URL(`../../../${file}`, import.meta.url), "utf8");
+    assert.equal(/sending_enabled\s*=\s*true/i.test(text), false, file);
+    assert.equal(/graph\.facebook|api\.whatsapp/i.test(text), false, file);
+  }
+});
+
+test("inbox search stays off unless the flag is the string true", () => {
+  assert.equal(inboxSearchEnabled({} as NodeJS.ProcessEnv), false);
+  assert.equal(inboxSearchEnabled({ INBOX_SEARCH_ENABLED: "" } as NodeJS.ProcessEnv), false);
+  assert.equal(inboxSearchEnabled({ INBOX_SEARCH_ENABLED: "false" } as NodeJS.ProcessEnv), false);
+  assert.equal(inboxSearchEnabled({ INBOX_SEARCH_ENABLED: "yes" } as NodeJS.ProcessEnv), false);
+  assert.equal(inboxSearchEnabled({ INBOX_SEARCH_ENABLED: "1" } as NodeJS.ProcessEnv), false);
+  assert.equal(inboxSearchEnabled({ INBOX_SEARCH_ENABLED: "TRUE" } as NodeJS.ProcessEnv), true);
+  assert.equal(inboxSearchEnabled({ INBOX_SEARCH_ENABLED: " true " } as NodeJS.ProcessEnv), true);
+  const off = previewInbox({ search: false, quickUx: true, templatesPicker: true, multiNumber: true });
+  const on = previewInbox({ search: true, quickUx: true, templatesPicker: true, multiNumber: true });
+  assert.equal(previewInbox({}).search, inboxSearchEnabled());
+  assert.equal(off.search, false);
+  assert.equal(on.search, true);
+  assert.equal(off.sendingEnabled, false);
+  assert.equal(on.sendingEnabled, false);
+  assert.equal(off.quickUx, true);
+  assert.equal(on.templatesPicker, true);
+  assert.equal(off.multiNumber, true);
+  assert.deepEqual(off.conversations.map((item) => item.phone), ["", "", "", ""]);
+  assert.deepEqual(off.conversations.map((item) => item.email), ["", "", "", ""]);
+  assert.equal(on.conversations.find((item) => item.contactName === "Lerato Mokoena")?.email, "lerato@eastc.example");
+  assert.match(on.conversations.find((item) => item.contactName === "Lerato Mokoena")?.phone ?? "", /\+27115550101/);
+  assert.equal(inboxListForSearch(false, on.conversations, "amina"), on.conversations);
+  const hidden = renderToStaticMarkup(createElement(InboxConversationSearch, {
+    enabled: false,
+    query: "lerato",
+    onQuery: () => undefined,
+  }));
+  assert.equal(hidden, "");
+  assert.equal(hidden.includes("inbox-search"), false);
+  assert.equal(hidden.includes("Search conversations"), false);
+  const quiet = renderToStaticMarkup(createElement(InboxSearchEmpty, { show: false }));
+  assert.equal(quiet, "");
+});
+
+test("inbox search filters the loaded list and does not send", () => {
+  const on = previewInbox({ search: true });
+  assert.equal(on.sendingEnabled, false);
+  assert.equal(normalizeInboxSearchQuery("  Lerato  "), "lerato");
+  assert.equal(searchApplyDelay(""), 0);
+  assert.equal(searchApplyDelay("   "), 0);
+  assert.equal(searchApplyDelay("lerato"), INBOX_SEARCH_DEBOUNCE_MS);
+  assert.equal(filterInboxConversations(on.conversations, ""), on.conversations);
+  assert.equal(filterInboxConversations(on.conversations, "   "), on.conversations);
+  assert.deepEqual(filterInboxConversations(on.conversations, "LERATO").map((item) => item.contactName), ["Lerato Mokoena"]);
+  assert.deepEqual(filterInboxConversations(on.conversations, "eastc.example").map((item) => item.contactName), ["Lerato Mokoena"]);
+  assert.deepEqual(filterInboxConversations(on.conversations, "5550101").map((item) => item.contactName), ["Lerato Mokoena"]);
+  assert.deepEqual(filterInboxConversations(on.conversations, "+27 11 555 0101").map((item) => item.contactName), ["Lerato Mokoena"]);
+  assert.deepEqual(filterInboxConversations(on.conversations, "october intake").map((item) => item.contactName), ["Lerato Mokoena"]);
+  assert.deepEqual(filterInboxConversations(on.conversations, "practice").map((item) => item.contactName), ["Thabo Ndlovu"]);
+  assert.deepEqual(filterInboxConversations(on.conversations, "amina@example.com").map((item) => item.contactName), ["Amina Patel"]);
+  assert.deepEqual(filterInboxConversations(on.conversations, "no-such-thread"), []);
+  assert.equal(conversationMatchesSearch(on.conversations[0], "outbox"), false);
+  assert.equal(filterInboxConversations(on.conversations, "Enrolment follow-up").length, 0);
+  assert.equal(filterInboxConversations(on.conversations, "Monday to Friday").length, 0);
+  assert.equal(filterInboxConversations(on.conversations, "prospectus").length, 0);
+  const sms = previewInbox({ search: true, channel: "sms" });
+  assert.deepEqual(sms.conversations.map((item) => item.contactName), ["Thabo Ndlovu"]);
+  assert.deepEqual(filterInboxConversations(sms.conversations, "lerato"), []);
+  assert.deepEqual(inboxListForSearch(true, sms.conversations, "practice").map((item) => item.contactName), ["Thabo Ndlovu"]);
+  const mine = previewInbox({ search: true, filter: "mine" });
+  assert.deepEqual(filterInboxConversations(mine.conversations, "amina"), []);
+  assert.deepEqual(filterInboxConversations(mine.conversations, "lerato").map((item) => item.contactName), ["Lerato Mokoena"]);
+  const desk = previewInbox({ search: true, multiNumber: true, number: "preview-wa-desk" });
+  assert.deepEqual(desk.conversations.map((item) => item.contactName), ["Sipho Dlamini"]);
+  assert.deepEqual(filterInboxConversations(desk.conversations, "bakkie").map((item) => item.contactName), ["Sipho Dlamini"]);
+  assert.deepEqual(filterInboxConversations(desk.conversations, "lerato"), []);
+  const address = searchListFields({ email: " A@B.test ", phone: "+27115550101", whatsapp: "+27115550101" }, true);
+  assert.equal(address.email, "A@B.test");
+  assert.equal(address.phone, "+27115550101");
+  assert.deepEqual(searchListFields({ email: "a@b.test", phone: "+2711" }, false), { phone: "", email: "" });
+  const previews = latestMessagePreviews([
+    { conversation_id: "c1", body: "   " },
+    { conversation_id: "c1", body: "Newest words about the bakkie." },
+    { conversation_id: "c1", body: "Older words" },
+    { conversation_id: "c2", body: "Please call." },
+  ]);
+  assert.equal(previews.c1, "Newest words about the bakkie.");
+  assert.equal(previews.c2, "Please call.");
+  const filled = withMessagePreviews([
+    { id: "c1", preview: "Keep the loaded preview" },
+    { id: "c2", preview: "" },
+    { id: "c3", preview: "" },
+  ], previews);
+  assert.equal(filled[0]?.preview, "Keep the loaded preview");
+  assert.equal(filled[1]?.preview, "Please call.");
+  assert.equal(filled[2]?.preview, "");
+  const html = renderToStaticMarkup(createElement(InboxConversationSearch, {
+    enabled: true,
+    query: "lerato",
+    onQuery: () => undefined,
+  }));
+  assert.match(html, /data-testid="inbox-search"/);
+  assert.match(html, /data-testid="inbox-search-field"/);
+  assert.match(html, /type="search"/);
+  assert.match(html, /value="lerato"/);
+  assert.match(html, /Filters this list only\. Nothing is sent\./);
+  assert.equal(html.includes("type=\"submit\""), false);
+  assert.equal(html.includes("inbox-templates-picker"), false);
+  assert.equal(html.includes("inbox-quick-replies"), false);
+  assert.equal(html.includes("crm_outbox"), false);
+  assert.equal(/graph\.facebook|api\.whatsapp/i.test(html), false);
+  const names = filterInboxConversations(on.conversations, "lerato").map((item) => item.contactName);
+  const list = renderToStaticMarkup(createElement(
+    "ul",
+    null,
+    names.map((name) => createElement("li", { key: name }, name)),
+  ));
+  assert.match(list, /Lerato Mokoena/);
+  assert.equal(list.includes("Amina Patel"), false);
+  const empty = renderToStaticMarkup(createElement(InboxSearchEmpty, { show: true }));
+  assert.match(empty, /data-testid="inbox-search-empty"/);
+  assert.match(empty, /No conversations match this search/);
+  const component = readFileSync(new URL("../../components/inbox/inbox-search.tsx", import.meta.url), "utf8");
+  assert.equal(component.includes("type=\"submit\""), false);
+  assert.equal(component.includes("sendInboxReply"), false);
+  assert.equal(component.includes("crm_outbox"), false);
+  assert.equal(component.includes("fetch("), false);
+  assert.equal(/graph\.facebook|api\.whatsapp/i.test(component), false);
+});
+
+test("inbox search is wired to the flag and does not queue or call a provider", () => {
+  const view = readFileSync(new URL("../../components/inbox/inbox-view.tsx", import.meta.url), "utf8");
+  const load = readFileSync(new URL("./load.ts", import.meta.url), "utf8");
+  const search = readFileSync(new URL("./search.ts", import.meta.url), "utf8");
+  const actions = readFileSync(new URL("../../app/actions/inbox.ts", import.meta.url), "utf8");
+  assert.match(view, /<InboxConversationSearch enabled=\{data\.search\}/);
+  assert.match(view, /inboxListForSearch\(data\.search, data\.conversations, appliedSearch\)/);
+  assert.match(view, /searchApplyDelay\(searchQuery\)/);
+  assert.match(view, /window\.setTimeout\(\(\) => setAppliedSearch\(searchQuery\), delay\)/);
+  assert.match(view, /data-search=\{data\.search \? "on" : undefined\}/);
+  assert.match(view, /<InboxSearchEmpty show=\{listed\.length === 0\}/);
+  assert.match(view, /conversations=\{listed\}/);
+  assert.match(view, /<InboxConversationCard key=\{item\.id\}/);
+  assert.match(view, /\(\["open", "mine", "unassigned"\] as const\)/);
+  const searchStart = view.indexOf("<InboxConversationSearch");
+  const searchEnd = view.indexOf("<InboxWaMetering", searchStart);
+  const block = view.slice(searchStart, searchEnd);
+  assert.equal(block.includes("sendInboxReply"), false);
+  assert.equal(block.includes("router.push"), false);
+  assert.equal(block.includes("setBody"), false);
+  assert.match(load, /search: inboxSearchEnabled\(\)/);
+  assert.match(load, /crm_contacts\(first_name, last_name\)/);
+  assert.match(load, /crm_contacts\(first_name, last_name, email, phone_e164, whatsapp_e164\)/);
+  assert.match(load, /base\.search\s*\?/);
+  const fn = load.slice(load.indexOf("async function attachInboxSearchPreviews"));
+  const guard = fn.indexOf("if (!enabled) return conversations");
+  const query = fn.indexOf('.from("messages")');
+  assert.ok(guard >= 0 && query > guard);
+  assert.match(fn, /conversation_id, body, created_at/);
+  assert.match(fn, /INBOX_SEARCH_PREVIEW_CAP/);
+  assert.match(fn, /eq\("org_id", orgId\)/);
+  assert.equal(fn.includes(".insert("), false);
+  assert.equal(fn.includes(".update("), false);
+  assert.equal(fn.includes("crm_outbox"), false);
+  assert.equal(search.includes(".from("), false);
+  assert.equal(search.includes(".insert("), false);
+  assert.equal(search.includes("fetch("), false);
+  assert.equal(search.includes("router."), false);
+  assert.equal(actions.includes("INBOX_SEARCH_ENABLED"), false);
+  assert.equal(actions.includes("inboxSearchEnabled"), false);
+  assert.equal(INBOX_SEARCH_PREVIEW_CAP, 400);
+  const files = [
+    "src/lib/inbox/search.ts",
+    "src/components/inbox/inbox-search.tsx",
     "src/components/inbox/inbox-view.tsx",
     "src/lib/inbox/preview.ts",
     "src/lib/inbox/load.ts",

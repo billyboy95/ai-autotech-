@@ -12,7 +12,7 @@ This draft is separate from the WhatsApp number filter ([#94](https://github.com
 
 ## What you are reviewing
 
-Branch `cursor/inbox-realtime-unread-d2b8`. The base is `main`. It is not stacked on #94–#109. It can land on its own after Billy says yes to this pull request. It does not have to wait for the inbox stack, and the inbox stack does not have to wait for it. If both land, the stack may need a later rebase because those pull requests also edit inbox files. This visit does not rebase them.
+Draft [#110](https://github.com/billyboy95/ai-autotech-/pull/110). Branch `cursor/inbox-realtime-unread-d2b8`. The base is `main`. It is not stacked on #94–#109. It can land on its own after Billy says yes to this pull request. It does not have to wait for the inbox stack, and the inbox stack does not have to wait for it. If both land, the stack may need a later rebase because those pull requests also edit inbox files. This visit does not rebase them.
 
 When the flag is the exact string `true`:
 
@@ -27,7 +27,7 @@ When the flag is the exact string `true`:
 On the phone:
 
 1. Open GitHub and sign in as the account that can see `billyboy95/ai-autotech-`.
-2. Open the draft pull request for branch `cursor/inbox-realtime-unread-d2b8`. The base branch is `main`.
+2. Open https://github.com/billyboy95/ai-autotech-/pull/110 . The branch is `cursor/inbox-realtime-unread-d2b8`.
 3. Read the title and the base branch. The base is `main`. If the base is an inbox stack branch (`cursor/inbox-multi-number-6d2e`, `cursor/inbox-media-attachments-6195`, `cursor/inbox-outbound-media-dbde`, or any later inbox branch), stop. Do not merge it into that stack from here.
 4. Open Files changed. Pass when the diff is the realtime flag, the live list, tests, and this note. Fail and stop if the diff turns `sending_enabled` on, calls Meta, changes consent, assigns a thread by itself, queues the outbox, adds a migration, or sends WhatsApp, email, or SMS.
 5. Leave the draft as a draft. Do not tap Merge on this visit unless Billy says yes to this pull request on its own.

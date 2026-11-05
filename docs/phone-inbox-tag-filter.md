@@ -10,7 +10,7 @@ This is the conversation list. It is separate from Save contact on draft [#100](
 
 ## What you are reviewing
 
-This draft. Branch `cursor/inbox-tag-filter-d936`. It stacks on draft [#105](https://github.com/billyboy95/ai-autotech-/pull/105) (`cursor/inbox-conversation-search-353d`). The Files tab on this draft is only the tag filter. It is not the whole inbox stack.
+Draft [#106](https://github.com/billyboy95/ai-autotech-/pull/106). Branch `cursor/inbox-tag-filter-d936`. It stacks on draft [#105](https://github.com/billyboy95/ai-autotech-/pull/105) (`cursor/inbox-conversation-search-353d`). The Files tab on #106 is only the tag filter. It is not the whole inbox stack.
 
 When the flag is the string `true`:
 
@@ -26,7 +26,7 @@ When the flag is the string `true`:
 On the phone:
 
 1. Open GitHub and sign in as the account that can see `billyboy95/ai-autotech-`.
-2. Open the pull request for branch `cursor/inbox-tag-filter-d936`.
+2. Open https://github.com/billyboy95/ai-autotech-/pull/106 . The branch is `cursor/inbox-tag-filter-d936`.
 3. Read the title and the base branch. The base is `cursor/inbox-conversation-search-353d` (draft #105). If the base is `main`, stop. Do not merge it into main from here.
 4. Open Files changed. Pass when the diff is the tag-filter flag, the tag chips, tests, and this note. Fail and stop if the diff turns `sending_enabled` on, calls Meta, changes consent, writes tags from the chips, queues the outbox, adds a migration, or sends WhatsApp, email, or SMS.
 5. Leave the draft as a draft. Do not tap Merge on this visit unless Billy says yes to the whole stack below, in that order.
@@ -45,7 +45,7 @@ Merge one pull request at a time, from the bottom of the stack. Wait until the n
 8. [#102](https://github.com/billyboy95/ai-autotech-/pull/102) — internal notes (`cursor/inbox-internal-notes-ca4e`). After #100 is on main.
 9. [#104](https://github.com/billyboy95/ai-autotech-/pull/104) — templates picker (`cursor/inbox-templates-picker-2e3d`). After #102 is on main.
 10. [#105](https://github.com/billyboy95/ai-autotech-/pull/105) — conversation search (`cursor/inbox-conversation-search-353d`). After #104 is on main.
-11. This draft — tag filter (`cursor/inbox-tag-filter-d936`). After #105 is on main.
+11. [#106](https://github.com/billyboy95/ai-autotech-/pull/106) — tag filter (`cursor/inbox-tag-filter-d936`). After #105 is on main.
 
 A yes to one pull request is not a yes to the next. A yes to merge is not a yes to the flag, and it is not a yes to send.
 

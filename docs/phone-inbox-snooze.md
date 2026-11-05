@@ -10,7 +10,7 @@ This snooze is separate from the WhatsApp number filter on draft [#94](https://g
 
 ## What you are reviewing
 
-Draft pull request against `main`. Branch `cursor/inbox-snooze-a74d`. The base is `main`. It is not stacked on #94–#111. The Files tab is only this scope. It is not the inbox stack.
+Draft [#112](https://github.com/billyboy95/ai-autotech-/pull/112). Branch `cursor/inbox-snooze-a74d`. The base is `main`. It is not stacked on #94–#111. The Files tab is only this scope. It is not the inbox stack.
 
 When the flag is the exact string `true`, and the column is already on the database:
 
@@ -29,7 +29,7 @@ When the flag is unset, the preview inbox and the signed-in inbox match main. Sn
 On the phone:
 
 1. Open GitHub and sign in as the account that can see `billyboy95/ai-autotech-`.
-2. Open the draft whose branch is `cursor/inbox-snooze-a74d`. The base is `main`.
+2. Open https://github.com/billyboy95/ai-autotech-/pull/112 . The branch is `cursor/inbox-snooze-a74d`. The base is `main`.
 3. Read the title and the base branch. If the base is an inbox stack branch (`cursor/inbox-multi-number-6d2e` or any later inbox branch, including realtime or assigned-only), stop. Do not merge it into that stack from here.
 4. Open Files changed. Pass when the diff is the snooze flag, the list and thread snooze, the one migration, tests, and this note. Fail and stop if the diff turns `sending_enabled` on, calls Meta, changes consent, inserts `crm_outbox` from the snooze action, sets another inbox flag, or sends WhatsApp, email, or SMS.
 5. Leave the draft as a draft. Do not tap Merge on this visit unless Billy says yes to this pull request on its own.

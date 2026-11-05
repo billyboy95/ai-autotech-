@@ -199,6 +199,8 @@ export type InboxData = {
   tagFilter: boolean;
   /** True only when INBOX_MEDIA_ENABLED is the string true. */
   media: boolean;
+  /** True only when INBOX_OUTBOUND_MEDIA_ENABLED is the exact string true. */
+  outboundMedia: boolean;
   /** Empty unless INBOX_QUICK_UX_ENABLED is the string true. */
   quickReplies: InboxQuickReply[];
   /**

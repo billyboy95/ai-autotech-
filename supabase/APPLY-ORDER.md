@@ -254,6 +254,10 @@ Filename sort also places `20260926180000_zentrix_shopify.sql` before `outbound_
 
 `INBOX_TEMPLATES_PICKER_ENABLED` does not add a migration. The picker reads `message_templates` for the current workspace. The inbox already loads those rows, including `wa_category` and `wa_status` from step 12 (`supabase/migrations/20261018120000_phase2e_inbox.sql`). That step is already live. Do not paste it again. Leave the flag unset until Billy says yes. The phone checklist is `docs/phone-inbox-templates-picker.md`. Picking a template only fills the reply box. It does not queue `crm_outbox`, does not send, and does not turn `sending_enabled` on.
 
+## Inbox conversation search
+
+`INBOX_SEARCH_ENABLED` does not add a migration. The search filters conversations the inbox already lists. With the flag on, the same `crm_contacts` join also reads `email`, `phone_e164`, and `whatsapp_e164`, and one read of `messages` already stored fills an empty preview line. Those columns are in step 12 (`supabase/migrations/20261018120000_phase2e_inbox.sql`). That step is already live. Do not paste it again. Leave the flag unset until Billy says yes. The phone checklist is `docs/phone-inbox-search.md`. Typing does not queue `crm_outbox`, does not send, and does not turn `sending_enabled` on.
+
 ## Not part of this apply
 
 `supabase/owner-bootstrap.sql` is not a migration. Run it only after steps 20 through 36 have succeeded, and only after the agency owner exists in Supabase Auth. Steps 1 through 19 are already live and are not a reason to paste this file. The phone checklist is `docs/phone-owner-auth-bootstrap.md` (Phone-first unblock, step 4 in `docs/GO-LIVE-RUNBOOK.md`). Do not paste `supabase/owner-bootstrap.sql` on that visit. Do not paste it until both of those gates are true. `supabase/schema.sql` is the classic Command Centre baseline, not one of the unapplied files. Do not turn sending on while applying steps 20 through 36.

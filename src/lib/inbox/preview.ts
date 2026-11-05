@@ -1,6 +1,7 @@
 import { inboxBulkActionsEnabled } from "@/lib/inbox/bulk";
 import { inboxContactPanelEnabled } from "@/lib/inbox/contact-panel";
 import { inboxInternalNotesEnabled } from "@/lib/inbox/internal-notes";
+import { inboxSearchEnabled, searchListFields } from "@/lib/inbox/search";
 import { inboxTemplatesPickerEnabled } from "@/lib/inbox/templates-picker";
 import { inboxMultiNumberEnabled, matchesInboxNumber, parseInboxNumber, resolveInboxNumber, whatsappNumberParts } from "@/lib/inbox/numbers";
 import { matchesInboxList, parseInboxChannel, parseInboxFilter, windowExpiry } from "@/lib/inbox/rules";
@@ -213,6 +214,8 @@ export function previewInbox(query: {
   internalNotes?: boolean;
   /** Explicit override. Omit to follow INBOX_TEMPLATES_PICKER_ENABLED. */
   templatesPicker?: boolean;
+  /** Explicit override. Omit to follow INBOX_SEARCH_ENABLED. */
+  search?: boolean;
   /** Explicit override. Omit to follow INBOX_WA_METERING_ENABLED. */
   waMetering?: boolean;
   notice?: string | null;
@@ -228,6 +231,7 @@ export function previewInbox(query: {
   const contactPanel = query.contactPanel ?? inboxContactPanelEnabled();
   const internalNotes = query.internalNotes ?? inboxInternalNotesEnabled();
   const templatesPicker = query.templatesPicker ?? inboxTemplatesPickerEnabled();
+  const search = query.search ?? inboxSearchEnabled();
   const waMeteringEnabled = query.waMetering ?? inboxWaMeteringEnabled();
   const whatsappNumbers = multiNumber ? previewNumbers : [];
   const number = multiNumber
@@ -271,18 +275,23 @@ export function previewInbox(query: {
     multiNumber,
     number,
     whatsappNumbers,
-    conversations: list.map((item) => ({
-      id: item.id,
-      channel: item.channel,
-      status: item.status,
-      assignedUserId: item.assignedUserId,
-      connectionId: item.connectionId,
-      unread: item.unread,
-      lastMessageAt: now.toISOString(),
-      windowExpiresAt: item.window,
-      contactName: item.name,
-      preview: item.preview,
-    })),
+    conversations: list.map((item) => {
+      const address = searchListFields(threads[item.id]?.contact, search);
+      return {
+        id: item.id,
+        channel: item.channel,
+        status: item.status,
+        assignedUserId: item.assignedUserId,
+        connectionId: item.connectionId,
+        unread: item.unread,
+        lastMessageAt: now.toISOString(),
+        windowExpiresAt: item.window,
+        contactName: item.name,
+        preview: item.preview,
+        phone: address.phone,
+        email: address.email,
+      };
+    }),
     thread: threadForPreview(selected, internalNotes),
     templates: [
       {
@@ -317,6 +326,7 @@ export function previewInbox(query: {
     contactPanel,
     internalNotes,
     templatesPicker,
+    search,
     quickReplies: quickUx ? quickRepliesForWorkspace(null) : [],
     presence: quickUx ? previewInboxPresence(OPEN_WA, EXPIRED_WA) : [],
     loadedAt: now.toISOString(),

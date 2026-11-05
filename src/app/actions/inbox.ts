@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { workspaceWriteBlock } from "@/lib/billing/guard";
 import { usageForSend } from "@/lib/compliance/usage";
 import type { ConsentStatus } from "@/lib/compliance/send-gate";
+import { conversationVisible, inboxAssignedOnlyEnabled, loadInboxScopeForOrg, type InboxScope } from "@/lib/inbox/assigned-only";
 import { contactLookup, outboxRow, parseInboxChannel, planInboxReply, type InboxTemplateChoice, type WaCategory } from "@/lib/inbox/rules";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -38,11 +39,17 @@ export async function sendInboxReply(formData: FormData) {
 
   const conversation = await supabase
     .from("conversations")
-    .select("id, org_id, contact_id, channel, channel_connection_id, wa_window_expires_at, status")
+    .select("id, org_id, contact_id, channel, channel_connection_id, wa_window_expires_at, status, assigned_user_id")
     .eq("id", id)
     .maybeSingle();
   if (conversation.error || !conversation.data) back(formData, { error: "That conversation is not in this workspace." });
   const current = conversation.data;
+  if (!current) back(formData, { error: "That conversation is not in this workspace." });
+  const scope = await loadInboxScopeForOrg(supabase, user.data.user.id, String(current.org_id));
+  const assignedUserId = current.assigned_user_id ? String(current.assigned_user_id) : null;
+  if (!conversationVisible(scope, { assignedUserId }, user.data.user.id)) {
+    back(formData, { error: "That conversation is not in this workspace." });
+  }
   const blocked = await workspaceWriteBlock(String(current.org_id));
   if (blocked) back(formData, { error: blocked });
   if (!current) back(formData, { error: "That conversation is not in this workspace." });
@@ -68,6 +75,7 @@ export async function sendInboxReply(formData: FormData) {
       channel,
       connectionId: connectionId || null,
       userId: user.data.user.id,
+      scope,
     });
     if (!switched.ok) back(formData, { error: switched.message });
     if (switched.ok) {
@@ -166,8 +174,14 @@ export async function addInboxNote(formData: FormData) {
   const supabase = await createSupabaseServerClient();
   const user = await supabase.auth.getUser();
   if (!user.data.user) redirect("/login?next=/command-centre/inbox");
-  const conversation = await supabase.from("conversations").select("id, org_id").eq("id", id).maybeSingle();
+  const conversation = await supabase.from("conversations").select("id, org_id, assigned_user_id").eq("id", id).maybeSingle();
   if (!conversation.data) back(formData, { error: "That conversation is not in this workspace." });
+  if (inboxAssignedOnlyEnabled()) {
+    const noteScope = await loadInboxScopeForOrg(supabase, user.data.user.id, String(conversation.data.org_id));
+    if (!conversationVisible(noteScope, { assignedUserId: conversation.data.assigned_user_id ? String(conversation.data.assigned_user_id) : null }, user.data.user.id)) {
+      back(formData, { error: "That conversation is not in this workspace." });
+    }
+  }
   const saved = await supabase.from("conversation_notes").insert({
     org_id: conversation.data.org_id,
     conversation_id: id,
@@ -185,10 +199,17 @@ export async function assignInboxConversation(formData: FormData) {
   const supabase = await createSupabaseServerClient();
   const user = await supabase.auth.getUser();
   if (!user.data.user) redirect("/login?next=/command-centre/inbox");
-  const saved = await supabase
-    .from("conversations")
-    .update({ assigned_user_id: assignee || null })
-    .eq("id", id);
+  let assignUpdate = supabase.from("conversations").update({ assigned_user_id: assignee || null }).eq("id", id);
+  if (inboxAssignedOnlyEnabled()) {
+    const found = await supabase.from("conversations").select("org_id, assigned_user_id").eq("id", id).maybeSingle();
+    if (!found.data) back(formData, { error: "That conversation is not in this workspace." });
+    const assignScope = await loadInboxScopeForOrg(supabase, user.data.user.id, String(found.data.org_id));
+    if (!conversationVisible(assignScope, { assignedUserId: found.data.assigned_user_id ? String(found.data.assigned_user_id) : null }, user.data.user.id)) {
+      back(formData, { error: "That conversation is not in this workspace." });
+    }
+    if (assignScope.kind === "own") assignUpdate = assignUpdate.eq("assigned_user_id", user.data.user.id);
+  }
+  const saved = await assignUpdate;
   if (saved.error) back(formData, { error: saved.error.message });
   revalidatePath("/command-centre/inbox");
   back(formData, { notice: assignee ? "Conversation assigned." : "Conversation is unassigned." });
@@ -200,7 +221,17 @@ export async function setInboxStatus(formData: FormData) {
   const supabase = await createSupabaseServerClient();
   const user = await supabase.auth.getUser();
   if (!user.data.user) redirect("/login?next=/command-centre/inbox");
-  const saved = await supabase.from("conversations").update({ status }).eq("id", id);
+  let statusUpdate = supabase.from("conversations").update({ status }).eq("id", id);
+  if (inboxAssignedOnlyEnabled()) {
+    const found = await supabase.from("conversations").select("org_id, assigned_user_id").eq("id", id).maybeSingle();
+    if (!found.data) back(formData, { error: "That conversation is not in this workspace." });
+    const statusScope = await loadInboxScopeForOrg(supabase, user.data.user.id, String(found.data.org_id));
+    if (!conversationVisible(statusScope, { assignedUserId: found.data.assigned_user_id ? String(found.data.assigned_user_id) : null }, user.data.user.id)) {
+      back(formData, { error: "That conversation is not in this workspace." });
+    }
+    if (statusScope.kind === "own") statusUpdate = statusUpdate.eq("assigned_user_id", user.data.user.id);
+  }
+  const saved = await statusUpdate;
   if (saved.error) back(formData, { error: saved.error.message });
   revalidatePath("/command-centre/inbox");
   back(formData, { notice: status === "closed" ? "Conversation closed." : "Conversation reopened." });
@@ -209,7 +240,20 @@ export async function setInboxStatus(formData: FormData) {
 export async function markInboxRead(conversationId: string) {
   if (!/^[0-9a-f-]{36}$/i.test(conversationId)) return;
   const supabase = await createSupabaseServerClient();
-  await supabase.from("conversations").update({ unread_count: 0 }).eq("id", conversationId).gt("unread_count", 0);
+  if (!inboxAssignedOnlyEnabled()) {
+    await supabase.from("conversations").update({ unread_count: 0 }).eq("id", conversationId).gt("unread_count", 0);
+    revalidatePath("/command-centre/inbox");
+    return;
+  }
+  const user = await supabase.auth.getUser();
+  if (!user.data.user) return;
+  const found = await supabase.from("conversations").select("org_id, assigned_user_id").eq("id", conversationId).maybeSingle();
+  if (!found.data) return;
+  const scope = await loadInboxScopeForOrg(supabase, user.data.user.id, String(found.data.org_id));
+  if (!conversationVisible(scope, { assignedUserId: found.data.assigned_user_id ? String(found.data.assigned_user_id) : null }, user.data.user.id)) return;
+  let update = supabase.from("conversations").update({ unread_count: 0 }).eq("id", conversationId).gt("unread_count", 0);
+  if (scope.kind === "own") update = update.eq("assigned_user_id", user.data.user.id);
+  await update;
   revalidatePath("/command-centre/inbox");
 }
 
@@ -220,10 +264,11 @@ async function openChannelThread(input: {
   channel: string;
   connectionId: string | null;
   userId: string;
+  scope: InboxScope;
 }) {
   const existing = await input.supabase
     .from("conversations")
-    .select("id, wa_window_expires_at, channel_connection_id")
+    .select("id, wa_window_expires_at, channel_connection_id, assigned_user_id")
     .eq("org_id", input.orgId)
     .eq("contact_id", input.contactId)
     .eq("channel", input.channel)
@@ -231,12 +276,19 @@ async function openChannelThread(input: {
     .limit(1)
     .maybeSingle();
   if (existing.data) {
+    const assignedUserId = existing.data.assigned_user_id ? String(existing.data.assigned_user_id) : null;
+    if (!conversationVisible(input.scope, { assignedUserId }, input.userId)) {
+      return { ok: false as const, message: "That conversation is not in this workspace." };
+    }
     return {
       ok: true as const,
       id: String(existing.data.id),
       windowExpiresAt: existing.data.wa_window_expires_at ? String(existing.data.wa_window_expires_at) : null,
       connectionId: input.connectionId || (existing.data.channel_connection_id ? String(existing.data.channel_connection_id) : null),
     };
+  }
+  if (input.scope.kind === "closed" || (input.scope.kind === "own" && input.scope.userId !== input.userId)) {
+    return { ok: false as const, message: "That conversation is not in this workspace." };
   }
   const created = await input.supabase.from("conversations").insert({
     org_id: input.orgId,

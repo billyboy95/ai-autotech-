@@ -31,6 +31,7 @@ import { formatInboxCost, inboxCost, realtimeOrgFilter, acceptRealtimeRow, servi
 import { inboxListForSearch, searchApplyDelay } from "@/lib/inbox/search";
 import { inboxListForTags, tagFilterChoices, toggleTagSelection } from "@/lib/inbox/tag-filter";
 import { pickTemplateIntoComposer } from "@/lib/inbox/templates-picker";
+import { applyInboxRealtimeChange, attachInboxRealtime, liveInboxFromData, liveUnreadCount, type RealtimeSocket } from "@/lib/inbox/realtime";
 import { inboxFilterLabel, inboxStatusFilterChips } from "@/lib/inbox/status-filter";
 import { waCareState } from "@/lib/inbox/wa-window";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
@@ -38,9 +39,22 @@ import type { InboxData, InboxListItem, InboxPresencePeer } from "@/lib/inbox/ty
 
 const CHANNELS: InboxChannel[] = ["whatsapp", "sms", "email", "facebook", "instagram"];
 
-export function InboxView({ data, banner, bannerTone }: { data: InboxData; banner?: string | null; bannerTone?: "error" | "ok" }) {
+export function InboxView({
+  data,
+  banner,
+  bannerTone,
+  realtimeEnabled = false,
+}: {
+  data: InboxData;
+  banner?: string | null;
+  bannerTone?: "error" | "ok";
+  realtimeEnabled?: boolean;
+}) {
   const router = useRouter();
   const thread = data.thread;
+  const dataRef = useRef(data);
+  dataRef.current = data;
+  const [live, setLive] = useState<ReturnType<typeof liveInboxFromData> | null>(null);
   const [channel, setChannel] = useState(thread?.channel || "whatsapp");
   const [templateId, setTemplateId] = useState("");
   const [body, setBody] = useState("");
@@ -60,12 +74,14 @@ export function InboxView({ data, banner, bannerTone }: { data: InboxData; banne
   const now = useMemo(() => new Date(), []);
   const [windowNow, setWindowNow] = useState(() => new Date(data.loadedAt));
   const template = data.templates.find((item) => item.id === templateId) || null;
+  const shownMessages = realtimeEnabled && live && thread && live.threadId === thread.id ? live.messages : thread?.messages ?? [];
+  const shownStatus = realtimeEnabled && live && thread && live.threadId === thread.id && live.threadStatus ? live.threadStatus : thread?.status;
   const care = thread
     ? waCareState({
         enabled: data.waWindowEnabled,
         threadChannel: thread.channel,
         replyChannel: channel,
-        messages: thread.messages,
+        messages: shownMessages,
         now: windowNow,
         template: template ? { approved: template.approved, waCategory: template.waCategory } : null,
       })
@@ -78,14 +94,15 @@ export function InboxView({ data, banner, bannerTone }: { data: InboxData; banne
     serviceSendsThisMonth: data.serviceUsed,
   });
   const connectionId = data.connections.find((item) => item.channel === channel)?.id || thread?.connectionId || "";
-  const unread = data.conversations.reduce((sum, item) => sum + item.unread, 0);
+  const sourceConversations = realtimeEnabled && live ? live.conversations : data.conversations;
+  const unread = sourceConversations.reduce((sum, item) => sum + item.unread, 0);
   const tagChoices = useMemo(
-    () => (data.tagFilter ? tagFilterChoices(data.conversations) : []),
-    [data.tagFilter, data.conversations],
+    () => (data.tagFilter ? tagFilterChoices(sourceConversations) : []),
+    [data.tagFilter, sourceConversations],
   );
-  const searched = inboxListForSearch(data.search, data.conversations, appliedSearch);
+  const searched = inboxListForSearch(data.search, sourceConversations, appliedSearch);
   const listed = inboxListForTags(data.tagFilter, searched, selectedTags);
-  const searchEmpty = data.conversations.length > 0 && searched.length === 0;
+  const searchEmpty = sourceConversations.length > 0 && searched.length === 0;
   const tagEmpty = searched.length > 0 && listed.length === 0;
 
   const threadId = thread?.id ?? "";
@@ -123,6 +140,52 @@ export function InboxView({ data, banner, bannerTone }: { data: InboxData; banne
     if (!threadId || data.preview || threadId.startsWith("00000000")) return;
     void markInboxRead(threadId);
   }, [threadId, data.preview]);
+
+  useEffect(() => {
+    if (!realtimeEnabled) {
+      setLive(null);
+      return;
+    }
+    const next = snapshotFrom(data);
+    setLive((current) => {
+      if (!current || current.orgId !== next.orgId) return next;
+      return {
+        ...next,
+        previews: current.previews,
+        conversations: next.conversations.map((item) => ({
+          ...item,
+          preview: item.preview || current.previews[item.id]?.body || current.conversations.find((row) => row.id === item.id)?.preview || "",
+        })),
+      };
+    });
+  }, [realtimeEnabled, data]);
+
+  useEffect(() => {
+    if (!realtimeEnabled || data.preview) return;
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) return;
+    let socket: RealtimeSocket;
+    try {
+      socket = browserRealtimeSocket();
+    } catch {
+      return;
+    }
+    const attached = attachInboxRealtime({
+      enabled: true,
+      orgId: data.orgId,
+      preview: false,
+      supabaseConfigured: true,
+      client: socket,
+      onChange: (change) => {
+        setLive((current) => {
+          const latest = dataRef.current;
+          const base = current ?? snapshotFrom(latest);
+          return applyInboxRealtimeChange(base, change).state;
+        });
+        router.refresh();
+      },
+    });
+    return () => attached.detach();
+  }, [realtimeEnabled, data.preview, data.orgId, router]);
 
   useEffect(() => {
     if (!data.quickUx) return;
@@ -217,6 +280,7 @@ export function InboxView({ data, banner, bannerTone }: { data: InboxData; banne
           <p className="text-sm text-slate-500">
             {unread} unread in this view. Replies stay in the outbox until sending is switched on.
           </p>
+          {realtimeEnabled ? <p className="text-xs text-slate-500">Live for this workspace. Nothing is sent.</p> : null}
           {data.teamStats ? (
             <a href="#inbox-team-stats" className="text-sm font-semibold text-[#2563EB]">Team stats</a>
           ) : null}
@@ -325,10 +389,10 @@ export function InboxView({ data, banner, bannerTone }: { data: InboxData; banne
               statusAction={bulkSetInboxStatus}
               readAction={bulkMarkInboxRead}
             >
-              {(item) => <InboxConversationCard data={data} item={item} active={thread?.id === item.id} />}
+              {(item) => <InboxConversationCard data={data} item={item} active={thread?.id === item.id} realtimeEnabled={realtimeEnabled} />}
             </InboxBulkChrome>
           ) : listed.map((item) => (
-            <InboxConversationCard key={item.id} data={data} item={item} active={thread?.id === item.id} />
+            <InboxConversationCard key={item.id} data={data} item={item} active={thread?.id === item.id} realtimeEnabled={realtimeEnabled} />
           ))}
         </section>
         <section className={layout.thread}>
@@ -342,7 +406,7 @@ export function InboxView({ data, banner, bannerTone }: { data: InboxData; banne
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <h2 className="font-semibold text-[#0B1F3A]">{thread.contact?.name || "Conversation"}</h2>
-                  <p className="text-xs uppercase tracking-wide text-slate-500">{thread.channel} · {thread.status}</p>
+                  <p className="text-xs uppercase tracking-wide text-slate-500">{thread.channel} · {shownStatus}</p>
                   {data.multiNumber && thread.channel === "whatsapp" ? (
                     <p className="mt-1 text-sm text-slate-600">{whatsappNumberLabel(data, thread.connectionId) || "No WhatsApp number on this thread"}</p>
                   ) : null}
@@ -350,16 +414,16 @@ export function InboxView({ data, banner, bannerTone }: { data: InboxData; banne
                 <div className="flex flex-wrap gap-2">
                   <form action={setInboxStatus}>
                     <Hidden data={data} id={thread.id} />
-                    <input type="hidden" name="status" value={thread.status === "closed" ? "open" : "closed"} />
+                    <input type="hidden" name="status" value={shownStatus === "closed" ? "open" : "closed"} />
                     <button className="h-9 rounded-md border border-slate-200 px-3 text-sm font-semibold text-[#0B1F3A]">
-                      {thread.status === "closed" ? "Reopen" : "Close"}
+                      {shownStatus === "closed" ? "Reopen" : "Close"}
                     </button>
                   </form>
                 </div>
               </div>
               {data.quickUx ? <InboxCollisionBanner label={collision} /> : null}
               <div className={layout.messageList}>
-                {thread.messages.map((message) => (
+                {shownMessages.map((message) => (
                   <article key={message.id} className={`${layout.bubble} ${message.direction === "out" ? "ml-auto bg-[#0B1F3A] text-white" : "bg-slate-100 text-slate-800"}`}>
                     <p className="whitespace-pre-wrap">{message.body}</p>
                     <InboxMessageMedia enabled={data.media} attachments={message.media} />
@@ -538,7 +602,8 @@ export function InboxView({ data, banner, bannerTone }: { data: InboxData; banne
   );
 }
 
-function InboxConversationCard({ data, item, active }: { data: InboxData; item: InboxListItem; active: boolean }) {
+function InboxConversationCard({ data, item, active, realtimeEnabled }: { data: InboxData; item: InboxListItem; active: boolean; realtimeEnabled: boolean }) {
+  const liveBadge = liveUnreadCount(realtimeEnabled, item.unread);
   return (
     <Link
       href={inboxHref({ ...data, id: item.id })}
@@ -546,7 +611,9 @@ function InboxConversationCard({ data, item, active }: { data: InboxData; item: 
     >
       <span className="flex items-center justify-between gap-2">
         <span className="text-sm font-semibold text-[#0B1F3A]">{item.contactName}</span>
-        {item.unread > 0 ? <span className="rounded-full bg-[#2563EB] px-2 py-0.5 text-xs font-semibold text-white">{item.unread}</span> : null}
+        {realtimeEnabled
+          ? (liveBadge != null ? <span data-testid="inbox-live-unread" className="rounded-full bg-[#2563EB] px-2 py-0.5 text-xs font-semibold text-white">{liveBadge}</span> : null)
+          : (item.unread > 0 ? <span className="rounded-full bg-[#2563EB] px-2 py-0.5 text-xs font-semibold text-white">{item.unread}</span> : null)}
       </span>
       <span className="mt-1 block text-xs uppercase tracking-wide text-slate-500">{item.channel} · {item.status}</span>
       {data.multiNumber && item.channel === "whatsapp" ? (
@@ -555,6 +622,57 @@ function InboxConversationCard({ data, item, active }: { data: InboxData; item: 
       <span className="mt-1 block truncate text-sm text-slate-600">{item.preview || "Open the thread"}</span>
     </Link>
   );
+}
+
+function snapshotFrom(data: InboxData) {
+  return liveInboxFromData({
+    orgId: data.orgId,
+    filter: data.filter,
+    channel: data.channel,
+    userId: data.userId,
+    assignedOnly: data.assignedOnly,
+    conversations: data.conversations,
+    thread: data.thread
+      ? {
+          id: data.thread.id,
+          status: data.thread.status,
+          windowExpiresAt: data.thread.windowExpiresAt,
+          messages: data.thread.messages,
+        }
+      : null,
+  });
+}
+
+function browserRealtimeSocket(): RealtimeSocket {
+  const supabase = createSupabaseBrowserClient();
+  return {
+    channel(name) {
+      const channel = supabase.channel(name);
+      return {
+        on(table, filter, listener) {
+          channel.on(
+            "postgres_changes",
+            { event: "*", schema: "public", table, filter },
+            (payload) => {
+              const next = payload.new && typeof payload.new === "object" ? payload.new as Record<string, unknown> : null;
+              const prev = payload.old && typeof payload.old === "object" ? payload.old as Record<string, unknown> : null;
+              listener({
+                eventType: payload.eventType,
+                new: next && Object.keys(next).length ? next : null,
+                old: prev && Object.keys(prev).length ? prev : null,
+              });
+            },
+          );
+        },
+        subscribe() {
+          channel.subscribe();
+        },
+        unsubscribe() {
+          void supabase.removeChannel(channel);
+        },
+      };
+    },
+  };
 }
 
 function Hidden({ data, id }: { data: InboxData; id: string }) {

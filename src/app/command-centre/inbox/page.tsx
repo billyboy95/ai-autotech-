@@ -3,6 +3,7 @@ import { CommandShell } from "@/components/crm/command-shell";
 import { InboxView } from "@/components/inbox/inbox-view";
 import { loadCommandData } from "@/lib/automation/page-data";
 import { loadInbox } from "@/lib/inbox/load";
+import { inboxRealtimeEnabled } from "@/lib/inbox/realtime";
 
 export const dynamic = "force-dynamic";
 
@@ -31,7 +32,7 @@ export default async function InboxPage({
 
   return (
     <CommandShell setupError={workspace.setupError} sendingEnabled={sendingEnabled} requestedSlug={params.org}>
-      <InboxView data={data} banner={params.error || params.notice || null} bannerTone={params.error ? "error" : "ok"} />
+      <InboxView data={data} banner={params.error || params.notice || null} bannerTone={params.error ? "error" : "ok"} realtimeEnabled={inboxRealtimeEnabled()} />
     </CommandShell>
   );
 }

@@ -63,6 +63,7 @@ test("inbox, conversation AI, calendars, reviews, referrals, and public pages re
       SUPABASE_DB_URL: "",
       AUTOMATION_SEND_ENABLED: "",
       INBOX_STATUS_ASSIGNEE_FILTERS_ENABLED: "",
+      INBOX_REALTIME_ENABLED: "",
       BILLING_SANDBOX: "",
       CRON_SECRET: "",
       PAYFAST_MERCHANT_ID: "",

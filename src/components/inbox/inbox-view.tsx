@@ -9,6 +9,7 @@ import { InboxBulkChrome } from "@/components/inbox/inbox-bulk";
 import { InboxContactPanel } from "@/components/inbox/inbox-contact-panel";
 import { InboxInternalNotes } from "@/components/inbox/inbox-internal-notes";
 import { InboxConversationSearch, InboxSearchEmpty } from "@/components/inbox/inbox-search";
+import { InboxTagFilter, InboxTagFilterEmpty } from "@/components/inbox/inbox-tag-filter";
 import { InboxTemplatesPicker } from "@/components/inbox/inbox-templates-picker";
 import { InboxCollisionBanner, InboxQuickFrame, InboxQuickReplies } from "@/components/inbox/inbox-quick-ux";
 import { InboxTeamStatsPanel } from "@/components/inbox/inbox-team-stats";
@@ -25,6 +26,7 @@ import {
 } from "@/lib/inbox/quick-ux";
 import { formatInboxCost, inboxCost, realtimeOrgFilter, acceptRealtimeRow, serviceAllowanceLabel, type InboxChannel } from "@/lib/inbox/rules";
 import { inboxListForSearch, searchApplyDelay } from "@/lib/inbox/search";
+import { inboxListForTags, tagFilterChoices, toggleTagSelection } from "@/lib/inbox/tag-filter";
 import { pickTemplateIntoComposer } from "@/lib/inbox/templates-picker";
 import { waCareState } from "@/lib/inbox/wa-window";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
@@ -41,6 +43,7 @@ export function InboxView({ data, banner, bannerTone }: { data: InboxData; banne
   const [templatesOpen, setTemplatesOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [appliedSearch, setAppliedSearch] = useState("");
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [livePeers, setLivePeers] = useState<InboxPresencePeer[] | null>(null);
   const presenceChannel = useRef<{ track: (payload: Record<string, string>) => Promise<unknown> } | null>(null);
   const bodyRef = useRef(body);
@@ -71,7 +74,14 @@ export function InboxView({ data, banner, bannerTone }: { data: InboxData; banne
   });
   const connectionId = data.connections.find((item) => item.channel === channel)?.id || thread?.connectionId || "";
   const unread = data.conversations.reduce((sum, item) => sum + item.unread, 0);
-  const listed = inboxListForSearch(data.search, data.conversations, appliedSearch);
+  const tagChoices = useMemo(
+    () => (data.tagFilter ? tagFilterChoices(data.conversations) : []),
+    [data.tagFilter, data.conversations],
+  );
+  const searched = inboxListForSearch(data.search, data.conversations, appliedSearch);
+  const listed = inboxListForTags(data.tagFilter, searched, selectedTags);
+  const searchEmpty = data.conversations.length > 0 && searched.length === 0;
+  const tagEmpty = searched.length > 0 && listed.length === 0;
 
   const threadId = thread?.id ?? "";
   const threadChannel = thread?.channel ?? "whatsapp";
@@ -191,7 +201,7 @@ export function InboxView({ data, banner, bannerTone }: { data: InboxData; banne
   }, [body, data.preview, data.quickUx, data.userId, threadId, viewerName]);
 
   return (
-    <div data-testid="inbox" data-quick-ux={data.quickUx ? "on" : undefined} data-contact-panel={data.contactPanel ? "on" : undefined} data-internal-notes={data.internalNotes ? "on" : undefined} data-templates-picker={data.templatesPicker ? "on" : undefined} data-search={data.search ? "on" : undefined} className={layout.shell}>
+    <div data-testid="inbox" data-quick-ux={data.quickUx ? "on" : undefined} data-contact-panel={data.contactPanel ? "on" : undefined} data-internal-notes={data.internalNotes ? "on" : undefined} data-templates-picker={data.templatesPicker ? "on" : undefined} data-search={data.search ? "on" : undefined} data-tag-filter={data.tagFilter ? "on" : undefined} className={layout.shell}>
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="font-display text-2xl font-bold text-[#0B1F3A]">Inbox</h1>
@@ -235,6 +245,13 @@ export function InboxView({ data, banner, bannerTone }: { data: InboxData; banne
           </Link>
         ))}
       </div>
+      <InboxTagFilter
+        enabled={data.tagFilter}
+        tags={tagChoices}
+        selected={selectedTags}
+        onToggle={(tag) => setSelectedTags((current) => toggleTagSelection(current, tag))}
+        onClear={() => setSelectedTags([])}
+      />
       {data.multiNumber ? (
         <form action="/command-centre/inbox" method="get" data-testid="inbox-number-filter" className={layout.numberForm}>
           {data.orgSlug && data.orgSlug !== "preview" ? <input type="hidden" name="org" value={data.orgSlug} /> : null}
@@ -280,9 +297,9 @@ export function InboxView({ data, banner, bannerTone }: { data: InboxData; banne
           <InboxConversationSearch enabled={data.search} query={searchQuery} onQuery={setSearchQuery} />
           {data.conversations.length === 0 ? (
             <p className="rounded-xl border border-dashed border-slate-300 bg-white p-4 text-sm text-slate-500">No conversations in this filter.</p>
-          ) : (
-            <InboxSearchEmpty show={listed.length === 0} />
-          )}
+          ) : null}
+          <InboxSearchEmpty show={searchEmpty} />
+          <InboxTagFilterEmpty show={tagEmpty} />
           {data.bulkActions ? (
             <InboxBulkChrome
               enabled

@@ -7,6 +7,7 @@ import { InboxBulkChrome } from "@/components/inbox/inbox-bulk";
 import { InboxContactPanel } from "@/components/inbox/inbox-contact-panel";
 import { InboxInternalNotes } from "@/components/inbox/inbox-internal-notes";
 import { InboxConversationSearch, InboxSearchEmpty } from "@/components/inbox/inbox-search";
+import { InboxTagFilter, InboxTagFilterEmpty } from "@/components/inbox/inbox-tag-filter";
 import { InboxTemplatesPicker } from "@/components/inbox/inbox-templates-picker";
 import {
   bulkAssignNotice,
@@ -58,6 +59,19 @@ import {
   INBOX_SEARCH_DEBOUNCE_MS,
   INBOX_SEARCH_PREVIEW_CAP,
 } from "@/lib/inbox/search";
+import {
+  conversationMatchesTags,
+  filterInboxByTags,
+  inboxListContactEmbed,
+  inboxListSelect,
+  inboxListForTags,
+  inboxTagFilterEnabled,
+  leadIdsForTagLookup,
+  listTagFields,
+  mergeLeadTags,
+  tagFilterChoices,
+  toggleTagSelection,
+} from "@/lib/inbox/tag-filter";
 import {
   fillComposerFromTemplate,
   inboxTemplatesPickerEnabled,
@@ -516,6 +530,7 @@ function threadByName(data: InboxData, name: string) {
     internalNotes: data.internalNotes,
     templatesPicker: data.templatesPicker,
     search: data.search,
+    tagFilter: data.tagFilter,
     multiNumber: data.multiNumber,
     number: data.number,
     filter: data.filter,
@@ -2060,7 +2075,8 @@ test("inbox search is wired to the flag and does not queue or call a provider", 
   assert.match(view, /searchApplyDelay\(searchQuery\)/);
   assert.match(view, /window\.setTimeout\(\(\) => setAppliedSearch\(searchQuery\), delay\)/);
   assert.match(view, /data-search=\{data\.search \? "on" : undefined\}/);
-  assert.match(view, /<InboxSearchEmpty show=\{listed\.length === 0\}/);
+  assert.match(view, /const searchEmpty = data\.conversations\.length > 0 && searched\.length === 0/);
+  assert.match(view, /<InboxSearchEmpty show=\{searchEmpty\}/);
   assert.match(view, /conversations=\{listed\}/);
   assert.match(view, /<InboxConversationCard key=\{item\.id\}/);
   assert.match(view, /\(\["open", "mine", "unassigned"\] as const\)/);
@@ -2071,9 +2087,12 @@ test("inbox search is wired to the flag and does not queue or call a provider", 
   assert.equal(block.includes("router.push"), false);
   assert.equal(block.includes("setBody"), false);
   assert.match(load, /search: inboxSearchEnabled\(\)/);
-  assert.match(load, /crm_contacts\(first_name, last_name\)/);
-  assert.match(load, /crm_contacts\(first_name, last_name, email, phone_e164, whatsapp_e164\)/);
-  assert.match(load, /base\.search\s*\?/);
+  assert.match(load, /inboxListSelect\(base\.search, base\.tagFilter\)/);
+  assert.equal(inboxListContactEmbed(false, false), "crm_contacts(first_name, last_name)");
+  assert.equal(inboxListContactEmbed(true, false), "crm_contacts(first_name, last_name, email, phone_e164, whatsapp_e164)");
+  assert.equal(inboxListSelect(false, false).endsWith(inboxListContactEmbed(false, false)), true);
+  assert.equal(inboxListSelect(true, false).endsWith(inboxListContactEmbed(true, false)), true);
+  assert.equal(inboxListSelect(true, false).includes("tags"), false);
   const fn = load.slice(load.indexOf("async function attachInboxSearchPreviews"));
   const guard = fn.indexOf("if (!enabled) return conversations");
   const query = fn.indexOf('.from("messages")');
@@ -2094,6 +2113,219 @@ test("inbox search is wired to the flag and does not queue or call a provider", 
   const files = [
     "src/lib/inbox/search.ts",
     "src/components/inbox/inbox-search.tsx",
+    "src/components/inbox/inbox-view.tsx",
+    "src/lib/inbox/preview.ts",
+    "src/lib/inbox/load.ts",
+  ];
+  for (const file of files) {
+    const text = readFileSync(new URL(`../../../${file}`, import.meta.url), "utf8");
+    assert.equal(/sending_enabled\s*=\s*true/i.test(text), false, file);
+    assert.equal(/graph\.facebook|api\.whatsapp/i.test(text), false, file);
+  }
+});
+
+test("inbox tag filter stays off unless the flag is the string true", () => {
+  assert.equal(inboxTagFilterEnabled({} as NodeJS.ProcessEnv), false);
+  assert.equal(inboxTagFilterEnabled({ INBOX_TAG_FILTER_ENABLED: "" } as NodeJS.ProcessEnv), false);
+  assert.equal(inboxTagFilterEnabled({ INBOX_TAG_FILTER_ENABLED: "false" } as NodeJS.ProcessEnv), false);
+  assert.equal(inboxTagFilterEnabled({ INBOX_TAG_FILTER_ENABLED: "yes" } as NodeJS.ProcessEnv), false);
+  assert.equal(inboxTagFilterEnabled({ INBOX_TAG_FILTER_ENABLED: "1" } as NodeJS.ProcessEnv), false);
+  assert.equal(inboxTagFilterEnabled({ INBOX_TAG_FILTER_ENABLED: "TRUE" } as NodeJS.ProcessEnv), true);
+  assert.equal(inboxTagFilterEnabled({ INBOX_TAG_FILTER_ENABLED: " true " } as NodeJS.ProcessEnv), true);
+  const off = previewInbox({ tagFilter: false, search: true, quickUx: true, contactPanel: true, multiNumber: true });
+  const on = previewInbox({ tagFilter: true, search: true, quickUx: true, contactPanel: true, multiNumber: true });
+  assert.equal(previewInbox({}).tagFilter, inboxTagFilterEnabled());
+  assert.equal(off.tagFilter, false);
+  assert.equal(on.tagFilter, true);
+  assert.equal(off.search, true);
+  assert.equal(on.search, true);
+  assert.equal(off.contactPanel, true);
+  assert.equal(on.quickUx, true);
+  assert.equal(off.sendingEnabled, false);
+  assert.equal(on.sendingEnabled, false);
+  assert.deepEqual(off.conversations.map((item) => item.tags), [[], [], [], []]);
+  assert.deepEqual(off.conversations.map((item) => item.leadTags), [[], [], [], []]);
+  assert.equal(inboxListForTags(false, on.conversations, ["admissions"]), on.conversations);
+  const hidden = renderToStaticMarkup(createElement(InboxTagFilter, {
+    enabled: false,
+    tags: ["admissions"],
+    selected: ["admissions"],
+    onToggle: () => undefined,
+    onClear: () => undefined,
+  }));
+  assert.equal(hidden, "");
+  assert.equal(hidden.includes("inbox-tag-filter"), false);
+  assert.equal(hidden.includes("inbox-tag-chip"), false);
+  assert.equal(hidden.includes("Clear tags"), false);
+  const quiet = renderToStaticMarkup(createElement(InboxTagFilterEmpty, { show: false }));
+  assert.equal(quiet, "");
+});
+
+test("inbox tag filter keeps threads that have any chosen tag and does not write", () => {
+  const on = previewInbox({ tagFilter: true });
+  assert.equal(on.sendingEnabled, false);
+  assert.deepEqual(on.conversations.find((item) => item.contactName === "Lerato Mokoena")?.tags, ["admissions"]);
+  assert.deepEqual(on.conversations.find((item) => item.contactName === "Amina Patel")?.tags, []);
+  assert.deepEqual(on.conversations.find((item) => item.contactName === "Amina Patel")?.leadTags, ["follow-up"]);
+  assert.deepEqual(tagFilterChoices(on.conversations), ["admissions", "dental", "follow-up"]);
+  assert.equal(filterInboxByTags(on.conversations, []), on.conversations);
+  assert.equal(filterInboxByTags(on.conversations, ["  "]), on.conversations);
+  assert.deepEqual(filterInboxByTags(on.conversations, ["ADMISSIONS"]).map((item) => item.contactName), ["Lerato Mokoena"]);
+  assert.deepEqual(filterInboxByTags(on.conversations, ["follow-up"]).map((item) => item.contactName), ["Amina Patel"]);
+  assert.deepEqual(filterInboxByTags(on.conversations, ["admissions", "dental"]).map((item) => item.contactName), ["Lerato Mokoena", "Thabo Ndlovu"]);
+  assert.deepEqual(filterInboxByTags(on.conversations, ["workshop"]), []);
+  const contactWins = filterInboxByTags([
+    { contactName: "Lerato", tags: ["admissions"], leadTags: ["workshop"] },
+  ], ["workshop"]);
+  assert.equal(contactWins.length, 0);
+  assert.equal(conversationMatchesTags({ tags: ["admissions"], leadTags: ["workshop"] }, ["admissions"]), true);
+  assert.deepEqual(toggleTagSelection(["admissions"], "dental"), ["admissions", "dental"]);
+  assert.deepEqual(toggleTagSelection(["admissions", "dental"], "Admissions"), ["dental"]);
+  assert.deepEqual(toggleTagSelection(["admissions"], "  "), ["admissions"]);
+  const sms = previewInbox({ tagFilter: true, channel: "sms" });
+  assert.deepEqual(sms.conversations.map((item) => item.contactName), ["Thabo Ndlovu"]);
+  assert.deepEqual(filterInboxByTags(sms.conversations, ["admissions"]), []);
+  assert.deepEqual(filterInboxByTags(sms.conversations, ["dental"]).map((item) => item.contactName), ["Thabo Ndlovu"]);
+  const mine = previewInbox({ tagFilter: true, filter: "mine" });
+  assert.deepEqual(filterInboxByTags(mine.conversations, ["follow-up"]), []);
+  assert.deepEqual(filterInboxByTags(mine.conversations, ["admissions"]).map((item) => item.contactName), ["Lerato Mokoena"]);
+  const desk = previewInbox({ tagFilter: true, multiNumber: true, number: "preview-wa-desk" });
+  assert.deepEqual(desk.conversations.map((item) => item.contactName), ["Sipho Dlamini"]);
+  assert.deepEqual(filterInboxByTags(desk.conversations, ["workshop"]).map((item) => item.contactName), ["Sipho Dlamini"]);
+  const searched = previewInbox({ tagFilter: true, search: true });
+  const found = inboxListForTags(true, inboxListForSearch(true, searched.conversations, "lerato"), ["admissions"]);
+  assert.deepEqual(found.map((item) => item.contactName), ["Lerato Mokoena"]);
+  assert.deepEqual(inboxListForTags(true, found, ["dental"]), []);
+  assert.equal(inboxListForTags(true, searched.conversations, ["no-such-tag"]).length, 0);
+  assert.deepEqual(listTagFields({ tags: [" dental "], leadTags: ["follow-up"] }, false), { tags: [], leadTags: [] });
+  assert.deepEqual(listTagFields({ tags: ["dental"], leadTags: ["follow-up"] }, true), { tags: ["dental"], leadTags: ["follow-up"] });
+  assert.deepEqual(leadIdsForTagLookup([
+    { leadId: "lead-lerato", tags: ["admissions"] },
+    { leadId: "lead-amina", tags: [] },
+    { leadId: "lead-amina", tags: [" "] },
+    { leadId: "  ", tags: [] },
+  ]), ["lead-amina"]);
+  const merged = mergeLeadTags([
+    { id: "a", leadId: "lead-lerato", tags: ["admissions"], leadTags: ["keep"] },
+    { id: "b", leadId: "lead-amina", tags: [], leadTags: [] },
+    { id: "c", leadId: "missing", tags: [], leadTags: ["stay"] },
+  ], [
+    { id: "lead-lerato", tags: ["should-not-replace"] },
+    { id: "lead-amina", tags: ["follow-up"] },
+  ]);
+  assert.deepEqual(merged[0]?.leadTags, ["keep"]);
+  assert.deepEqual(merged[1]?.leadTags, ["follow-up"]);
+  assert.deepEqual(merged[2]?.leadTags, ["stay"]);
+  assert.equal(inboxListSelect(false, true).endsWith(inboxListContactEmbed(false, true)), true);
+  assert.equal(inboxListSelect(true, true).endsWith(inboxListContactEmbed(true, true)), true);
+  assert.equal(inboxListContactEmbed(false, true), "crm_contacts(first_name, last_name, tags, lead_id)");
+  assert.equal(
+    inboxListContactEmbed(true, true),
+    "crm_contacts(first_name, last_name, email, phone_e164, whatsapp_e164, tags, lead_id)",
+  );
+  const html = renderToStaticMarkup(createElement(InboxTagFilter, {
+    enabled: true,
+    tags: tagFilterChoices(on.conversations),
+    selected: ["admissions"],
+    onToggle: () => undefined,
+    onClear: () => undefined,
+  }));
+  assert.match(html, /data-testid="inbox-tag-filter"/);
+  assert.match(html, /data-testid="inbox-tag-chip"/);
+  assert.match(html, /data-tag="admissions"/);
+  assert.match(html, /aria-pressed="true"/);
+  assert.match(html, /data-tag="dental"/);
+  assert.match(html, /aria-pressed="false"/);
+  assert.match(html, /data-testid="inbox-tag-clear"/);
+  assert.match(html, /Any chosen tag\. Filters this list only\. Nothing is sent\./);
+  assert.equal(html.includes("type=\"submit\""), false);
+  assert.equal(html.includes("Save contact"), false);
+  assert.equal(html.includes("inbox-contact-tags"), false);
+  assert.equal(html.includes("crm_outbox"), false);
+  assert.equal(/graph\.facebook|api\.whatsapp/i.test(html), false);
+  const names = filterInboxByTags(on.conversations, ["admissions", "follow-up"]).map((item) => item.contactName);
+  const list = renderToStaticMarkup(createElement(
+    "ul",
+    null,
+    names.map((name) => createElement("li", { key: name }, name)),
+  ));
+  assert.match(list, /Lerato Mokoena/);
+  assert.match(list, /Amina Patel/);
+  assert.equal(list.includes("Thabo Ndlovu"), false);
+  const empty = renderToStaticMarkup(createElement(InboxTagFilterEmpty, { show: true }));
+  assert.match(empty, /data-testid="inbox-tag-filter-empty"/);
+  assert.match(empty, /No conversations match these tags/);
+  const none = renderToStaticMarkup(createElement(InboxTagFilter, {
+    enabled: true,
+    tags: [],
+    selected: [],
+    onToggle: () => undefined,
+    onClear: () => undefined,
+  }));
+  assert.match(none, /data-testid="inbox-tag-filter-none"/);
+  assert.match(none, /No tags on this list/);
+  assert.equal(none.includes("inbox-tag-chip"), false);
+  const component = readFileSync(new URL("../../components/inbox/inbox-tag-filter.tsx", import.meta.url), "utf8");
+  assert.equal(component.includes("type=\"submit\""), false);
+  assert.equal(component.includes("sendInboxReply"), false);
+  assert.equal(component.includes("saveInboxContactPanel"), false);
+  assert.equal(component.includes("crm_outbox"), false);
+  assert.equal(component.includes("fetch("), false);
+  assert.equal(/graph\.facebook|api\.whatsapp/i.test(component), false);
+});
+
+test("inbox tag filter is wired to the flag and does not queue, send, or write tags", () => {
+  const view = readFileSync(new URL("../../components/inbox/inbox-view.tsx", import.meta.url), "utf8");
+  const load = readFileSync(new URL("./load.ts", import.meta.url), "utf8");
+  const filter = readFileSync(new URL("./tag-filter.ts", import.meta.url), "utf8");
+  const actions = readFileSync(new URL("../../app/actions/inbox.ts", import.meta.url), "utf8");
+  assert.match(view, /<InboxTagFilter/);
+  assert.match(view, /enabled=\{data\.tagFilter\}/);
+  assert.match(view, /const searched = inboxListForSearch\(data\.search, data\.conversations, appliedSearch\)/);
+  assert.match(view, /const listed = inboxListForTags\(data\.tagFilter, searched, selectedTags\)/);
+  assert.match(view, /toggleTagSelection\(current, tag\)/);
+  assert.match(view, /onClear=\{\(\) => setSelectedTags\(\[\]\)\}/);
+  assert.match(view, /data-tag-filter=\{data\.tagFilter \? "on" : undefined\}/);
+  assert.match(view, /<InboxTagFilterEmpty show=\{tagEmpty\}/);
+  assert.match(view, /const tagEmpty = searched\.length > 0 && listed\.length === 0/);
+  assert.match(view, /\(\["open", "mine", "unassigned"\] as const\)/);
+  assert.match(view, /<InboxConversationSearch enabled=\{data\.search\}/);
+  const filterStart = view.indexOf("<InboxTagFilter");
+  const filterEnd = view.indexOf("{data.multiNumber", filterStart);
+  const block = view.slice(filterStart, filterEnd);
+  assert.equal(block.includes("sendInboxReply"), false);
+  assert.equal(block.includes("saveInboxContactPanel"), false);
+  assert.equal(block.includes("router.push"), false);
+  assert.equal(block.includes("type=\"submit\""), false);
+  assert.match(load, /tagFilter: inboxTagFilterEnabled\(\)/);
+  assert.match(load, /inboxListSelect\(base\.search, base\.tagFilter\)/);
+  assert.match(load, /attachInboxLeadTags\(supabase, tenant\.active\.id, mapped, base\.tagFilter\)/);
+  const fnStart = load.indexOf("async function attachInboxLeadTags");
+  const fnEnd = load.indexOf("function publishedListItem");
+  assert.ok(fnStart > 0 && fnEnd > fnStart);
+  const fn = load.slice(fnStart, fnEnd);
+  const guard = fn.indexOf("if (!enabled) return conversations");
+  const query = fn.indexOf('.from("crm_leads")');
+  assert.ok(guard >= 0 && query > guard);
+  assert.match(fn, /select\("id, tags"\)/);
+  assert.match(fn, /eq\("org_id", orgId\)/);
+  assert.match(fn, /leadIdsForTagLookup\(conversations\)/);
+  assert.equal(fn.includes(".insert("), false);
+  assert.equal(fn.includes(".update("), false);
+  assert.equal(fn.includes("crm_outbox"), false);
+  assert.equal(fn.includes("contact_consents"), false);
+  assert.equal(filter.includes(".insert("), false);
+  assert.equal(filter.includes(".update("), false);
+  assert.equal(filter.includes(".from("), false);
+  assert.equal(filter.includes("fetch("), false);
+  assert.equal(actions.includes("INBOX_TAG_FILTER_ENABLED"), false);
+  assert.equal(actions.includes("inboxTagFilterEnabled"), false);
+  const save = actions.slice(actions.indexOf("export async function saveInboxContactPanel"));
+  assert.match(save, /from\("crm_contacts"\)/);
+  assert.equal(save.includes("INBOX_TAG_FILTER"), false);
+  const files = [
+    "src/lib/inbox/tag-filter.ts",
+    "src/components/inbox/inbox-tag-filter.tsx",
     "src/components/inbox/inbox-view.tsx",
     "src/lib/inbox/preview.ts",
     "src/lib/inbox/load.ts",

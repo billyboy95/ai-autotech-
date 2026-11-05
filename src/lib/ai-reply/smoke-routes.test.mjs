@@ -40,6 +40,7 @@ test("inbox, conversation AI, calendars, reviews, referrals, and public pages re
       INBOX_INTERNAL_NOTES_ENABLED: "",
       INBOX_TEMPLATES_PICKER_ENABLED: "",
       INBOX_SEARCH_ENABLED: "",
+      INBOX_TAG_FILTER_ENABLED: "",
       RESEND_API_KEY: "",
       SMTP_HOST: "",
       SMTP_PASS: "",
@@ -132,6 +133,11 @@ test("inbox, conversation AI, calendars, reviews, referrals, and public pages re
     assert.doesNotMatch(inboxHtml, /data-search="on"/);
     assert.doesNotMatch(inboxHtml, /No conversations match this search/);
     assert.doesNotMatch(inboxHtml, /Search conversations/);
+    assert.doesNotMatch(inboxHtml, /data-testid="inbox-tag-filter"/);
+    assert.doesNotMatch(inboxHtml, /data-tag-filter="on"/);
+    assert.doesNotMatch(inboxHtml, /inbox-tag-chip/);
+    assert.doesNotMatch(inboxHtml, /No conversations match these tags/);
+    assert.doesNotMatch(inboxHtml, /Clear tags/);
 
     const settings = await fetch(`http://127.0.0.1:${port}/command-centre/ai-replies`, { redirect: "manual" });
     assert.equal(settings.status, 200);

@@ -47,6 +47,60 @@ async function asUser(db, userId, sql, params = []) {
   }
 }
 
+test("inbox snooze column does not send and can be cleared", async () => {
+  const sql = migration("20261117120100_inbox_snooze.sql");
+  assert.equal(/sending_enabled\s*=\s*true/i.test(sql), false);
+  assert.equal(/insert\s+into\s+public\.crm_outbox/i.test(sql), false);
+  assert.equal(/\bcrm_outbox\b/i.test(sql), false);
+  assert.match(sql, /snoozed_until/);
+  assert.match(sql, /add column if not exists snoozed_until timestamptz/);
+
+  const db = new PGlite();
+  await applyInbox(db);
+  await db.exec(sql);
+  await db.exec(`
+    insert into conversations (id, org_id, channel, status, unread_count)
+    values ('dddddddd-dddd-4ddd-8ddd-ddddddddddd7', '${EASTC_ORG}', 'sms', 'open', 1);
+  `);
+  await db.query(`
+    update conversations
+    set snoozed_until = now() + interval '1 hour'
+    where id = 'dddddddd-dddd-4ddd-8ddd-ddddddddddd7'
+  `);
+  const snoozed = await db.query(`
+    select snoozed_until > now() as active
+    from conversations
+    where id = 'dddddddd-dddd-4ddd-8ddd-ddddddddddd7'
+  `);
+  assert.equal(snoozed.rows[0].active, true);
+  await db.query(`
+    update conversations
+    set snoozed_until = now() - interval '1 minute'
+    where id = 'dddddddd-dddd-4ddd-8ddd-ddddddddddd7'
+  `);
+  const expired = await db.query(`
+    select snoozed_until > now() as active
+    from conversations
+    where id = 'dddddddd-dddd-4ddd-8ddd-ddddddddddd7'
+  `);
+  assert.equal(expired.rows[0].active, false);
+  await db.query(`
+    update conversations
+    set snoozed_until = null
+    where id = 'dddddddd-dddd-4ddd-8ddd-ddddddddddd7'
+  `);
+  const cleared = await db.query(`
+    select snoozed_until is null as cleared
+    from conversations
+    where id = 'dddddddd-dddd-4ddd-8ddd-ddddddddddd7'
+  `);
+  assert.equal(cleared.rows[0].cleared, true);
+  const messages = await db.query("select count(*)::int as n from messages");
+  assert.equal(messages.rows[0].n, 0);
+  const flags = await db.query("select sending_enabled from organizations where slug = 'eastc'");
+  assert.equal(flags.rows[0].sending_enabled, false);
+});
+
 test("phase 2e migration keeps sending off", () => {
   const sql = migration("20261018120000_phase2e_inbox.sql");
   assert.equal(/sending_enabled\s*=\s*true/i.test(sql), false);

@@ -1,9 +1,13 @@
 import { missingAiTable, parseAiDraft, parseAiReplySettings } from "@/lib/ai-reply/types";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { safeResolveWorkspace } from "@/lib/tenant/context";
-import { contactLookup, parseInboxChannel, parseInboxFilter } from "@/lib/inbox/rules";
+import { contactLookup, matchesInboxList, parseInboxChannel, parseInboxFilter, type InboxFilter } from "@/lib/inbox/rules";
 import { previewInbox } from "@/lib/inbox/preview";
+import { activeSnoozeLabel, inboxSnoozeEnabled, isSnoozeActive, missingSnoozeColumn, SNOOZE_COLUMN_MISSING } from "@/lib/inbox/snooze";
 import type { InboxConsent, InboxContact, InboxData, InboxListItem, InboxMessage, InboxNote, InboxThread } from "@/lib/inbox/types";
+
+const CONVERSATION_LIST_COLUMNS = "id, channel, status, assigned_user_id, unread_count, last_message_at, wa_window_expires_at, contact_id, channel_connection_id, crm_contacts(first_name, last_name)";
+const CONVERSATION_LIST_COLUMNS_SNOOZE = "id, channel, status, assigned_user_id, unread_count, last_message_at, wa_window_expires_at, snoozed_until, contact_id, channel_connection_id, crm_contacts(first_name, last_name)";
 
 export async function loadInboxUnread() {
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) return 0;
@@ -11,6 +15,17 @@ export async function loadInboxUnread() {
     const supabase = await createSupabaseServerClient();
     const user = await supabase.auth.getUser();
     if (!user.data.user) return 0;
+    if (inboxSnoozeEnabled()) {
+      const now = new Date();
+      const scoped = await supabase.from("conversations").select("unread_count, snoozed_until").neq("status", "closed");
+      if (!scoped.error) {
+        return (scoped.data ?? []).reduce((sum, row) => {
+          if (isSnoozeActive(row.snoozed_until ? String(row.snoozed_until) : null, now)) return sum;
+          return sum + Number(row.unread_count || 0);
+        }, 0);
+      }
+      if (!missingSnoozeColumn(scoped.error.message)) return 0;
+    }
     const listed = await supabase.from("conversations").select("unread_count").neq("status", "closed");
     if (listed.error) return 0;
     return (listed.data ?? []).reduce((sum, row) => sum + Number(row.unread_count || 0), 0);
@@ -26,7 +41,8 @@ export async function loadInbox(query: {
   id?: string;
   notice?: string | null;
 }): Promise<InboxData> {
-  const filter = parseInboxFilter(query.filter);
+  const snoozeEnabled = inboxSnoozeEnabled();
+  const filter = parseInboxFilter(query.filter, { snoozeEnabled });
   const channel = parseInboxChannel(query.channel);
   const tenant = await safeResolveWorkspace(query.org);
   if (
@@ -41,6 +57,7 @@ export async function loadInbox(query: {
       ...query,
       filter,
       channel,
+      snoozeEnabled,
       notice: query.notice,
       brandSlug: tenant.brandLocked ? tenant.active.slug : null,
     });
@@ -57,6 +74,7 @@ export async function loadInbox(query: {
     assignedOnly: false,
     sendingEnabled: tenant.active.sendingEnabled,
     filter,
+    snoozeEnabled,
     channel,
     conversations: [],
     thread: null,
@@ -81,42 +99,60 @@ export async function loadInbox(query: {
     if (!membership.error && membership.data) base.assignedOnly = Boolean(membership.data.assigned_only);
   }
 
-  let listed = supabase
-    .from("conversations")
-    .select("id, channel, status, assigned_user_id, unread_count, last_message_at, wa_window_expires_at, contact_id, channel_connection_id, crm_contacts(first_name, last_name)")
-    .eq("org_id", tenant.active.id)
-    .neq("status", "closed")
-    .order("last_message_at", { ascending: false })
-    .limit(100);
-  if (filter === "mine" && userId) listed = listed.eq("assigned_user_id", userId);
-  if (filter === "unassigned") listed = listed.is("assigned_user_id", null);
-  if (channel) listed = listed.eq("channel", channel);
-  const conversations = await listed;
-  if (conversations.error) {
-    if (missingInboxTable(conversations.error.message)) {
+  const now = new Date();
+  let readSnoozeColumn = snoozeEnabled;
+  const listed = await listConversations(supabase, {
+    orgId: tenant.active.id,
+    filter,
+    channel,
+    userId,
+    snoozeEnabled,
+    now,
+  });
+  if (listed.error) {
+    if (missingInboxTable(listed.error)) {
       return { ...base, notice: "Inbox tables are not in this database yet. Apply phase 2e before using the inbox. Nothing was sent." };
     }
-    return { ...base, notice: conversations.error.message };
+    if (snoozeEnabled && missingSnoozeColumn(listed.error)) {
+      const plain = await listConversations(supabase, {
+        orgId: tenant.active.id,
+        filter: filter === "snoozed" ? "open" : filter,
+        channel,
+        userId,
+        snoozeEnabled: false,
+        now,
+      });
+      if (plain.error) {
+        if (missingInboxTable(plain.error)) {
+          return { ...base, notice: "Inbox tables are not in this database yet. Apply phase 2e before using the inbox. Nothing was sent." };
+        }
+        return { ...base, notice: plain.error };
+      }
+      readSnoozeColumn = false;
+      base.notice = SNOOZE_COLUMN_MISSING;
+      base.conversations = plain.rows.map((row) => mapListItem(row, now, false));
+    } else {
+      return { ...base, notice: listed.error };
+    }
+  } else {
+    base.conversations = listed.rows
+      .map((row) => mapListItem(row, now, snoozeEnabled))
+      .filter((item) => matchesInboxList({
+        status: item.status,
+        assignedUserId: item.assignedUserId,
+        channel: item.channel,
+        filter,
+        channelFilter: channel,
+        userId,
+        snoozedUntil: item.snoozedUntil,
+        now,
+        snoozeEnabled,
+      }))
+      .slice(0, 100);
   }
 
-  base.conversations = (conversations.data ?? []).map((row) => {
-    const contact = one(row.crm_contacts) as { first_name?: string; last_name?: string } | null;
-    const name = [contact?.first_name, contact?.last_name].filter(Boolean).join(" ");
-    return {
-      id: String(row.id),
-      channel: String(row.channel),
-      status: String(row.status),
-      assignedUserId: row.assigned_user_id ? String(row.assigned_user_id) : null,
-      unread: Number(row.unread_count || 0),
-      lastMessageAt: row.last_message_at ? String(row.last_message_at) : null,
-      windowExpiresAt: row.wa_window_expires_at ? String(row.wa_window_expires_at) : null,
-      contactName: name || "Unknown contact",
-      preview: "",
-    } satisfies InboxListItem;
-  });
-
   const selected = query.id && base.conversations.some((item) => item.id === query.id) ? query.id : base.conversations[0]?.id;
-  if (selected) base.thread = await loadThread(supabase, tenant.active.id, selected);
+  if (selected) base.thread = await loadThread(supabase, tenant.active.id, selected, readSnoozeColumn, now);
 
   const [templates, connections, members] = await Promise.all([
     supabase.from("message_templates").select("id, name, channel, subject, body, wa_category, wa_status, active").eq("org_id", tenant.active.id).eq("active", true),
@@ -177,15 +213,147 @@ export async function loadInbox(query: {
   return base;
 }
 
-async function loadThread(supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>, orgId: string, id: string): Promise<InboxThread | null> {
-  const conversation = await supabase
+type InboxSupabase = Awaited<ReturnType<typeof createSupabaseServerClient>>;
+
+type ConversationListRow = {
+  id?: string;
+  channel?: string;
+  status?: string;
+  assigned_user_id?: string | null;
+  unread_count?: number | null;
+  last_message_at?: string | null;
+  wa_window_expires_at?: string | null;
+  snoozed_until?: string | null;
+  crm_contacts?: { first_name?: string | null; last_name?: string | null } | { first_name?: string | null; last_name?: string | null }[] | null;
+};
+
+function conversationQuery(supabase: InboxSupabase, input: {
+  orgId: string;
+  filter: InboxFilter;
+  channel: string;
+  userId: string | null;
+  columns: string;
+}) {
+  let listed = supabase
     .from("conversations")
-    .select("id, channel, status, assigned_user_id, channel_connection_id, wa_window_expires_at, contact_id, crm_contacts(id, first_name, last_name, email, phone_e164, whatsapp_e164, company, tags, lead_id)")
-    .eq("id", id)
-    .eq("org_id", orgId)
-    .maybeSingle();
+    .select(input.columns)
+    .eq("org_id", input.orgId)
+    .neq("status", "closed")
+    .order("last_message_at", { ascending: false })
+    .limit(100);
+  if (input.filter === "mine" && input.userId) listed = listed.eq("assigned_user_id", input.userId);
+  if (input.filter === "unassigned") listed = listed.is("assigned_user_id", null);
+  if (input.channel) listed = listed.eq("channel", input.channel);
+  return listed;
+}
+
+async function listConversations(supabase: InboxSupabase, input: {
+  orgId: string;
+  filter: InboxFilter;
+  channel: string;
+  userId: string | null;
+  snoozeEnabled: boolean;
+  now: Date;
+}): Promise<{ rows: ConversationListRow[]; error: string | null }> {
+  const columns = input.snoozeEnabled ? CONVERSATION_LIST_COLUMNS_SNOOZE : CONVERSATION_LIST_COLUMNS;
+  if (!input.snoozeEnabled) {
+    const listed = await conversationQuery(supabase, { ...input, columns });
+    if (listed.error) return { rows: [], error: listed.error.message };
+    return { rows: (listed.data ?? []) as ConversationListRow[], error: null };
+  }
+  if (input.filter === "snoozed") {
+    const listed = await conversationQuery(supabase, { ...input, columns }).gt("snoozed_until", input.now.toISOString());
+    if (listed.error) return { rows: [], error: listed.error.message };
+    return { rows: (listed.data ?? []) as ConversationListRow[], error: null };
+  }
+  const [openRows, expiredRows] = await Promise.all([
+    conversationQuery(supabase, { ...input, columns }).is("snoozed_until", null),
+    conversationQuery(supabase, { ...input, columns }).lte("snoozed_until", input.now.toISOString()),
+  ]);
+  const failed = openRows.error || expiredRows.error;
+  if (failed) return { rows: [], error: failed.message };
+  const merged = [...((openRows.data ?? []) as ConversationListRow[]), ...((expiredRows.data ?? []) as ConversationListRow[])];
+  merged.sort((left, right) => messageRank(right.last_message_at) - messageRank(left.last_message_at));
+  return { rows: merged.slice(0, 100), error: null };
+}
+
+function messageRank(value: string | null | undefined) {
+  if (!value) return Number.POSITIVE_INFINITY;
+  const time = new Date(value).getTime();
+  return Number.isFinite(time) ? time : Number.POSITIVE_INFINITY;
+}
+
+function mapListItem(row: ConversationListRow, now: Date, snoozeEnabled: boolean): InboxListItem {
+  const contact = one(row.crm_contacts) as { first_name?: string; last_name?: string } | null;
+  const name = [contact?.first_name, contact?.last_name].filter(Boolean).join(" ");
+  const snoozedUntil = snoozeEnabled && row.snoozed_until ? String(row.snoozed_until) : null;
+  return {
+    id: String(row.id),
+    channel: String(row.channel || ""),
+    status: String(row.status || ""),
+    assignedUserId: row.assigned_user_id ? String(row.assigned_user_id) : null,
+    unread: Number(row.unread_count || 0),
+    lastMessageAt: row.last_message_at ? String(row.last_message_at) : null,
+    windowExpiresAt: row.wa_window_expires_at ? String(row.wa_window_expires_at) : null,
+    snoozedUntil,
+    snoozeLabel: snoozeEnabled ? activeSnoozeLabel(snoozedUntil, now) : null,
+    contactName: name || "Unknown contact",
+    preview: "",
+  };
+}
+
+async function loadThread(
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  orgId: string,
+  id: string,
+  snoozeEnabled: boolean,
+  now: Date,
+): Promise<InboxThread | null> {
+  const conversation = snoozeEnabled
+    ? await supabase
+        .from("conversations")
+        .select("id, channel, status, assigned_user_id, channel_connection_id, wa_window_expires_at, snoozed_until, contact_id, crm_contacts(id, first_name, last_name, email, phone_e164, whatsapp_e164, company, tags, lead_id)")
+        .eq("id", id)
+        .eq("org_id", orgId)
+        .maybeSingle()
+    : await supabase
+        .from("conversations")
+        .select("id, channel, status, assigned_user_id, channel_connection_id, wa_window_expires_at, contact_id, crm_contacts(id, first_name, last_name, email, phone_e164, whatsapp_e164, company, tags, lead_id)")
+        .eq("id", id)
+        .eq("org_id", orgId)
+        .maybeSingle();
   if (conversation.error || !conversation.data) return null;
-  const row = conversation.data;
+  const row = conversation.data as {
+    id: string;
+    channel: string;
+    status: string;
+    assigned_user_id: string | null;
+    channel_connection_id: string | null;
+    wa_window_expires_at: string | null;
+    snoozed_until?: string | null;
+    contact_id: string | null;
+    crm_contacts: {
+      id?: string;
+      first_name?: string;
+      last_name?: string;
+      email?: string;
+      phone_e164?: string;
+      whatsapp_e164?: string;
+      company?: string;
+      tags?: string[] | null;
+      lead_id?: string | null;
+    } | {
+      id?: string;
+      first_name?: string;
+      last_name?: string;
+      email?: string;
+      phone_e164?: string;
+      whatsapp_e164?: string;
+      company?: string;
+      tags?: string[] | null;
+      lead_id?: string | null;
+    }[] | null;
+  };
   const contactRow = one(row.crm_contacts) as {
     id?: string;
     first_name?: string;
@@ -222,6 +390,7 @@ async function loadThread(supabase: Awaited<ReturnType<typeof createSupabaseServ
     contact ? supabase.from("contact_consents").select("channel, purpose, status, captured_at").eq("contact_id", contact.id).order("captured_at", { ascending: false }) : Promise.resolve({ data: [], error: null }),
   ]);
 
+  const snoozedUntil = snoozeEnabled && row.snoozed_until ? String(row.snoozed_until) : null;
   return {
     id: String(row.id),
     channel: String(row.channel),
@@ -229,6 +398,8 @@ async function loadThread(supabase: Awaited<ReturnType<typeof createSupabaseServ
     assignedUserId: row.assigned_user_id ? String(row.assigned_user_id) : null,
     connectionId: row.channel_connection_id ? String(row.channel_connection_id) : null,
     windowExpiresAt: row.wa_window_expires_at ? String(row.wa_window_expires_at) : null,
+    snoozedUntil,
+    snoozeLabel: snoozeEnabled ? activeSnoozeLabel(snoozedUntil, now) : null,
     contact,
     messages: ((messages.data ?? []) as Record<string, unknown>[]).map(mapMessage),
     notes: ((notes.error ? [] : notes.data ?? []) as Record<string, unknown>[]).map(mapNote),

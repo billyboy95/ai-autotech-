@@ -10,6 +10,8 @@ These files are additive. They do not delete existing leads. Do not turn sending
 
 The sandbox try-chat migration is not a step in the list above and is not applied. The file is `supabase/migrations/20261116120000_bot_try_links.sql`. It adds `bot_try_links`, `bot_try_messages`, a 30-day message purge, and `calendars.sandbox`. Do not paste it until Billy says yes. Do not apply it to production from this change. `sending_enabled` stays false. `TRY_AI_API_KEY` stays unset until he also says yes to that key.
 
+Inbox snooze is listed here on its own and is not applied. It is separate from draft #101. Draft #101's file is `supabase/migrations/20261117120000_team_seat_billing.sql`. This snooze file is `supabase/migrations/20261117120100_inbox_snooze.sql`. Those timestamps differ. If both files are pasted later, seat billing is the earlier timestamp and snooze is the later one. Inbox snooze is not one of steps 1 through 36. The phone checklist is `docs/phone-inbox-snooze.md`. It adds nullable `conversations.snoozed_until`. It does not send, does not insert `crm_outbox`, and does not set `sending_enabled`. Do not paste it until Billy says yes. Leave `INBOX_SNOOZE_ENABLED` unset until that yes and the column is on the database. `True`, `TRUE`, `1`, and `yes` are not that yes. This file does not apply that SQL.
+
 Income streams are not a step in the list above and are not applied. The file is `supabase/migrations/20261115120000_income_streams.sql`. It adds the services catalogue, service quotes, AIOS membership tiers, PayFast payment rows, the `membership upsell` stage, and draft-only upsell messages. Service prices in that file are Billy's confirmed ZAR amounts, excluding VAT. From-prices are the quote starting amount. Do not paste it until Billy says yes. Do not apply it to production from this change. `sending_enabled` stays false. `AUTOMATION_SEND_ENABLED` stays unset, or stays the string `false`. PayFast stays in sandbox until `PAYFAST_MODE` is the string `live`.
 
 Queue opener is not a step in the list above and is not applied. The file is `supabase/migrations/20261114120000_outreach_queue_opener.sql`. The phone checklist is `docs/phone-outreach-queue-opener.md`. It inserts outbox status `draft` only and can cancel queued marketing rows to `cancelled`. It does not send and it does not set `sending_enabled`. Do not paste it until Billy says yes. `AUTOMATION_SEND_ENABLED` stays unset, or stays the string `false`.
@@ -245,6 +247,8 @@ Do not apply by filename sort.
 | `20260926200000` | `20260926200000_send_compliance.sql` (step 3) | `20260926200000_phase2a_access.sql` (step 6) |
 
 Filename sort also places `20260926180000_zentrix_shopify.sql` before `outbound_channels` and `agency_tenancy`. Zentrix needs `organizations`, so it stays at step 5.
+
+Inbox snooze and team seat billing are separate files. Draft #101 is `20261117120000_team_seat_billing.sql`. Inbox snooze on this branch is `20261117120100_inbox_snooze.sql`. They do not share a timestamp.
 
 ## Not part of this apply
 

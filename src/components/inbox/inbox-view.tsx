@@ -96,15 +96,14 @@ export function InboxView({
     serviceSendsThisMonth: data.serviceUsed,
   });
   const connectionId = data.connections.find((item) => item.channel === channel)?.id || thread?.connectionId || "";
-  const sourceConversations = realtimeEnabled && live ? live.conversations : data.conversations;
-  const unread = sourceConversations.reduce((sum, item) => sum + item.unread, 0);
+  const unread = (realtimeEnabled && live ? live.conversations : data.conversations).reduce((sum, item) => sum + item.unread, 0);
   const tagChoices = useMemo(
-    () => (data.tagFilter ? tagFilterChoices(sourceConversations) : []),
-    [data.tagFilter, sourceConversations],
+    () => (data.tagFilter ? tagFilterChoices(data.conversations) : []),
+    [data.tagFilter, data.conversations],
   );
-  const searched = inboxListForSearch(data.search, sourceConversations, appliedSearch);
+  const searched = inboxListForSearch(data.search, data.conversations, appliedSearch);
   const listed = inboxListForTags(data.tagFilter, searched, selectedTags);
-  const searchEmpty = sourceConversations.length > 0 && searched.length === 0;
+  const searchEmpty = data.conversations.length > 0 && searched.length === 0;
   const tagEmpty = searched.length > 0 && listed.length === 0;
 
   const threadId = thread?.id ?? "";
@@ -166,10 +165,13 @@ export function InboxView({
     () => inboxScopeFromKind(data.inboxScope, data.userId),
     [data.inboxScope, data.userId],
   );
+  const legacyFilters = (["open", "mine", "unassigned"] as const);
   const filterChips = [
-    ...((scope.kind === "own" || scope.kind === "closed")
+    ...(scope.kind === "own" || scope.kind === "closed"
       ? (data.statusFiltersEnabled && scope.kind === "own" ? [...inboxFilterChips(scope), "closed" as const] : inboxFilterChips(scope))
-      : inboxStatusFilterChips(data.statusFiltersEnabled)),
+      : data.statusFiltersEnabled
+        ? inboxStatusFilterChips(data.statusFiltersEnabled)
+        : legacyFilters),
     ...(data.snoozeEnabled && scope.kind !== "closed" ? ["snoozed" as const] : []),
   ];
 

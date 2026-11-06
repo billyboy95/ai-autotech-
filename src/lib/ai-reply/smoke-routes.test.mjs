@@ -19,6 +19,10 @@ test("inbox, conversation AI, calendars, reviews, referrals, and public pages re
       AI_REPLY_API_KEY: "",
       CAMPAIGN_DRY_RUN_ENABLED: "",
       META_CONNECT_STUB_ENABLED: "",
+      WHATSAPP_EMBEDDED_SIGNUP_ENABLED: "",
+      NEXT_PUBLIC_META_APP_ID: "",
+      META_APP_ID: "",
+      META_APP_SECRET: "",
       CAMPAIGN_CSV_IMPORT_ENABLED: "",
       EMAIL_SMS_CONNECT_STUB_ENABLED: "",
       SOCIAL_DRAFTS_ENABLED: "",
@@ -31,6 +35,19 @@ test("inbox, conversation AI, calendars, reviews, referrals, and public pages re
       OWNER_BOOTSTRAP_UI_ENABLED: "",
       OPS_SECRETS_READY_ENABLED: "",
       GOLIVE_CHECKLIST_ENABLED: "",
+      INBOX_MULTI_NUMBER_ENABLED: "",
+      INBOX_TEAM_STATS_ENABLED: "",
+      INBOX_WA_WINDOW_ENABLED: "",
+      INBOX_QUICK_UX_ENABLED: "",
+      INBOX_BULK_ACTIONS_ENABLED: "",
+      INBOX_CONTACT_PANEL_ENABLED: "",
+      INBOX_INTERNAL_NOTES_ENABLED: "",
+      INBOX_TEMPLATES_PICKER_ENABLED: "",
+      INBOX_SEARCH_ENABLED: "",
+      INBOX_TAG_FILTER_ENABLED: "",
+      INBOX_MEDIA_ENABLED: "",
+      INBOX_OUTBOUND_MEDIA_ENABLED: "",
+      INBOX_ASSIGNED_ONLY_ENABLED: "",
       RESEND_API_KEY: "",
       SMTP_HOST: "",
       SMTP_PASS: "",
@@ -47,6 +64,9 @@ test("inbox, conversation AI, calendars, reviews, referrals, and public pages re
       PAYFAST_PASSPHRASE: "",
       SUPABASE_DB_URL: "",
       AUTOMATION_SEND_ENABLED: "",
+      INBOX_STATUS_ASSIGNEE_FILTERS_ENABLED: "",
+      INBOX_REALTIME_ENABLED: "",
+      INBOX_SNOOZE_ENABLED: "",
       BILLING_SANDBOX: "",
       CRON_SECRET: "",
       PAYFAST_MERCHANT_ID: "",
@@ -88,6 +108,60 @@ test("inbox, conversation AI, calendars, reviews, referrals, and public pages re
     const inboxHtml = await inbox.text();
     assert.match(inboxHtml, /Inbox/);
     assert.match(inboxHtml, /Draft with AI/);
+    assert.match(inboxHtml, /Unassigned/);
+    assert.match(inboxHtml, /filter=mine/);
+    assert.equal(inboxHtml.includes("filter=closed"), false);
+    assert.equal(inboxHtml.includes("inbox-filter-closed"), false);
+    assert.equal(/\bClosed\b/.test(inboxHtml), false);
+    assert.doesNotMatch(inboxHtml, /inbox-number-filter/);
+    assert.doesNotMatch(inboxHtml, /All numbers/);
+    assert.doesNotMatch(inboxHtml, /inbox-team-stats/);
+    assert.doesNotMatch(inboxHtml, /inbox-first-response/);
+    assert.doesNotMatch(inboxHtml, /inbox-sla-flags/);
+    assert.doesNotMatch(inboxHtml, /inbox-wa-window/);
+    assert.doesNotMatch(inboxHtml, /inbox-wa-template-gate/);
+    assert.doesNotMatch(inboxHtml, /Customer care window/);
+    assert.doesNotMatch(inboxHtml, /Cost metering is not live/);
+    assert.doesNotMatch(inboxHtml, /inbox-quick-replies/);
+    assert.doesNotMatch(inboxHtml, /inbox-quick-layout/);
+    assert.doesNotMatch(inboxHtml, /inbox-collision/);
+    assert.doesNotMatch(inboxHtml, /data-stack="narrow"/);
+    assert.doesNotMatch(inboxHtml, /data-quick-ux="on"/);
+    assert.doesNotMatch(inboxHtml, /Naledi Khumalo/);
+    assert.doesNotMatch(inboxHtml, /is typing/);
+    assert.doesNotMatch(inboxHtml, /Quick replies/);
+    assert.doesNotMatch(inboxHtml, /inbox-bulk-toolbar/);
+    assert.doesNotMatch(inboxHtml, /inbox-bulk-select/);
+    assert.doesNotMatch(inboxHtml, /inbox-bulk-row/);
+    assert.doesNotMatch(inboxHtml, /Select Lerato Mokoena/);
+    assert.doesNotMatch(inboxHtml, /inbox-contact-panel/);
+    assert.doesNotMatch(inboxHtml, /data-contact-panel="on"/);
+    assert.doesNotMatch(inboxHtml, /inbox-internal-notes/);
+    assert.doesNotMatch(inboxHtml, /data-internal-notes="on"/);
+    assert.doesNotMatch(inboxHtml, /Asked for the prospectus/);
+    assert.doesNotMatch(inboxHtml, /Save note/);
+    assert.match(inboxHtml, /Free-form/);
+    assert.doesNotMatch(inboxHtml, /inbox-templates-picker/);
+    assert.doesNotMatch(inboxHtml, /data-templates-picker="on"/);
+    assert.doesNotMatch(inboxHtml, /No templates for this workspace/);
+    assert.doesNotMatch(inboxHtml, /data-testid="inbox-search"/);
+    assert.doesNotMatch(inboxHtml, /data-search="on"/);
+    assert.doesNotMatch(inboxHtml, /No conversations match this search/);
+    assert.doesNotMatch(inboxHtml, /Search conversations/);
+    assert.doesNotMatch(inboxHtml, /data-testid="inbox-tag-filter"/);
+    assert.doesNotMatch(inboxHtml, /data-tag-filter="on"/);
+    assert.doesNotMatch(inboxHtml, /inbox-tag-chip/);
+    assert.doesNotMatch(inboxHtml, /No conversations match these tags/);
+    assert.doesNotMatch(inboxHtml, /Clear tags/);
+    assert.doesNotMatch(inboxHtml, /data-testid="inbox-message-media"/);
+    assert.doesNotMatch(inboxHtml, /data-media="on"/);
+    assert.doesNotMatch(inboxHtml, /inbox-media-thumb/);
+    assert.doesNotMatch(inboxHtml, /inbox-media-file/);
+    assert.doesNotMatch(inboxHtml, /inbox-media-fallback/);
+    assert.doesNotMatch(inboxHtml, /lerato-id\.png/);
+    assert.doesNotMatch(inboxHtml, /october-intake\.pdf/);
+    assert.equal(inboxHtml.includes("inbox-snooze"), false);
+    assert.equal(inboxHtml.includes("inbox-filter-snoozed"), false);
 
     const settings = await fetch(`http://127.0.0.1:${port}/command-centre/ai-replies`, { redirect: "manual" });
     assert.equal(settings.status, 200);
@@ -389,6 +463,8 @@ test("inbox, conversation AI, calendars, reviews, referrals, and public pages re
     assert.match(whatsappHtml, /Needs provider keys/);
     assert.match(whatsappHtml, /Send test/);
     assert.match(whatsappHtml, /Outbox queued: 0/);
+    assert.doesNotMatch(whatsappHtml, /Connect with Meta Embedded Signup/);
+    assert.doesNotMatch(whatsappHtml, /needs Meta Tech Provider/);
     assert.doesNotMatch(whatsappHtml, /start with (these )?(3|three)/i);
 
     const emailStub = await fetch(`http://127.0.0.1:${port}/command-centre/connect-accounts/gmail`, { redirect: "manual" });
@@ -639,6 +715,7 @@ test("inbox, conversation AI, calendars, reviews, referrals, and public pages re
     const settingsPageHtml = await settingsPage.text();
     assert.match(settingsPageHtml, /Install AIOS on your phone/);
     assert.match(settingsPageHtml, /Open install steps/);
+    assert.doesNotMatch(settingsPageHtml, /Connect with Meta Embedded Signup/);
 
     const manifest = await fetch(`http://127.0.0.1:${port}/manifest.webmanifest`, { redirect: "manual" });
     assert.equal(manifest.status, 200);

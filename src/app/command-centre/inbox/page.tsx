@@ -3,6 +3,7 @@ import { CommandShell } from "@/components/crm/command-shell";
 import { InboxView } from "@/components/inbox/inbox-view";
 import { loadCommandData } from "@/lib/automation/page-data";
 import { loadInbox } from "@/lib/inbox/load";
+import { inboxRealtimeEnabled } from "@/lib/inbox/realtime";
 
 export const dynamic = "force-dynamic";
 
@@ -14,7 +15,7 @@ export const metadata: Metadata = {
 export default async function InboxPage({
   searchParams,
 }: {
-  searchParams: Promise<{ org?: string; filter?: string; channel?: string; id?: string; error?: string; notice?: string }>;
+  searchParams: Promise<{ org?: string; filter?: string; channel?: string; id?: string; number?: string; error?: string; notice?: string }>;
 }) {
   const params = await searchParams;
   const [{ workspace, sendingEnabled }, data] = await Promise.all([
@@ -24,13 +25,14 @@ export default async function InboxPage({
       filter: params.filter,
       channel: params.channel,
       id: params.id,
+      number: params.number,
       notice: null,
     }),
   ]);
 
   return (
     <CommandShell setupError={workspace.setupError} sendingEnabled={sendingEnabled} requestedSlug={params.org}>
-      <InboxView data={data} banner={params.error || params.notice || null} bannerTone={params.error ? "error" : "ok"} />
+      <InboxView data={data} banner={params.error || params.notice || null} bannerTone={params.error ? "error" : "ok"} realtimeEnabled={inboxRealtimeEnabled()} />
     </CommandShell>
   );
 }

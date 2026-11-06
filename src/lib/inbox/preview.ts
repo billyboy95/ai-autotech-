@@ -1,11 +1,44 @@
+import { inboxBulkActionsEnabled } from "@/lib/inbox/bulk";
+import { inboxContactPanelEnabled } from "@/lib/inbox/contact-panel";
+import { inboxInternalNotesEnabled } from "@/lib/inbox/internal-notes";
+import { inboxSearchEnabled, searchListFields } from "@/lib/inbox/search";
+import { inboxMediaEnabled, parseMessageMedia, PREVIEW_MESSAGE_MEDIA } from "@/lib/inbox/media";
+import { inboxOutboundMediaEnabled } from "@/lib/inbox/outbound-media";
+import { inboxTagFilterEnabled, listTagFields } from "@/lib/inbox/tag-filter";
+import { inboxTemplatesPickerEnabled } from "@/lib/inbox/templates-picker";
+import { inboxMultiNumberEnabled, matchesInboxNumber, parseInboxNumber, resolveInboxNumber, whatsappNumberParts } from "@/lib/inbox/numbers";
 import { matchesInboxList, parseInboxChannel, parseInboxFilter, windowExpiry } from "@/lib/inbox/rules";
-import type { InboxData, InboxThread } from "@/lib/inbox/types";
+import { activeSnoozeLabel, inboxSnoozeEnabled } from "@/lib/inbox/snooze";
+import { inboxStatusAssigneeFiltersEnabled, parseStatusAssigneeFilter } from "@/lib/inbox/status-filter";
+import { buildInboxTeamStats, inboxTeamStatsEnabled, type TeamStatsMessage } from "@/lib/inbox/team-stats";
+import { inboxQuickUxEnabled, previewInboxPresence, quickRepliesForWorkspace } from "@/lib/inbox/quick-ux";
+import { inboxWaWindowEnabled } from "@/lib/inbox/wa-window";
+import {
+  buildServiceMeters,
+  countServiceSendsByConnection,
+  inboxWaMeteringEnabled,
+  waMeterNumbers,
+  WA_METER_TIMEZONE,
+  type ServiceSendRow,
+} from "@/lib/inbox/wa-metering";
+import type { InboxData, InboxTeamStats, InboxThread, InboxWhatsappNumber } from "@/lib/inbox/types";
 
 const PREVIEW_ORG = "00000000-0000-4000-8000-0000000000aa";
 const PREVIEW_USER = "00000000-0000-4000-8000-0000000000bb";
 const OPEN_WA = "00000000-0000-4000-8000-000000000001";
 const OPEN_SMS = "00000000-0000-4000-8000-000000000002";
 const EXPIRED_WA = "00000000-0000-4000-8000-000000000003";
+const DESK_WA = "00000000-0000-4000-8000-000000000004";
+const CLOSED_EMAIL = "00000000-0000-4000-8000-000000000014";
+const SNOOZED = "00000000-0000-4000-8000-000000000024";
+const SNOOZE_EXPIRED = "00000000-0000-4000-8000-000000000025";
+const PREVIEW_WA = "preview-wa";
+const PREVIEW_WA_DESK = "preview-wa-desk";
+
+const previewNumbers: InboxWhatsappNumber[] = [
+  { id: PREVIEW_WA, displayName: "Admissions", identifier: "10000000000101", displayPhone: "+27115550101" },
+  { id: PREVIEW_WA_DESK, displayName: "Front desk", identifier: "10000000000199", displayPhone: "+27825550199" },
+].map((row) => ({ id: row.id, ...whatsappNumberParts(row) }));
 
 const now = new Date("2026-09-26T12:00:00.000Z");
 
@@ -15,8 +48,10 @@ const threads: Record<string, InboxThread> = {
     channel: "whatsapp",
     status: "open",
     assignedUserId: PREVIEW_USER,
-    connectionId: "preview-wa",
+    connectionId: PREVIEW_WA,
     windowExpiresAt: windowExpiry(now),
+    snoozedUntil: null,
+    snoozeLabel: null,
     contact: {
       id: "preview-contact",
       name: "Lerato Mokoena",
@@ -39,6 +74,7 @@ const threads: Record<string, InboxThread> = {
         costCents: 0,
         providerMessageId: "wamid.preview",
         createdAt: now.toISOString(),
+        media: [],
       },
       {
         id: "preview-out",
@@ -50,9 +86,15 @@ const threads: Record<string, InboxThread> = {
         costCents: 0,
         providerMessageId: "outbox:msg_preview",
         createdAt: now.toISOString(),
+        media: [],
       },
     ],
-    notes: [{ id: "preview-note", body: "Asked for the prospectus. Not sent to the contact.", createdAt: now.toISOString() }],
+    notes: [{
+      id: "preview-note",
+      body: "Asked for the prospectus. Not sent to the contact.",
+      createdAt: now.toISOString(),
+      authorUserId: PREVIEW_USER,
+    }],
     consents: [
       { channel: "whatsapp", purpose: "service", status: "opted_in" },
       { channel: "whatsapp", purpose: "marketing", status: "opted_out" },
@@ -66,6 +108,8 @@ const threads: Record<string, InboxThread> = {
     assignedUserId: null,
     connectionId: null,
     windowExpiresAt: null,
+    snoozedUntil: null,
+    snoozeLabel: null,
     contact: {
       id: "preview-sms",
       name: "Thabo Ndlovu",
@@ -88,6 +132,7 @@ const threads: Record<string, InboxThread> = {
         costCents: 0,
         providerMessageId: "sms.preview",
         createdAt: now.toISOString(),
+        media: [],
       },
     ],
     notes: [],
@@ -98,8 +143,10 @@ const threads: Record<string, InboxThread> = {
     channel: "whatsapp",
     status: "open",
     assignedUserId: null,
-    connectionId: "preview-wa",
+    connectionId: PREVIEW_WA,
     windowExpiresAt: new Date(now.getTime() - 60 * 60 * 1000).toISOString(),
+    snoozedUntil: null,
+    snoozeLabel: null,
     contact: {
       id: "preview-expired",
       name: "Amina Patel",
@@ -108,8 +155,9 @@ const threads: Record<string, InboxThread> = {
       whatsapp: "+27825550222",
       company: "",
       tags: [],
+      leadTags: ["follow-up"],
       stage: "Contacted",
-      leadId: null,
+      leadId: "preview-lead-amina",
     },
     messages: [
       {
@@ -122,6 +170,155 @@ const threads: Record<string, InboxThread> = {
         costCents: 0,
         providerMessageId: "wamid.old",
         createdAt: new Date(now.getTime() - 26 * 60 * 60 * 1000).toISOString(),
+        media: [],
+      },
+    ],
+    notes: [],
+    consents: [],
+  },
+  [DESK_WA]: {
+    id: DESK_WA,
+    channel: "whatsapp",
+    status: "open",
+    assignedUserId: null,
+    connectionId: PREVIEW_WA_DESK,
+    windowExpiresAt: windowExpiry(now),
+    snoozedUntil: null,
+    snoozeLabel: null,
+    contact: {
+      id: "preview-desk",
+      name: "Sipho Dlamini",
+      email: "",
+      phone: "+27825550199",
+      whatsapp: "+27825550199",
+      company: "Dlamini Panel",
+      tags: ["workshop"],
+      stage: "Booked",
+      leadId: null,
+    },
+    messages: [
+      {
+        id: "preview-desk-in",
+        direction: "in",
+        body: "The bakkie is ready for collection.",
+        status: "received",
+        channel: "whatsapp",
+        waCategory: "service",
+        costCents: 0,
+        providerMessageId: "wamid.desk",
+        createdAt: now.toISOString(),
+        media: [],
+      },
+    ],
+    notes: [],
+    consents: [{ channel: "whatsapp", purpose: "service", status: "opted_in" }],
+  },
+  [CLOSED_EMAIL]: {
+    id: CLOSED_EMAIL,
+    channel: "email",
+    status: "closed",
+    assignedUserId: PREVIEW_USER,
+    connectionId: null,
+    windowExpiresAt: null,
+    snoozedUntil: null,
+    snoozeLabel: null,
+    contact: {
+      id: "preview-closed",
+      name: "Nomsa Khumalo",
+      email: "nomsa@example.com",
+      phone: "",
+      whatsapp: "",
+      company: "",
+      tags: [],
+      stage: "Won",
+      leadId: null,
+    },
+    messages: [
+      {
+        id: "preview-closed-in",
+        direction: "in",
+        body: "Thanks, that is all for now.",
+        status: "received",
+        channel: "email",
+        waCategory: "",
+        costCents: 0,
+        providerMessageId: "email.preview.closed",
+        createdAt: now.toISOString(),
+        media: [],
+      },
+    ],
+    notes: [],
+    consents: [],
+  },
+  [SNOOZED]: {
+    id: SNOOZED,
+    channel: "sms",
+    status: "open",
+    assignedUserId: PREVIEW_USER,
+    connectionId: null,
+    windowExpiresAt: null,
+    snoozedUntil: new Date(now.getTime() + 60 * 60 * 1000).toISOString(),
+    snoozeLabel: null,
+    contact: {
+      id: "preview-snoozed",
+      name: "Sipho Dlamini",
+      email: "",
+      phone: "+27825550199",
+      whatsapp: "",
+      company: "Dlamini Panel",
+      tags: [],
+      stage: "Booked",
+      leadId: null,
+    },
+    messages: [
+      {
+        id: "preview-snoozed-in",
+        direction: "in",
+        body: "Please check next week.",
+        status: "received",
+        channel: "sms",
+        waCategory: "",
+        costCents: 0,
+        providerMessageId: "sms.preview.snoozed",
+        createdAt: now.toISOString(),
+        media: [],
+      },
+    ],
+    notes: [],
+    consents: [],
+  },
+  [SNOOZE_EXPIRED]: {
+    id: SNOOZE_EXPIRED,
+    channel: "email",
+    status: "open",
+    assignedUserId: null,
+    connectionId: null,
+    windowExpiresAt: null,
+    snoozedUntil: new Date(now.getTime() - 60 * 60 * 1000).toISOString(),
+    snoozeLabel: null,
+    contact: {
+      id: "preview-snooze-expired",
+      name: "Naledi Khumalo",
+      email: "naledi@example.com",
+      phone: "",
+      whatsapp: "",
+      company: "",
+      tags: [],
+      stage: "Enquiry",
+      leadId: null,
+    },
+    messages: [
+      {
+        id: "preview-snooze-expired-in",
+        direction: "in",
+        body: "The snooze time has passed.",
+        status: "received",
+        channel: "email",
+        waCategory: "",
+        costCents: 0,
+        providerMessageId: "email.preview.snooze-expired",
+        createdAt: now.toISOString(),
+        media: [],
       },
     ],
     notes: [],
@@ -133,15 +330,75 @@ export function previewInbox(query: {
   filter?: string;
   channel?: string;
   id?: string;
+  number?: string;
+  multiNumber?: boolean;
+  /** Explicit override. Omit to follow INBOX_TEAM_STATS_ENABLED. */
+  teamStats?: boolean;
+  /** Explicit override. Omit to follow INBOX_WA_WINDOW_ENABLED. */
+  waWindow?: boolean;
+  /** Explicit override. Omit to follow INBOX_QUICK_UX_ENABLED. */
+  quickUx?: boolean;
+  /** Explicit override. Omit to follow INBOX_BULK_ACTIONS_ENABLED. */
+  bulkActions?: boolean;
+  /** Explicit override. Omit to follow INBOX_CONTACT_PANEL_ENABLED. */
+  contactPanel?: boolean;
+  /** Explicit override. Omit to follow INBOX_INTERNAL_NOTES_ENABLED. */
+  internalNotes?: boolean;
+  /** Explicit override. Omit to follow INBOX_TEMPLATES_PICKER_ENABLED. */
+  templatesPicker?: boolean;
+  /** Explicit override. Omit to follow INBOX_SEARCH_ENABLED. */
+  search?: boolean;
+  /** Explicit override. Omit to follow INBOX_TAG_FILTER_ENABLED. */
+  tagFilter?: boolean;
+  /** Explicit override. Omit to follow INBOX_MEDIA_ENABLED. */
+  media?: boolean;
+  /** Explicit override. Omit to follow INBOX_OUTBOUND_MEDIA_ENABLED. */
+  outboundMedia?: boolean;
+  /** Explicit override. Omit to follow INBOX_WA_METERING_ENABLED. */
+  waMetering?: boolean;
   notice?: string | null;
   brandSlug?: string | null;
+  statusFilters?: boolean;
+  /** Explicit override. Omit to follow INBOX_SNOOZE_ENABLED. */
+  snoozeEnabled?: boolean;
 }): InboxData {
-  const filter = parseInboxFilter(query.filter);
+  const statusFiltersEnabled = query.statusFilters ?? inboxStatusAssigneeFiltersEnabled();
+  const snoozeEnabled = query.snoozeEnabled ?? inboxSnoozeEnabled();
+  const filter = query.filter === "snoozed"
+    ? parseInboxFilter(query.filter, { snoozeEnabled })
+    : parseStatusAssigneeFilter(query.filter, statusFiltersEnabled);
   const channel = parseInboxChannel(query.channel);
+  const multiNumber = query.multiNumber ?? inboxMultiNumberEnabled();
+  const teamStatsOn = query.teamStats ?? inboxTeamStatsEnabled();
+  const waWindowEnabled = query.waWindow ?? inboxWaWindowEnabled();
+  const quickUx = query.quickUx ?? inboxQuickUxEnabled();
+  const bulkActions = query.bulkActions ?? inboxBulkActionsEnabled();
+  const contactPanel = query.contactPanel ?? inboxContactPanelEnabled();
+  const internalNotes = query.internalNotes ?? inboxInternalNotesEnabled();
+  const templatesPicker = query.templatesPicker ?? inboxTemplatesPickerEnabled();
+  const search = query.search ?? inboxSearchEnabled();
+  const tagFilter = query.tagFilter ?? inboxTagFilterEnabled();
+  const media = query.media ?? inboxMediaEnabled();
+  const outboundMedia = query.outboundMedia ?? inboxOutboundMediaEnabled();
+  const waMeteringEnabled = query.waMetering ?? inboxWaMeteringEnabled();
+  const whatsappNumbers = multiNumber ? previewNumbers : [];
+  const number = multiNumber
+    ? resolveInboxNumber(parseInboxNumber(query.number), whatsappNumbers.map((item) => item.id))
+    : "";
   const list = [
-    { id: OPEN_WA, channel: "whatsapp", status: "open", assignedUserId: PREVIEW_USER, unread: 1, preview: "Can I still apply for the October intake?", name: "Lerato Mokoena", window: threads[OPEN_WA].windowExpiresAt },
-    { id: OPEN_SMS, channel: "sms", status: "open", assignedUserId: null, unread: 0, preview: "Please call the practice.", name: "Thabo Ndlovu", window: null },
-    { id: EXPIRED_WA, channel: "whatsapp", status: "open", assignedUserId: null, unread: 2, preview: "Thanks, I will think about it.", name: "Amina Patel", window: threads[EXPIRED_WA].windowExpiresAt },
+    { id: OPEN_WA, connectionId: PREVIEW_WA, channel: "whatsapp", status: "open", assignedUserId: PREVIEW_USER, unread: 1, preview: "Can I still apply for the October intake?", name: "Lerato Mokoena", window: threads[OPEN_WA].windowExpiresAt },
+    { id: OPEN_SMS, connectionId: null, channel: "sms", status: "open", assignedUserId: null, unread: 0, preview: "Please call the practice.", name: "Thabo Ndlovu", window: null },
+    { id: EXPIRED_WA, connectionId: PREVIEW_WA, channel: "whatsapp", status: "open", assignedUserId: null, unread: 2, preview: "Thanks, I will think about it.", name: "Amina Patel", window: threads[EXPIRED_WA].windowExpiresAt },
+    { id: CLOSED_EMAIL, connectionId: null, channel: "email", status: "closed", assignedUserId: PREVIEW_USER, unread: 0, preview: "Thanks, that is all for now.", name: "Nomsa Khumalo", window: null },
+    ...(multiNumber
+      ? [{ id: DESK_WA, connectionId: PREVIEW_WA_DESK, channel: "whatsapp", status: "open", assignedUserId: null, unread: 1, preview: "The bakkie is ready for collection.", name: "Sipho Dlamini", window: threads[DESK_WA].windowExpiresAt, snoozedUntil: null as string | null }]
+      : []),
+    ...(snoozeEnabled
+      ? [
+          { id: SNOOZED, connectionId: null, channel: "sms", status: "open", assignedUserId: PREVIEW_USER, unread: 1, preview: "Please check next week.", name: "Sipho Dlamini", window: null, snoozedUntil: threads[SNOOZED].snoozedUntil },
+          { id: SNOOZE_EXPIRED, connectionId: null, channel: "email", status: "open", assignedUserId: null, unread: 0, preview: "The snooze time has passed.", name: "Naledi Khumalo", window: null, snoozedUntil: threads[SNOOZE_EXPIRED].snoozedUntil },
+        ]
+      : []),
   ].filter((item) => {
     if (!query.brandSlug || query.brandSlug === "ai-autotech") return true;
     const company = threads[item.id]?.contact?.company ?? "";
@@ -154,6 +411,14 @@ export function previewInbox(query: {
     filter,
     channelFilter: channel,
     userId: PREVIEW_USER,
+    snoozedUntil: "snoozedUntil" in item ? item.snoozedUntil : null,
+    now,
+    snoozeEnabled,
+  })).filter((item) => matchesInboxNumber({
+    enabled: multiNumber,
+    numberId: number,
+    channel: item.channel,
+    connectionId: item.connectionId,
   }));
   const selected = query.id && list.some((item) => item.id === query.id) ? query.id : list[0]?.id;
   return {
@@ -162,21 +427,39 @@ export function previewInbox(query: {
     orgSlug: "preview",
     userId: PREVIEW_USER,
     assignedOnly: false,
+    inboxScope: "main",
     sendingEnabled: false,
     filter,
+    statusFiltersEnabled,
+    snoozeEnabled,
     channel,
-    conversations: list.map((item) => ({
-      id: item.id,
-      channel: item.channel,
-      status: item.status,
-      assignedUserId: item.assignedUserId,
-      unread: item.unread,
-      lastMessageAt: now.toISOString(),
-      windowExpiresAt: item.window,
-      contactName: item.name,
-      preview: item.preview,
-    })),
-    thread: selected ? threads[selected] : null,
+    multiNumber,
+    number,
+    whatsappNumbers,
+    conversations: list.map((item) => {
+      const contact = threads[item.id]?.contact;
+      const address = searchListFields(contact, search);
+      const listedTags = listTagFields(contact, tagFilter);
+      return {
+        id: item.id,
+        channel: item.channel,
+        status: item.status,
+        assignedUserId: item.assignedUserId,
+        connectionId: item.connectionId,
+        unread: item.unread,
+        lastMessageAt: now.toISOString(),
+        windowExpiresAt: item.window,
+        snoozedUntil: ("snoozedUntil" in item ? item.snoozedUntil : null) ?? null,
+        snoozeLabel: snoozeEnabled ? activeSnoozeLabel(("snoozedUntil" in item ? item.snoozedUntil : null) ?? null, now) : null,
+        contactName: item.name,
+        preview: item.preview,
+        phone: address.phone,
+        email: address.email,
+        tags: listedTags.tags,
+        leadTags: listedTags.leadTags,
+      };
+    }),
+    thread: threadForPreview(selected, internalNotes, media, snoozeEnabled),
     templates: [
       {
         id: "preview-template",
@@ -197,8 +480,26 @@ export function previewInbox(query: {
         approved: false,
       },
     ],
-    connections: [{ id: "preview-wa", channel: "whatsapp", label: "Preview WhatsApp · 1000 free from 1 Oct 2026" }],
+    connections: [{ id: PREVIEW_WA, channel: "whatsapp", label: "Preview WhatsApp · 1000 free from 1 Oct 2026" }],
     members: [{ userId: PREVIEW_USER, role: "client_admin" }],
+    teamStats: teamStatsOn ? previewTeamStats(list) : null,
+    waWindowEnabled,
+    ...previewWaMetering(waMeteringEnabled, {
+      whatsappNumbers,
+      thread: selected ? threads[selected] ?? null : null,
+    }),
+    quickUx,
+    bulkActions,
+    contactPanel,
+    internalNotes,
+    templatesPicker,
+    search,
+    tagFilter,
+    media,
+    outboundMedia,
+    quickReplies: quickUx ? quickRepliesForWorkspace(null) : [],
+    presence: quickUx ? previewInboxPresence(OPEN_WA, EXPIRED_WA) : [],
+    loadedAt: now.toISOString(),
     serviceUsed: 12,
     notice: query.notice ?? "Preview inbox. Connect Supabase to load this workspace. Nothing here is delivered.",
     aiEnabled: false,
@@ -217,4 +518,86 @@ export function previewInbox(query: {
         }
       : null,
   };
+}
+
+function threadForPreview(id: string | undefined, internalNotes: boolean, mediaEnabled: boolean, snoozeEnabled: boolean): InboxThread | null {
+  if (!id) return null;
+  const thread = threads[id];
+  if (!thread) return null;
+  return {
+    ...thread,
+    snoozeLabel: snoozeEnabled ? activeSnoozeLabel(thread.snoozedUntil, now) : null,
+    notes: internalNotes ? thread.notes : [],
+    messages: thread.messages.map((message) => ({
+      ...message,
+      media: mediaEnabled && message.id === "preview-in" ? parseMessageMedia(PREVIEW_MESSAGE_MEDIA) : [],
+    })),
+  };
+}
+
+function previewWaMetering(
+  enabled: boolean,
+  input: { whatsappNumbers: InboxWhatsappNumber[]; thread: InboxThread | null },
+) {
+  if (!enabled) return { waMeteringEnabled: false as const, waTimezone: "", waMeters: [] };
+  const connections = [{ id: PREVIEW_WA, channel: "whatsapp", label: "Preview WhatsApp · 1000 free from 1 Oct 2026" }];
+  const numbers = waMeterNumbers({
+    connections,
+    whatsappNumbers: input.whatsappNumbers,
+    threadChannel: input.thread?.channel,
+    threadConnectionId: input.thread?.connectionId,
+  });
+  const rows: ServiceSendRow[] = [];
+  for (const thread of Object.values(threads)) {
+    for (const message of thread.messages) {
+      rows.push({
+        direction: message.direction,
+        channel: message.channel,
+        waCategory: message.waCategory,
+        status: message.status,
+        createdAt: message.createdAt,
+        connectionId: thread.connectionId,
+      });
+    }
+  }
+  const counts = countServiceSendsByConnection(rows, { now, timezone: WA_METER_TIMEZONE });
+  // Preview has no database. The admissions number reuses the fixture counter (serviceUsed).
+  counts[PREVIEW_WA] = 12;
+  return {
+    waMeteringEnabled: true as const,
+    waTimezone: WA_METER_TIMEZONE,
+    waMeters: buildServiceMeters({ numbers, counts, timezone: WA_METER_TIMEZONE, now }),
+  };
+}
+
+function previewTeamStats(list: { id: string; status: string; assignedUserId: string | null; name: string }[]): InboxTeamStats {
+  const messages: TeamStatsMessage[] = [];
+  for (const item of list) {
+    const thread = threads[item.id];
+    if (!thread) continue;
+    for (const message of thread.messages) {
+      messages.push({
+        conversationId: item.id,
+        direction: message.direction,
+        createdAt: message.createdAt,
+        status: message.status,
+        sentByUserId: message.id === "preview-out" ? PREVIEW_USER : null,
+      });
+    }
+  }
+  return buildInboxTeamStats({
+    now,
+    conversations: list.map((item) => ({
+      id: item.id,
+      status: item.status,
+      assignedUserId: item.assignedUserId,
+      contactName: item.name,
+      lastMessageAt: now.toISOString(),
+    })),
+    messages,
+    members: [{ userId: PREVIEW_USER, role: "client_admin" }],
+    userId: PREVIEW_USER,
+    messagesLoaded: true,
+    truncated: false,
+  });
 }

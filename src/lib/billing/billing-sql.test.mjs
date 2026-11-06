@@ -89,6 +89,45 @@ function itn(paymentStatus, eventId, extra = {}) {
   });
 }
 
+test("team seat migration seeds placeholder plans and leaves sending off", async () => {
+  const sql = migration("20261117120000_team_seat_billing.sql");
+  assert.equal(/sending_enabled\s*=\s*true/i.test(sql), false);
+  assert.equal(/www\.payfast\.co\.za/i.test(sql), false);
+  const db = new PGlite();
+  await applyBilling(db);
+  const before = await db.query(`select sending_enabled from organizations where slug = 'ai-autotech'`);
+  await db.exec(sql);
+  const plans = await db.query(
+    `select code, price_cents::int as price_cents, features->>'price_placeholder' as placeholder
+     from plans where code in ('extra_team_seat', 'extra_whatsapp_number') order by code`,
+  );
+  assert.deepEqual(plans.rows, [
+    { code: "extra_team_seat", price_cents: 14900, placeholder: "true" },
+    { code: "extra_whatsapp_number", price_cents: 9900, placeholder: "true" },
+  ]);
+  await db.exec(`
+    create table if not exists public.pricing_sheet (
+      key text primary key,
+      amount_cents integer,
+      quantity numeric,
+      percent numeric,
+      price_placeholder boolean not null default true,
+      note text not null default ''
+    );
+  `);
+  await db.exec(sql);
+  const sheet = await db.query(
+    `select key, amount_cents, price_placeholder from pricing_sheet where key in ('extra_team_seat', 'extra_whatsapp_number') order by key`,
+  );
+  assert.deepEqual(sheet.rows, [
+    { key: "extra_team_seat", amount_cents: 14900, price_placeholder: true },
+    { key: "extra_whatsapp_number", amount_cents: 9900, price_placeholder: true },
+  ]);
+  const after = await db.query(`select sending_enabled from organizations where slug = 'ai-autotech'`);
+  assert.equal(after.rows[0].sending_enabled, false);
+  assert.equal(after.rows[0].sending_enabled, before.rows[0].sending_enabled);
+});
+
 test("phase 2f migration keeps sending off and sandbox only", () => {
   const sql = migration("20261019120000_phase2f_billing.sql");
   assert.equal(/sending_enabled\s*=\s*true/i.test(sql), false);

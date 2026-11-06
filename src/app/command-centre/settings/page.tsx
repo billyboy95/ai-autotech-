@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { saveAutomationSettings } from "@/app/actions/automation";
+import { WhatsAppEmbeddedSignupSlot } from "@/components/connect/whatsapp-embedded-signup-slot";
 import { CommandShell } from "@/components/crm/command-shell";
 import { InstallSettingsCard } from "@/components/pwa/install-card";
 import { loadCommandData } from "@/lib/automation/page-data";
@@ -68,6 +69,7 @@ export default async function SettingsPage() {
         </label>
         <button className="h-10 w-fit rounded-md bg-[#2563EB] px-4 text-sm font-semibold text-white">Save settings</button>
       </form>
+      <WhatsAppEmbeddedSignupSlot surface="settings" />
       <InstallSettingsCard />
     </CommandShell>
   );

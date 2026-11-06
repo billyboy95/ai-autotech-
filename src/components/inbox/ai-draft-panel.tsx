@@ -115,6 +115,7 @@ function Hidden({ data, id }: { data: InboxData; id: string }) {
       <input type="hidden" name="org" value={data.orgSlug === "preview" ? "" : data.orgSlug} />
       <input type="hidden" name="filter" value={data.filter} />
       <input type="hidden" name="channel" value={data.channel} />
+      {data.multiNumber && data.number ? <input type="hidden" name="number" value={data.number} /> : null}
       <input type="hidden" name="id" value={id} />
     </>
   );

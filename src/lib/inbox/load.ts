@@ -242,10 +242,9 @@ export async function loadInbox(query: {
   }
 
   const listPlan = conversationListQuery({ enabled: statusFiltersEnabled, filter: query.filter, userId });
-  const listColumns = inboxListSelect(base.search, base.tagFilter) + (snoozeEnabled ? ", snoozed_until" : "");
   let listed = supabase
     .from("conversations")
-    .select(listColumns)
+    .select(inboxListSelect(base.search, base.tagFilter))
     .eq("org_id", tenant.active.id)
     .order("last_message_at", { ascending: false })
     .limit(100);
@@ -277,7 +276,7 @@ export async function loadInbox(query: {
     return { ...base, notice: conversations.error.message };
   }
 
-  const mapped = (conversations.data ?? []).map((row) => {
+  let mapped = (conversations.data ?? []).map((row) => {
     const contact = one(row.crm_contacts) as {
       first_name?: string;
       last_name?: string;
@@ -305,8 +304,8 @@ export async function loadInbox(query: {
       unread: Number(row.unread_count || 0),
       lastMessageAt: row.last_message_at ? String(row.last_message_at) : null,
       windowExpiresAt: row.wa_window_expires_at ? String(row.wa_window_expires_at) : null,
-      snoozedUntil: snoozeEnabled && "snoozed_until" in row && row.snoozed_until ? String(row.snoozed_until) : null,
-      snoozeLabel: snoozeEnabled ? activeSnoozeLabel("snoozed_until" in row && row.snoozed_until ? String(row.snoozed_until) : null, new Date()) : null,
+      snoozedUntil: null as string | null,
+      snoozeLabel: null as string | null,
       contactName: name || "Unknown contact",
       preview: "",
       phone: address.phone,
@@ -323,7 +322,24 @@ export async function loadInbox(query: {
     assignedUserId: item.assignedUserId,
     channel: item.channel,
     haystack: item.contactName,
-  })).filter((item) => matchesInboxList({
+  }));
+  const snoozeNow = new Date();
+  if (snoozeEnabled && mapped.length > 0) {
+    const snoozeLookup = await supabase
+      .from("conversations")
+      .select("id, snoozed_until")
+      .in("id", mapped.map((item) => item.id));
+    if (snoozeLookup.error) {
+      if (missingSnoozeColumn(snoozeLookup.error.message)) base.notice = SNOOZE_COLUMN_MISSING;
+    } else {
+      const untilById = new Map((snoozeLookup.data ?? []).map((row) => [String(row.id), row.snoozed_until ? String(row.snoozed_until) : null]));
+      mapped = mapped.map((item) => {
+        const until = untilById.get(item.id) ?? null;
+        return { ...item, snoozedUntil: until, snoozeLabel: activeSnoozeLabel(until, snoozeNow) };
+      });
+    }
+  }
+  mapped = mapped.filter((item) => matchesInboxList({
     status: item.status,
     assignedUserId: item.assignedUserId,
     channel: item.channel,
@@ -331,7 +347,7 @@ export async function loadInbox(query: {
     channelFilter: channel,
     userId,
     snoozedUntil: item.snoozedUntil,
-    now: new Date(),
+    now: snoozeNow,
     snoozeEnabled,
   }));
   const tagged = await attachInboxLeadTags(supabase, tenant.active.id, mapped, base.tagFilter);
@@ -652,7 +668,17 @@ async function loadThread(
     .eq("org_id", orgId)
     .maybeSingle();
   if (conversation.error || !conversation.data) return null;
-  const row = conversation.data;
+  const row = conversation.data as unknown as {
+    id: string;
+    channel: string;
+    status: string;
+    assigned_user_id: string | null;
+    channel_connection_id: string | null;
+    wa_window_expires_at: string | null;
+    contact_id: string | null;
+    snoozed_until?: string | null;
+    crm_contacts: unknown;
+  };
   const contactRow = one(row.crm_contacts) as {
     id?: string;
     first_name?: string;
@@ -706,8 +732,8 @@ async function loadThread(
     assignedUserId: row.assigned_user_id ? String(row.assigned_user_id) : null,
     connectionId: row.channel_connection_id ? String(row.channel_connection_id) : null,
     windowExpiresAt: row.wa_window_expires_at ? String(row.wa_window_expires_at) : null,
-    snoozedUntil: "snoozed_until" in row && row.snoozed_until ? String(row.snoozed_until) : null,
-    snoozeLabel: snoozeEnabled ? activeSnoozeLabel("snoozed_until" in row && row.snoozed_until ? String(row.snoozed_until) : null, new Date()) : null,
+    snoozedUntil: row.snoozed_until ? String(row.snoozed_until) : null,
+    snoozeLabel: snoozeEnabled ? activeSnoozeLabel(row.snoozed_until ? String(row.snoozed_until) : null, new Date()) : null,
     contact,
     messages: messages.rows.map((row) => mapMessage(row, messages.withMedia)),
     notes: ((notes.error ? [] : notes.data ?? []) as Record<string, unknown>[]).map(mapNote),

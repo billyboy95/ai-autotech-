@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { workspaceWriteBlock } from "@/lib/billing/guard";
 import { usageForSend } from "@/lib/compliance/usage";
 import type { ConsentStatus } from "@/lib/compliance/send-gate";
-import { conversationVisible, inboxAssignedOnlyEnabled, loadInboxScopeForOrg } from "@/lib/inbox/assigned-only";
+import { conversationVisible, inboxAssignedOnlyEnabled, loadInboxScopeForOrg, type InboxScope } from "@/lib/inbox/assigned-only";
 import {
   inboxContactPanelEnabled,
   parseContactTags,
